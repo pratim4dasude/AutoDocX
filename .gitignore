@@ -1,0 +1,32 @@
+# Development virtual environment
+.venv/
+venv/
+
+# Downloaded private runtime
+runtime/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# PyCharm
+.idea/
+
+# Secrets
+.env
+.env.*
+
+# Logs
+*.log
+
+# Generated workspace content
+#workspace/projects/*
+#workspace/generated_docs/*
+#workspace/snapshots/*
+#workspace/logs/*
+
+# Windows
+Thumbs.db
+
+# macOS
+.DS_Store
