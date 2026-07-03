@@ -3,7 +3,7 @@ from fastapi import (
     HTTPException,
     status,
 )
-
+from fastapi.responses import FileResponse
 from app.core.config import (
     get_llm_api_key,
     get_llm_model,
@@ -23,6 +23,9 @@ from app.models.project import (
     StoredScanResponse,
     StoredUnderstandingResponse,
     UnderstandingSummaryResponse,
+    DocumentGenerationRequest,
+    DocumentGenerationResponse,
+    DocumentSummaryResponse,
 )
 from app.services.project_context_builder import (
     ProjectContextBuilder,
@@ -43,6 +46,13 @@ from app.services.understanding_storage import (
     UnderstandingStorage,
 )
 
+from app.services.document_builder import (
+    DocumentBuilder,
+)
+from app.services.document_storage import (
+    DocumentStorage,
+)
+
 router = APIRouter(
     prefix="/api/projects",
     tags=["Projects"],
@@ -58,6 +68,9 @@ project_understanding_service = (
 understanding_storage = (
     UnderstandingStorage()
 )
+document_builder = DocumentBuilder()
+document_storage = DocumentStorage()
+
 
 @router.post(
     "/scan",
@@ -394,6 +407,104 @@ def list_project_understandings(
             detail=str(error),
         ) from error
 
+@router.post(
+    "/{project_name}/documents",
+    response_model=DocumentGenerationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary=(
+        "Generate and save HTML project "
+        "documentation"
+    ),
+)
+def generate_project_document(
+    project_name: str,
+    request: DocumentGenerationRequest,
+) -> DocumentGenerationResponse:
+    try:
+        stored_understanding = (
+            understanding_storage
+            .get_understanding(
+                project_name=project_name,
+                understanding_id=(
+                    request.understanding_id
+                ),
+            )
+        )
+
+        html_content = (
+            document_builder.build_html(
+                stored_understanding=(
+                    stored_understanding
+                ),
+            )
+        )
+
+        document_info = (
+            document_storage.save_document(
+                project_name=project_name,
+                understanding_id=(
+                    request.understanding_id
+                ),
+                scan_id=str(
+                    stored_understanding.get(
+                        "scan_id",
+                        "",
+                    )
+                ),
+                html_content=html_content,
+            )
+        )
+
+        return DocumentGenerationResponse(
+            message=(
+                "HTML documentation generated "
+                "successfully."
+            ),
+            document=document_info,
+        )
+
+    except ValueError as error:
+        error_message = str(error)
+
+        if (
+            "Understanding not found"
+            in error_message
+            or "Document not found"
+            in error_message
+        ):
+            response_status = (
+                status.HTTP_404_NOT_FOUND
+            )
+        else:
+            response_status = (
+                status.HTTP_400_BAD_REQUEST
+            )
+
+        raise HTTPException(
+            status_code=response_status,
+            detail=error_message,
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "HTML documentation generation "
+                "failed."
+            ),
+        ) from error
 
 @router.get(
     "/{project_name}/understandings/latest",
@@ -580,6 +691,89 @@ def get_project_scan(
         raise HTTPException(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+
+@router.get(
+    "/{project_name}/documents",
+    response_model=list[
+        DocumentSummaryResponse
+    ],
+    status_code=status.HTTP_200_OK,
+    summary="List generated project documents",
+)
+def list_project_documents(
+    project_name: str,
+) -> list[DocumentSummaryResponse]:
+    try:
+        documents = (
+            document_storage.list_documents(
+                project_name=project_name,
+            )
+        )
+
+        return [
+            DocumentSummaryResponse(
+                **document
+            )
+            for document in documents
+        ]
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+@router.get(
+    (
+        "/{project_name}/documents/"
+        "{document_id}/html"
+    ),
+    response_class=FileResponse,
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "Open or download generated HTML "
+        "documentation"
+    ),
+)
+def get_project_document_html(
+    project_name: str,
+    document_id: str,
+) -> FileResponse:
+    try:
+        document_file = (
+            document_storage
+            .get_document_file(
+                project_name=project_name,
+                document_id=document_id,
+            )
+        )
+
+        return FileResponse(
+            path=document_file,
+            media_type="text/html",
+            filename=document_file.name,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+            detail=str(error),
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=str(error),
         ) from error

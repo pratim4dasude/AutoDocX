@@ -16,6 +16,9 @@ SCANS_PATH = WORKSPACE_PATH / "scans"
 UNDERSTANDINGS_PATH = (
     WORKSPACE_PATH / "understandings"
 )
+DOCUMENTS_PATH = (
+    WORKSPACE_PATH / "documents"
+)
 
 
 def create_required_directories() -> None:
@@ -30,6 +33,11 @@ def create_required_directories() -> None:
     )
 
     UNDERSTANDINGS_PATH.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    DOCUMENTS_PATH.mkdir(
         parents=True,
         exist_ok=True,
     )

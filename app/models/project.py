@@ -175,3 +175,48 @@ class ProjectUnderstandingResponse(
     model: str
     understanding: dict[str, Any]
     storage: UnderstandingStorageInfo
+
+class DocumentGenerationRequest(
+    BaseModel
+):
+    understanding_id: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Saved understanding used to "
+            "generate HTML documentation"
+        ),
+    )
+
+
+class DocumentStorageInfo(
+    BaseModel
+):
+    document_id: str
+    created_at: str
+    project_name: str
+    scan_id: str
+    understanding_id: str
+    document_type: str
+    document_file: str
+    metadata_file: str
+
+
+class DocumentGenerationResponse(
+    BaseModel
+):
+    message: str
+    document: DocumentStorageInfo
+
+
+class DocumentSummaryResponse(
+    BaseModel
+):
+    document_id: str
+    created_at: str
+    project_name: str
+    scan_id: str
+    understanding_id: str
+    document_type: str
+    document_file: str
+    metadata_file: str
