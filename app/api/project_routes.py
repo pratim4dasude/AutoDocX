@@ -30,6 +30,8 @@ from app.models.project import (
     StoredScanResponse,
     StoredUnderstandingResponse,
     UnderstandingSummaryResponse,
+    DocumentationSyncRequest,
+    DocumentationSyncResponse,
 )
 from app.services.document_builder import (
     DocumentBuilder,
@@ -178,7 +180,476 @@ def _value_error_status(
 
     return status.HTTP_400_BAD_REQUEST
 
+def _generate_and_save_understanding(
+    stored_scan: dict[str, Any],
+) -> tuple[
+    str,
+    dict[str, Any],
+]:
+    """
+    Generate an LLM understanding for a stored scan,
+    save it, and return its ID and stored payload.
+    """
 
+    provider_name = get_llm_provider()
+
+    api_key = get_llm_api_key(
+        provider_name=provider_name,
+    )
+
+    model_name = get_llm_model(
+        provider_name=provider_name,
+    )
+
+    understanding_result = (
+        project_understanding_service
+        .generate_understanding(
+            stored_scan=stored_scan,
+            provider_name=provider_name,
+            api_key=api_key,
+            model=model_name,
+        )
+    )
+
+    storage_info = (
+        understanding_storage
+        .save_understanding(
+            understanding_result=(
+                understanding_result
+            ),
+        )
+    )
+
+    understanding_id = str(
+        storage_info.get(
+            "understanding_id",
+            "",
+        )
+    ).strip()
+
+    if not understanding_id:
+        raise RuntimeError(
+            "The generated understanding was "
+            "saved without an understanding ID."
+        )
+
+    project_name = str(
+        understanding_result.get(
+            "project_name",
+            "",
+        )
+    ).strip()
+
+    if not project_name:
+        raise RuntimeError(
+            "The generated understanding does "
+            "not contain a project name."
+        )
+
+    stored_understanding = (
+        understanding_storage
+        .get_understanding(
+            project_name=project_name,
+            understanding_id=(
+                understanding_id
+            ),
+        )
+    )
+
+    return (
+        understanding_id,
+        stored_understanding,
+    )
+
+
+def _generate_and_save_document(
+    project_name: str,
+    scan_id: str,
+    understanding_id: str,
+    stored_understanding: dict[str, Any],
+    update_type: str,
+    previous_document_id: (
+        str | None
+    ) = None,
+    comparison_summary: (
+        dict[str, Any] | None
+    ) = None,
+) -> dict[str, Any]:
+    """
+    Build HTML from a stored understanding and
+    save the generated document.
+    """
+
+    html_content = (
+        document_builder.build_html(
+            stored_understanding=(
+                stored_understanding
+            ),
+        )
+    )
+
+    return document_storage.save_document(
+        project_name=project_name,
+        understanding_id=understanding_id,
+        scan_id=scan_id,
+        html_content=html_content,
+        previous_document_id=(
+            previous_document_id
+        ),
+        update_type=update_type,
+        comparison_summary=(
+            comparison_summary
+        ),
+    )
+
+
+
+# ============================================================
+# Complete documentation synchronization endpoint
+# ============================================================
+
+
+@router.post(
+    "/documentation/sync",
+    response_model=DocumentationSyncResponse,
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "Create or update project documentation "
+        "using one request"
+    ),
+)
+def sync_project_documentation(
+    request: DocumentationSyncRequest,
+) -> DocumentationSyncResponse:
+    """
+    Complete documentation workflow.
+
+    The endpoint:
+
+    1. Scans and saves the project.
+    2. Finds the latest document.
+    3. Creates initial documentation when no
+       document exists.
+    4. Compares scans when a document exists.
+    5. Creates a new version when changes exist.
+    6. Returns the existing document when there
+       are no changes.
+    """
+
+    try:
+        # ----------------------------------------------------
+        # Step 1: Scan the project
+        # ----------------------------------------------------
+
+        scan_result = (
+            project_scanner.scan_project(
+                project_path=request.project_path,
+            )
+        )
+
+        scan_storage_info = (
+            scan_storage.save_scan(
+                scan_result=scan_result,
+            )
+        )
+
+        project_name = str(
+            scan_result.get(
+                "project_name",
+                "",
+            )
+        ).strip()
+
+        new_scan_id = str(
+            scan_storage_info.get(
+                "scan_id",
+                "",
+            )
+        ).strip()
+
+        if not project_name:
+            raise RuntimeError(
+                "The project scan did not return "
+                "a project name."
+            )
+
+        if not new_scan_id:
+            raise RuntimeError(
+                "The project scan was saved "
+                "without a scan ID."
+            )
+
+        new_stored_scan = (
+            scan_storage.get_scan(
+                project_name=project_name,
+                scan_id=new_scan_id,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Step 2: Find existing documentation
+        # ----------------------------------------------------
+
+        existing_documents = (
+            document_storage.list_documents(
+                project_name=project_name,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Step 3: No previous document - create initial doc
+        # ----------------------------------------------------
+
+        if not existing_documents:
+            (
+                understanding_id,
+                stored_understanding,
+            ) = _generate_and_save_understanding(
+                stored_scan=new_stored_scan,
+            )
+
+            new_document = (
+                _generate_and_save_document(
+                    project_name=project_name,
+                    scan_id=new_scan_id,
+                    understanding_id=(
+                        understanding_id
+                    ),
+                    stored_understanding=(
+                        stored_understanding
+                    ),
+                    update_type="initial",
+                )
+            )
+
+            document_id = str(
+                new_document.get(
+                    "document_id",
+                    "",
+                )
+            )
+
+            return DocumentationSyncResponse(
+                action="created",
+                message=(
+                    "Initial project documentation "
+                    "was created successfully."
+                ),
+                project_name=project_name,
+                scan_id=new_scan_id,
+                previous_document_id=None,
+                document_id=document_id,
+                understanding_id=(
+                    understanding_id
+                ),
+                has_changes=True,
+                comparison_summary={},
+                document=new_document,
+            )
+
+        # ----------------------------------------------------
+        # Step 4: Read latest document information
+        # ----------------------------------------------------
+
+        latest_document = (
+            existing_documents[0]
+        )
+
+        previous_document_id = str(
+            latest_document.get(
+                "document_id",
+                "",
+            )
+        ).strip()
+
+        old_scan_id = str(
+            latest_document.get(
+                "scan_id",
+                "",
+            )
+        ).strip()
+
+        previous_understanding_id = str(
+            latest_document.get(
+                "understanding_id",
+                "",
+            )
+        ).strip()
+
+        if not previous_document_id:
+            raise RuntimeError(
+                "The latest document does not "
+                "contain a document ID."
+            )
+
+        if not old_scan_id:
+            raise RuntimeError(
+                "The latest document does not "
+                "contain its original scan ID."
+            )
+
+        old_stored_scan = (
+            scan_storage.get_scan(
+                project_name=project_name,
+                scan_id=old_scan_id,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Step 5: Compare old and new scans
+        # ----------------------------------------------------
+
+        comparison_result = (
+            scan_comparator.compare_scans(
+                old_stored_scan=old_stored_scan,
+                new_stored_scan=new_stored_scan,
+            )
+        )
+
+        comparison_summary = (
+            comparison_result.get(
+                "summary",
+                {},
+            )
+        )
+
+        has_changes = bool(
+            comparison_summary.get(
+                "has_changes",
+                comparison_contains_changes(
+                    comparison_result
+                ),
+            )
+        )
+
+        # ----------------------------------------------------
+        # Step 6: No changes - return latest document
+        # ----------------------------------------------------
+
+        if not has_changes:
+            return DocumentationSyncResponse(
+                action="unchanged",
+                message=(
+                    "No project changes were "
+                    "detected. The existing "
+                    "documentation is current."
+                ),
+                project_name=project_name,
+                scan_id=new_scan_id,
+                previous_document_id=(
+                    previous_document_id
+                ),
+                document_id=(
+                    previous_document_id
+                ),
+                understanding_id=(
+                    previous_understanding_id
+                    or None
+                ),
+                has_changes=False,
+                comparison_summary=(
+                    comparison_summary
+                ),
+                document=latest_document,
+            )
+
+        # ----------------------------------------------------
+        # Step 7: Changes found - create new version
+        # ----------------------------------------------------
+
+        (
+            new_understanding_id,
+            stored_understanding,
+        ) = _generate_and_save_understanding(
+            stored_scan=new_stored_scan,
+        )
+
+        new_document = (
+            _generate_and_save_document(
+                project_name=project_name,
+                scan_id=new_scan_id,
+                understanding_id=(
+                    new_understanding_id
+                ),
+                stored_understanding=(
+                    stored_understanding
+                ),
+                update_type="version_update",
+                previous_document_id=(
+                    previous_document_id
+                ),
+                comparison_summary=(
+                    comparison_summary
+                ),
+            )
+        )
+
+        new_document_id = str(
+            new_document.get(
+                "document_id",
+                "",
+            )
+        )
+
+        return DocumentationSyncResponse(
+            action="updated",
+            message=(
+                "Project changes were detected "
+                "and a new documentation version "
+                "was created successfully."
+            ),
+            project_name=project_name,
+            scan_id=new_scan_id,
+            previous_document_id=(
+                previous_document_id
+            ),
+            document_id=new_document_id,
+            understanding_id=(
+                new_understanding_id
+            ),
+            has_changes=True,
+            comparison_summary=(
+                comparison_summary
+            ),
+            document=new_document,
+        )
+
+    except ValueError as error:
+        error_message = str(error)
+
+        raise HTTPException(
+            status_code=_value_error_status(
+                error_message
+            ),
+            detail=error_message,
+        ) from error
+
+    except PermissionError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_403_FORBIDDEN
+            ),
+            detail=f"Permission denied: {error}",
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_502_BAD_GATEWAY
+            ),
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "Documentation synchronization "
+                f"failed: {error}"
+            ),
+        ) from error
 # ============================================================
 # Scan endpoints
 # ============================================================

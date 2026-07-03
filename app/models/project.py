@@ -280,3 +280,57 @@ class DocumentUpdateResponse(
     document: (
         DocumentStorageInfo | None
     ) = None
+
+class DocumentationSyncRequest(
+    BaseModel
+):
+    project_path: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Absolute path of the project whose "
+            "documentation should be created "
+            "or updated"
+        ),
+        examples=[
+            "C:\\Users\\PratimMangaldasDasud\\"
+            "PycharmProjects\\AutoDocX"
+        ],
+    )
+
+
+class DocumentationSyncResponse(
+    BaseModel
+):
+    action: Literal[
+        "created",
+        "updated",
+        "unchanged",
+    ]
+
+    message: str
+    project_name: str
+
+    scan_id: str
+
+    previous_document_id: (
+        str | None
+    ) = None
+
+    document_id: str
+
+    understanding_id: (
+        str | None
+    ) = None
+
+    has_changes: bool
+
+    comparison_summary: dict[
+        str,
+        Any
+    ] = Field(
+        default_factory=dict
+    )
+
+    document: DocumentStorageInfo
+
