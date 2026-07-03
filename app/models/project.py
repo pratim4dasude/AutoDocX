@@ -32,6 +32,7 @@ class ProjectScanResponse(BaseModel):
     ignored_items: int
     file_types: dict[str, int]
     files: list[str]
+    file_hashes: dict[str, str]
     parsed_files: list[dict[str, Any]]
     project_analysis: dict[str, Any]
     storage: ScanStorageInfo
@@ -54,3 +55,28 @@ class StoredScanResponse(BaseModel):
     project_name: str
     project_path: str | None = None
     scan_result: dict[str, Any]
+
+
+class ScanComparisonRequest(BaseModel):
+    old_scan_id: str = Field(
+        ...,
+        min_length=1,
+        description="Scan ID of the older project state",
+    )
+
+    new_scan_id: str = Field(
+        ...,
+        min_length=1,
+        description="Scan ID of the newer project state",
+    )
+
+
+class ScanComparisonResponse(BaseModel):
+    project_name: str
+    old_scan: dict[str, Any]
+    new_scan: dict[str, Any]
+    summary: dict[str, Any]
+    file_changes: dict[str, Any]
+    symbol_changes: dict[str, Any]
+    route_changes: dict[str, Any]
+    dependency_changes: dict[str, Any]

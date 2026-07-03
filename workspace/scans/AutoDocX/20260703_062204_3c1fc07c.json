@@ -1,19 +1,19 @@
 {
-  "scan_id": "20260703_053938_878697d0",
-  "created_at": "2026-07-03T05:39:38.001681+00:00",
+  "scan_id": "20260703_062204_3c1fc07c",
+  "created_at": "2026-07-03T06:22:04.871247+00:00",
   "project_name": "AutoDocX",
   "project_path": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX",
   "scan_result": {
     "project_name": "AutoDocX",
     "project_path": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX",
-    "total_files": 19,
-    "total_directories": 12,
-    "total_size_bytes": 68661,
-    "ignored_items": 2438,
+    "total_files": 20,
+    "total_directories": 6,
+    "total_size_bytes": 95108,
+    "ignored_items": 2474,
     "file_types": {
       ".bat": 3,
       ".ps1": 1,
-      ".py": 13,
+      ".py": 14,
       ".txt": 1,
       "[no extension]": 1
     },
@@ -31,6 +31,7 @@
       "app/services/code_parser.py",
       "app/services/project_analyzer.py",
       "app/services/project_scanner.py",
+      "app/services/scan_comparator.py",
       "app/services/scan_storage.py",
       "install.bat",
       "requirements.txt",
@@ -38,6 +39,28 @@
       "start.bat",
       "stop.bat"
     ],
+    "file_hashes": {
+      ".gitignore": "e3c78ea0d0395ce284fbb41e780d34bebfa4f6fc26a3e06fad332a36c7b7f374",
+      "app/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "app/api/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "app/api/project_routes.py": "e5e2d0c535356756a00e57a235e564cc49451c0aabfff2eaaccfb48d45aeb6d2",
+      "app/core/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "app/core/config.py": "7b6663915f20433feecb5fe8a36ae7a60166dda2297327f6d933a5eb6c704652",
+      "app/main.py": "5bc66acfa53f75512b56b4ab18ac10518064d91df149ec5249a49fa3b100dc1b",
+      "app/models/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "app/models/project.py": "c6ebb49308e2e9b6920af99eb050a0e806e9b20c01f0e9b6a7c33b00b4f2103c",
+      "app/services/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "app/services/code_parser.py": "79eb8b3a5ccc152d763d783e68dd2f46a3c451e12a89134d9d91a2f32125db99",
+      "app/services/project_analyzer.py": "26cdcedc9d2b5e2e101dc55e10e8299021a1c7c516281466ee209b4b01481f20",
+      "app/services/project_scanner.py": "b181b027a9b696f2bf0764340f2342ffda3090c25acd4aec1585adba37445b0b",
+      "app/services/scan_comparator.py": "59b2fca219b6971e26af125101bfe566fd291a6410b552b385583b0af808f2bd",
+      "app/services/scan_storage.py": "4a8ba45cc5a2280b6aec7d67eb81da092fdd3e200761601e10ec8eb61690dbef",
+      "install.bat": "5392f0269310baeed700a666a0034b512f694d90652181a22d84827d5773aa7d",
+      "requirements.txt": "d0688575d847e1b0ca49434c3c4cd2eb1ef1ee27d69f01ce187234da5e71fdcc",
+      "scripts/setup_runtime.ps1": "bb0f0f039c69ccea94288b3f8e88451005930e7ee0336702d45e634f6987bf3a",
+      "start.bat": "2afb3bd2a7e1d286772f36b995293a2f75f9c77604b448794974bed1c7952ad8",
+      "stop.bat": "54eb105f691d428bbe34523b6277d7b7b282576adb616877b1b203047550ea0f"
+    },
     "parsed_files": [
       {
         "path": "app/__init__.py",
@@ -101,6 +124,20 @@
           {
             "type": "from_import",
             "module": "app.models.project",
+            "name": "ScanComparisonRequest",
+            "alias": null,
+            "line": 7
+          },
+          {
+            "type": "from_import",
+            "module": "app.models.project",
+            "name": "ScanComparisonResponse",
+            "alias": null,
+            "line": 7
+          },
+          {
+            "type": "from_import",
+            "module": "app.models.project",
             "name": "ScanSummaryResponse",
             "alias": null,
             "line": 7
@@ -117,20 +154,27 @@
             "module": "app.services.project_scanner",
             "name": "ProjectScanner",
             "alias": null,
-            "line": 13
+            "line": 15
+          },
+          {
+            "type": "from_import",
+            "module": "app.services.scan_comparator",
+            "name": "ScanComparator",
+            "alias": null,
+            "line": 18
           },
           {
             "type": "from_import",
             "module": "app.services.scan_storage",
             "name": "ScanStorage",
             "alias": null,
-            "line": 16
+            "line": 21
           }
         ],
         "functions": [
           {
             "name": "scan_project",
-            "line": 36,
+            "line": 42,
             "end_line": 100,
             "arguments": [
               {
@@ -143,12 +187,36 @@
             "docstring": null,
             "decorators": [
               "router.post('/scan', response_model=ProjectScanResponse, status_code=status.HTTP_200_OK, summary='Scan, analyze, and save a local project')"
-            ]
+            ],
+            "content_hash": "4af67089147d5381777d028494d35371f7c2569b29a8ef6d3c5a7f93caa973bc"
+          },
+          {
+            "name": "compare_project_scans",
+            "line": 109,
+            "end_line": 180,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "request",
+                "annotation": "ScanComparisonRequest",
+                "default": null
+              }
+            ],
+            "returns": "ScanComparisonResponse",
+            "docstring": null,
+            "decorators": [
+              "router.post('/{project_name}/compare', response_model=ScanComparisonResponse, status_code=status.HTTP_200_OK, summary='Compare two saved project scans')"
+            ],
+            "content_hash": "f65e854d154837cc7148a38cadc83d65608f13bbf7cc4b964dcd33754bf0e570"
           },
           {
             "name": "list_project_scans",
-            "line": 109,
-            "end_line": 129,
+            "line": 189,
+            "end_line": 209,
             "arguments": [
               {
                 "name": "project_name",
@@ -160,12 +228,13 @@
             "docstring": null,
             "decorators": [
               "router.get('/{project_name}/scans', response_model=list[ScanSummaryResponse], status_code=status.HTTP_200_OK, summary='List all saved project scans')"
-            ]
+            ],
+            "content_hash": "9fee87ad96b7bb61317223d8db103954a1a1c05b66be3d35ebec432cb3818bec"
           },
           {
             "name": "get_latest_project_scan",
-            "line": 138,
-            "end_line": 167,
+            "line": 218,
+            "end_line": 245,
             "arguments": [
               {
                 "name": "project_name",
@@ -177,12 +246,13 @@
             "docstring": null,
             "decorators": [
               "router.get('/{project_name}/scans/latest', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get the latest saved project scan')"
-            ]
+            ],
+            "content_hash": "64dd89b3a9b522754a9c2d2bc123210bc60d0b323c6cf26c02a5d696d9cecbe4"
           },
           {
             "name": "get_project_scan",
-            "line": 176,
-            "end_line": 205,
+            "line": 254,
+            "end_line": 283,
             "arguments": [
               {
                 "name": "project_name",
@@ -199,7 +269,8 @@
             "docstring": null,
             "decorators": [
               "router.get('/{project_name}/scans/{scan_id}', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get one saved project scan')"
-            ]
+            ],
+            "content_hash": "96f8c5bc86d96737aaf383ba89516948ec02150555598c4ac9136c131ba45bde"
           }
         ],
         "async_functions": [],
@@ -209,7 +280,7 @@
             "function_name": "scan_project",
             "method": "POST",
             "path": "/scan",
-            "line": 36,
+            "line": 42,
             "is_async": false,
             "router_name": "router",
             "route_name": null,
@@ -217,10 +288,21 @@
             "status_code": "status.HTTP_200_OK"
           },
           {
+            "function_name": "compare_project_scans",
+            "method": "POST",
+            "path": "/{project_name}/compare",
+            "line": 109,
+            "is_async": false,
+            "router_name": "router",
+            "route_name": null,
+            "response_model": "ScanComparisonResponse",
+            "status_code": "status.HTTP_200_OK"
+          },
+          {
             "function_name": "list_project_scans",
             "method": "GET",
             "path": "/{project_name}/scans",
-            "line": 109,
+            "line": 189,
             "is_async": false,
             "router_name": "router",
             "route_name": null,
@@ -231,7 +313,7 @@
             "function_name": "get_latest_project_scan",
             "method": "GET",
             "path": "/{project_name}/scans/latest",
-            "line": 138,
+            "line": 218,
             "is_async": false,
             "router_name": "router",
             "route_name": null,
@@ -242,7 +324,7 @@
             "function_name": "get_project_scan",
             "method": "GET",
             "path": "/{project_name}/scans/{scan_id}",
-            "line": 176,
+            "line": 254,
             "is_async": false,
             "router_name": "router",
             "route_name": null,
@@ -282,7 +364,8 @@
             "arguments": [],
             "returns": "None",
             "docstring": null,
-            "decorators": []
+            "decorators": [],
+            "content_hash": "893462a3b9e01ca7bfa6946f3b29a12614617815f59026a2de14f6c7f72e24e6"
           }
         ],
         "async_functions": [],
@@ -319,7 +402,8 @@
             "docstring": null,
             "decorators": [
               "app.get('/', tags=['Health'])"
-            ]
+            ],
+            "content_hash": "2db4a19d043fd2b590100e0a2226ed5acfac478481b7c9d46ffd61f5a78fec11"
           },
           {
             "name": "health_check",
@@ -330,7 +414,8 @@
             "docstring": null,
             "decorators": [
               "app.get('/health', tags=['Health'])"
-            ]
+            ],
+            "content_hash": "39b185fffb8f0448595fb31951e6cd25eca9a48e7f9ac843aa3dddfa2fd6655c"
           }
         ],
         "async_functions": [],
@@ -409,6 +494,7 @@
             ],
             "docstring": null,
             "decorators": [],
+            "content_hash": "63e4969fa8a55d1c539814a6873d700ea035fc39deb1f4355c2a4fa8f7208c76",
             "methods": []
           },
           {
@@ -420,39 +506,67 @@
             ],
             "docstring": null,
             "decorators": [],
+            "content_hash": "fd46b7a0710e77b9bdf72c4acd46d03db7063115d337949ed951bd916b3bbe6d",
             "methods": []
           },
           {
             "name": "ProjectScanResponse",
             "line": 26,
-            "end_line": 37,
+            "end_line": 38,
             "bases": [
               "BaseModel"
             ],
             "docstring": null,
             "decorators": [],
+            "content_hash": "857d83a054157130cac75c6fa2b8572aff25f6fe84a7ad442bc816d2a92a97ae",
             "methods": []
           },
           {
             "name": "ScanSummaryResponse",
-            "line": 40,
-            "end_line": 48,
+            "line": 41,
+            "end_line": 49,
             "bases": [
               "BaseModel"
             ],
             "docstring": null,
             "decorators": [],
+            "content_hash": "8ca7cb155d1b20c9503dde59f3b5c6a3c8c1ee4bfa482b7dcc089d312470624d",
             "methods": []
           },
           {
             "name": "StoredScanResponse",
-            "line": 51,
-            "end_line": 56,
+            "line": 52,
+            "end_line": 57,
             "bases": [
               "BaseModel"
             ],
             "docstring": null,
             "decorators": [],
+            "content_hash": "0575beab49d4550456c70fc7811ef9f0094becab1e6faeaffff5a4ecc136f165",
+            "methods": []
+          },
+          {
+            "name": "ScanComparisonRequest",
+            "line": 60,
+            "end_line": 71,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "a63c044c05418efa1c4960065c8fb5a5117099eb5e05134993d24f3cd5125ade",
+            "methods": []
+          },
+          {
+            "name": "ScanComparisonResponse",
+            "line": 74,
+            "end_line": 82,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "6700d93b1291ab4dc8cc5fe863c846c19efb269eb953e5eb56e03dca9c4da5bf",
             "methods": []
           }
         ],
@@ -481,18 +595,25 @@
             "line": 1
           },
           {
+            "type": "import",
+            "module": "hashlib",
+            "name": null,
+            "alias": null,
+            "line": 2
+          },
+          {
             "type": "from_import",
             "module": "pathlib",
             "name": "Path",
             "alias": null,
-            "line": 2
+            "line": 3
           },
           {
             "type": "from_import",
             "module": "typing",
             "name": "Any",
             "alias": null,
-            "line": 3
+            "line": 4
           }
         ],
         "functions": [],
@@ -500,16 +621,17 @@
         "classes": [
           {
             "name": "PythonCodeParser",
-            "line": 6,
-            "end_line": 367,
+            "line": 7,
+            "end_line": 641,
             "bases": [],
-            "docstring": "Reads a Python file and extracts its code structure.\n\nExtracted information:\n- imports\n- functions\n- async functions\n- classes\n- class methods\n- FastAPI routes\n- syntax errors",
+            "docstring": "Reads a Python file and extracts its code structure.\n\nExtracted information:\n- imports\n- functions\n- async functions\n- classes\n- class methods\n- FastAPI routes\n- function content hashes\n- method content hashes\n- class content hashes\n- syntax errors",
             "decorators": [],
+            "content_hash": "174db6bce58facff62064839ac7361335d7deef0103e89967aea6a9a687cbecb",
             "methods": [
               {
                 "name": "parse_file",
-                "line": 31,
-                "end_line": 105,
+                "line": 36,
+                "end_line": 154,
                 "arguments": [
                   {
                     "name": "self",
@@ -530,12 +652,13 @@
                 "returns": "dict[str, Any]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "593f906af1ab2002c951d2ea3332bd7b4950028ab42f0575af59688fd050f80a",
                 "is_async": false
               },
               {
                 "name": "_extract_import",
-                "line": 108,
-                "end_line": 124,
+                "line": 157,
+                "end_line": 177,
                 "arguments": [
                   {
                     "name": "node",
@@ -548,12 +671,13 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "5e53c0ccca0525ad88ab9b80dec9b170b3404779d30e612a386e3877dc01c9ad",
                 "is_async": false
               },
               {
                 "name": "_extract_import_from",
-                "line": 127,
-                "end_line": 148,
+                "line": 180,
+                "end_line": 208,
                 "arguments": [
                   {
                     "name": "node",
@@ -566,12 +690,13 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "61b52ab0e78b8bb52e834668ea53013f2a6d12539e9f75285da203ffb585c340",
                 "is_async": false
               },
               {
                 "name": "_extract_function",
-                "line": 150,
-                "end_line": 165,
+                "line": 210,
+                "end_line": 252,
                 "arguments": [
                   {
                     "name": "self",
@@ -587,12 +712,13 @@
                 "returns": "dict[str, Any]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "a067d78780860386ead49d500057a33075935b9e865ddfb52634161986f719e3",
                 "is_async": false
               },
               {
                 "name": "_extract_class",
-                "line": 167,
-                "end_line": 201,
+                "line": 254,
+                "end_line": 321,
                 "arguments": [
                   {
                     "name": "self",
@@ -608,12 +734,13 @@
                 "returns": "dict[str, Any]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "5dda064f3ed3ded757daa341b9f624ca56f56d40f2593c17f5befe52713a0952",
                 "is_async": false
               },
               {
                 "name": "_extract_fastapi_routes",
-                "line": 203,
-                "end_line": 267,
+                "line": 323,
+                "end_line": 427,
                 "arguments": [
                   {
                     "name": "self",
@@ -629,12 +756,13 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "babdf1f46d82eceeec4b11e46de355bdb4daec6895d8bf200fe6cf2a69ef86b0",
                 "is_async": false
               },
               {
                 "name": "_extract_arguments",
-                "line": 269,
-                "end_line": 343,
+                "line": 429,
+                "end_line": 536,
                 "arguments": [
                   {
                     "name": "self",
@@ -650,12 +778,86 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "1bdab65615d53e1116253dd7e3f4edf87177a83ea4ecb26c1d0791f4a986534d",
+                "is_async": false
+              },
+              {
+                "name": "_calculate_node_hash",
+                "line": 539,
+                "end_line": 568,
+                "arguments": [
+                  {
+                    "name": "node",
+                    "annotation": "ast.AST",
+                    "default": null
+                  }
+                ],
+                "returns": "str",
+                "docstring": "Creates a stable SHA-256 hash from an AST node.\n\nThe hash changes when the actual Python structure\nchanges, including:\n\n- function body\n- method body\n- arguments\n- decorators\n- return annotation\n- class bases\n- class methods\n\nFormatting-only changes generally do not change\nthis hash.",
+                "decorators": [
+                  "staticmethod"
+                ],
+                "content_hash": "264a4c617eeac5801dfdde56dbb4b64559e02cd4cb2df4c8cd4b71be9815e3fd",
+                "is_async": false
+              },
+              {
+                "name": "_get_call_keyword_value",
+                "line": 570,
+                "end_line": 583,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "call_node",
+                    "annotation": "ast.Call",
+                    "default": null
+                  },
+                  {
+                    "name": "keyword_name",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "Any",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "628b4cbfba6a20376b9fec2a2a0a08052cb3848b66dbd4cb9797a753219aeadd",
+                "is_async": false
+              },
+              {
+                "name": "_get_call_keyword_string",
+                "line": 585,
+                "end_line": 615,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "call_node",
+                    "annotation": "ast.Call",
+                    "default": null
+                  },
+                  {
+                    "name": "keyword_name",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "str | None",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "c8ceb3e2300f3a5f914e70b1e2c313268f4a42d068687c968f4617d8a0d0eca3",
                 "is_async": false
               },
               {
                 "name": "_node_to_string",
-                "line": 346,
-                "end_line": 355,
+                "line": 618,
+                "end_line": 628,
                 "arguments": [
                   {
                     "name": "node",
@@ -668,12 +870,13 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "72a62b60fc1102ec053103f43001a38e5bac3001296966f964fa1ad535f4e726",
                 "is_async": false
               },
               {
                 "name": "_get_literal_value",
-                "line": 358,
-                "end_line": 367,
+                "line": 631,
+                "end_line": 641,
                 "arguments": [
                   {
                     "name": "node",
@@ -686,6 +889,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "ef05e774f2d8b26eb3cdba5583bbee0dd64b47108f9c08f37c2823ca9ec990eb",
                 "is_async": false
               }
             ]
@@ -737,6 +941,7 @@
             "bases": [],
             "docstring": "Builds project-level relationships from parsed Python files.\n\nThe analyzer:\n- maps project modules\n- detects internal module dependencies\n- collects functions, classes and methods\n- discovers FastAPI router prefixes\n- discovers include_router relationships\n- builds complete FastAPI endpoint paths\n- creates project-level statistics",
             "decorators": [],
+            "content_hash": "b7383be65c7c7bc992cb13eb677970bd57ec397b3a298faf5273261348b0f7ab",
             "methods": [
               {
                 "name": "analyze_project",
@@ -762,6 +967,7 @@
                 "returns": "dict[str, Any]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "71b90cd62b1c589f445028bc2a6a91eb80c1f6f495cb8b755d5ed294cd6e8508",
                 "is_async": false
               },
               {
@@ -783,6 +989,7 @@
                 "returns": "dict[str, str]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "2c3e0a082dd65ffb89cd7b4d84b547748eb0e506daa2e73ef91439aa89dbfc3d",
                 "is_async": false
               },
               {
@@ -809,6 +1016,7 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "6223a1593d6c8d112eb295c2a593fc36c680a4b5bb0964f23d8b4470d74db31d",
                 "is_async": false
               },
               {
@@ -830,6 +1038,7 @@
                 "returns": "dict[str, list[dict[str, Any]]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "99a8f4209da7de3b9a0207c5c93323d4adb9f6a48dad0af69ac22f4f9a2b39e6",
                 "is_async": false
               },
               {
@@ -856,6 +1065,7 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "b27c5d05e34a9d1a64ea1c24447f677737aae83c7c32c459edc73c45ef15633d",
                 "is_async": false
               },
               {
@@ -882,6 +1092,7 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "22ca4f874411df12e7e46a9f8d0d23f7e02f0d85593455d287eb3e356eb87d91",
                 "is_async": false
               },
               {
@@ -918,6 +1129,7 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "8756aeca0ccb7fc87c85f299b33c040d25f541667e09bcb8fc29359a861e7d36",
                 "is_async": false
               },
               {
@@ -939,6 +1151,7 @@
                 "returns": "dict[tuple[str, str], dict[str, str]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "dff3b018c1d59498d99693eb4991765a21c60dc3981216b9a873ceeafcd677d2",
                 "is_async": false
               },
               {
@@ -975,6 +1188,7 @@
                 "returns": "dict[str, int]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "f90fddd82547fdb34981570ec57e144266988b24f9a69843d0b8fed17b9e6165",
                 "is_async": false
               },
               {
@@ -993,6 +1207,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "3b6ba6b8730936d029115522960adfa1670328faaa649a911f77f3c5d960bc37",
                 "is_async": false
               },
               {
@@ -1011,6 +1226,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "8593f4014dc25b0067fa61dc5b324f585548b463f9f15b404a46f0a7526caa7f",
                 "is_async": false
               },
               {
@@ -1034,6 +1250,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "4462da4fa0846eb0aa8f94c29cc8b534407928aacf0392b860865e7731e5e1a1",
                 "is_async": false
               },
               {
@@ -1057,6 +1274,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "548a71c1e59c01df19aece77ca1516aa1c69b7fe20cf00a7324ffbc18095b306",
                 "is_async": false
               },
               {
@@ -1075,6 +1293,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "72a62b60fc1102ec053103f43001a38e5bac3001296966f964fa1ad535f4e726",
                 "is_async": false
               },
               {
@@ -1093,6 +1312,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "78dd6b2343ef4e1fc71b3e7affcccb887061e58a22ce3067c7fac0d72354054d",
                 "is_async": false
               },
               {
@@ -1116,6 +1336,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "dbaf755cc6a2ea67943cdd053aa38c972bef7c21d96513b4ed6bb39858f03c94",
                 "is_async": false
               },
               {
@@ -1134,6 +1355,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "5f0ac1c2d3119f76e290d9d395d4e8edf86a9615b7bf971184d15917ca212595",
                 "is_async": false
               }
             ]
@@ -1147,39 +1369,46 @@
         "language": "python",
         "imports": [
           {
+            "type": "import",
+            "module": "hashlib",
+            "name": null,
+            "alias": null,
+            "line": 1
+          },
+          {
             "type": "from_import",
             "module": "collections",
             "name": "Counter",
             "alias": null,
-            "line": 1
+            "line": 2
           },
           {
             "type": "from_import",
             "module": "pathlib",
             "name": "Path",
             "alias": null,
-            "line": 2
+            "line": 3
           },
           {
             "type": "from_import",
             "module": "typing",
             "name": "Any",
             "alias": null,
-            "line": 3
+            "line": 4
           },
           {
             "type": "from_import",
             "module": "app.services.code_parser",
             "name": "PythonCodeParser",
             "alias": null,
-            "line": 5
+            "line": 6
           },
           {
             "type": "from_import",
             "module": "app.services.project_analyzer",
             "name": "ProjectAnalyzer",
             "alias": null,
-            "line": 6
+            "line": 7
           }
         ],
         "functions": [],
@@ -1187,16 +1416,17 @@
         "classes": [
           {
             "name": "ProjectScanner",
-            "line": 9,
-            "end_line": 244,
+            "line": 10,
+            "end_line": 281,
             "bases": [],
-            "docstring": "Scans and analyzes a local project directory.\n\nThe scanner:\n- ignores unnecessary folders and files\n- lists project files\n- counts directories\n- counts file extensions\n- calculates project size\n- parses Python source files\n- analyzes project-level relationships",
+            "docstring": "Scans and analyzes a local project directory.\n\nThe scanner:\n- ignores unnecessary folders and files\n- lists project files\n- counts directories\n- counts file extensions\n- calculates project size\n- calculates SHA-256 file hashes\n- parses Python source files\n- analyzes project-level relationships",
             "decorators": [],
+            "content_hash": "a00f0f64519f2cdc264cdffe8ebbc95d832094ea510d3cd6606505ca5ff95553",
             "methods": [
               {
                 "name": "__init__",
-                "line": 59,
-                "end_line": 61,
+                "line": 62,
+                "end_line": 64,
                 "arguments": [
                   {
                     "name": "self",
@@ -1207,12 +1437,13 @@
                 "returns": "None",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "5d6ece2b24582205915f5e6dc0c5e7a25d4f17879a4a9a0ca862f4fe1dbf87fd",
                 "is_async": false
               },
               {
                 "name": "scan_project",
-                "line": 63,
-                "end_line": 171,
+                "line": 66,
+                "end_line": 187,
                 "arguments": [
                   {
                     "name": "self",
@@ -1228,12 +1459,13 @@
                 "returns": "dict[str, Any]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "8725f61f0f9bebe188ec29472a85021067058f9582afce4b7f2e7bb58974eeb6",
                 "is_async": false
               },
               {
                 "name": "_parse_python_files",
-                "line": 173,
-                "end_line": 201,
+                "line": 189,
+                "end_line": 217,
                 "arguments": [
                   {
                     "name": "self",
@@ -1254,12 +1486,13 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "f216d41dbe67f6befbc71af86a0eadedd122bc54f438688d975659b8c2ab6201",
                 "is_async": false
               },
               {
                 "name": "_should_ignore",
-                "line": 203,
-                "end_line": 228,
+                "line": 219,
+                "end_line": 244,
                 "arguments": [
                   {
                     "name": "self",
@@ -1275,12 +1508,32 @@
                 "returns": "bool",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "014d3a49cc0dac93e33e556aa0c3d2b37a874f5ccf2526424ef5ef956ca9f130",
+                "is_async": false
+              },
+              {
+                "name": "_calculate_file_hash",
+                "line": 247,
+                "end_line": 265,
+                "arguments": [
+                  {
+                    "name": "file_path",
+                    "annotation": "Path",
+                    "default": null
+                  }
+                ],
+                "returns": "str",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "content_hash": "3a3d0c662aaad04ab15035fb449533515e2850daa7fd2013777e54ee85b7fd34",
                 "is_async": false
               },
               {
                 "name": "_validate_project_path",
-                "line": 231,
-                "end_line": 244,
+                "line": 268,
+                "end_line": 281,
                 "arguments": [
                   {
                     "name": "root_path",
@@ -1293,6 +1546,335 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "c7c2cd75fc4dd5a40d8c5f753eb4d505b5765526a087838921a5968547ce2e64",
+                "is_async": false
+              }
+            ]
+          }
+        ],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/services/scan_comparator.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "from_import",
+            "module": "typing",
+            "name": "Any",
+            "alias": null,
+            "line": 1
+          }
+        ],
+        "functions": [],
+        "async_functions": [],
+        "classes": [
+          {
+            "name": "ScanComparator",
+            "line": 4,
+            "end_line": 588,
+            "bases": [],
+            "docstring": "Compares two stored AutoDocX project scans.\n\nThe comparator detects:\n- added files\n- deleted files\n- modified files\n- added, removed and modified functions\n- added, removed and modified classes\n- added, removed and modified methods\n- added and removed routes\n- added and removed internal dependencies",
+            "decorators": [],
+            "content_hash": "16cead452defde0c00940f4779ad75a281cd9e55c16b447deff115c5baedf4da",
+            "methods": [
+              {
+                "name": "compare_scans",
+                "line": 24,
+                "end_line": 115,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "old_stored_scan",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "new_stored_scan",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "9272a40cccba1f6d40947db1114fbd18d6b0b73394cd3c71362dd9c32eb5cf41",
+                "is_async": false
+              },
+              {
+                "name": "_compare_files",
+                "line": 117,
+                "end_line": 188,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "old_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "new_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "14dc47f86eb7d2c7c06f61fe8cb5ba7efa0cd8d191572b359134ec4d02106815",
+                "is_async": false
+              },
+              {
+                "name": "_compare_symbols",
+                "line": 190,
+                "end_line": 267,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "old_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "new_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "efd0be897c9b9534a5a5ea536dc9590aed84e4bd511bf51dbb79cc35d36dec33",
+                "is_async": false
+              },
+              {
+                "name": "_compare_symbol_group",
+                "line": 269,
+                "end_line": 353,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "old_items",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "new_items",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "key_fields",
+                    "annotation": "tuple[str, ...]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "9fdce58442a73e9183a5106d8016a868f1d2b3d991fa0ef68a129308deab04f6",
+                "is_async": false
+              },
+              {
+                "name": "_compare_routes",
+                "line": 355,
+                "end_line": 379,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "old_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "new_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "9a65817e63d76929e1a39ab61a7c09b799b9db9052b34c5a7cf151225f44b5da",
+                "is_async": false
+              },
+              {
+                "name": "_compare_dependencies",
+                "line": 381,
+                "end_line": 413,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "old_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "new_scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "2a6abb101a1fe04fae19f8be99db0336b02a2904f891eb0a2a6c3aa5461371da",
+                "is_async": false
+              },
+              {
+                "name": "_build_summary",
+                "line": 415,
+                "end_line": 511,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "file_changes",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "symbol_changes",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "route_changes",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "dependency_changes",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, int | bool]",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "5c340a3419fbf294f0845886252e14c4a6df287e84ddbfcc1601fb75a47b715d",
+                "is_async": false
+              },
+              {
+                "name": "_build_lookup",
+                "line": 514,
+                "end_line": 534,
+                "arguments": [
+                  {
+                    "name": "items",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "key_fields",
+                    "annotation": "tuple[str, ...]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[tuple[Any, ...], dict[str, Any]]",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "content_hash": "8386e1b662e12e821aeaafa3b7f0c5c6b7d683201604e192ad70d9d3efc160f3",
+                "is_async": false
+              },
+              {
+                "name": "_normalize_for_comparison",
+                "line": 536,
+                "end_line": 562,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "value",
+                    "annotation": "Any",
+                    "default": null
+                  }
+                ],
+                "returns": "Any",
+                "docstring": null,
+                "decorators": [],
+                "content_hash": "1d7d65355c24f0724235549a83339a5abf94179969c93786818b1f38ff396729",
+                "is_async": false
+              },
+              {
+                "name": "_identity_dict",
+                "line": 565,
+                "end_line": 572,
+                "arguments": [
+                  {
+                    "name": "item",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  },
+                  {
+                    "name": "key_fields",
+                    "annotation": "tuple[str, ...]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "content_hash": "a5ffba46cde0b8d398cf4054f853a046170d50ff71e6c099febaa305c16fd1a4",
+                "is_async": false
+              },
+              {
+                "name": "_validate_scan_result",
+                "line": 575,
+                "end_line": 588,
+                "arguments": [
+                  {
+                    "name": "scan_result",
+                    "annotation": "Any",
+                    "default": null
+                  },
+                  {
+                    "name": "scan_label",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "None",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "content_hash": "7a730174a38d2674bede7d9d1ca12d918c175ec5dbfd260ab9004dfa7f835c2f",
                 "is_async": false
               }
             ]
@@ -1365,6 +1947,7 @@
             "bases": [],
             "docstring": "Stores and retrieves AutoDocX project scan results.\n\nScans are saved under:\n\n    workspace/scans/<project_name>/<scan_id>.json",
             "decorators": [],
+            "content_hash": "c9ccaae376e7b1bed44bdca45fde9bff1adbf992f3d15d25ece984f92e7443a2",
             "methods": [
               {
                 "name": "__init__",
@@ -1385,6 +1968,7 @@
                 "returns": "None",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "0ad1fe6b2f5968a992859b7b7f06f7ad51e9fb3b0d7820907d2247c40d684db7",
                 "is_async": false
               },
               {
@@ -1406,6 +1990,7 @@
                 "returns": "dict[str, str]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "710f52252280ae7794a9c257ad413d8dd6947a80f7835103c5f9ae1a23518dde",
                 "is_async": false
               },
               {
@@ -1432,6 +2017,7 @@
                 "returns": "dict[str, Any]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "4e3e84df98b91aa26707841ea8af1cea43a0942e423f1c8f230d1f9ab21017b7",
                 "is_async": false
               },
               {
@@ -1453,6 +2039,7 @@
                 "returns": "dict[str, Any]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "5ab3b43a2e09b47406500838d571b613c8267188816c62e1faa576e14dd6e27c",
                 "is_async": false
               },
               {
@@ -1474,6 +2061,7 @@
                 "returns": "list[dict[str, Any]]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "7e54722e2b09137adc4ca29620b115a3c0150daa81cd57b599839eea9223048c",
                 "is_async": false
               },
               {
@@ -1495,6 +2083,7 @@
                 "returns": "list[Path]",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "30077887af3a9fcdf52e66f38eca23995fd1e2c63664d3131ffdcd5cc36bf453",
                 "is_async": false
               },
               {
@@ -1521,6 +2110,7 @@
                 "returns": "Path",
                 "docstring": null,
                 "decorators": [],
+                "content_hash": "5d75a56f2566d4af2fdeca50350cfd84694abe1f9eaec46a367b1ee851bb74d7",
                 "is_async": false
               },
               {
@@ -1539,6 +2129,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "4a8a66ee64210fafb9bad5da351ebc6095293b1dbed258041d9dfdbc7c18a338",
                 "is_async": false
               },
               {
@@ -1557,6 +2148,7 @@
                 "decorators": [
                   "staticmethod"
                 ],
+                "content_hash": "c67868a9065f9fdc55e71629ecfdc1f6888c424e451b95bd5ae8d5fcb6210c73",
                 "is_async": false
               }
             ]
@@ -1568,13 +2160,13 @@
     ],
     "project_analysis": {
       "statistics": {
-        "parsed_python_files": 13,
-        "functions": 7,
+        "parsed_python_files": 14,
+        "functions": 8,
         "async_functions": 0,
-        "classes": 9,
-        "methods": 40,
-        "routes": 6,
-        "internal_dependencies": 9,
+        "classes": 12,
+        "methods": 55,
+        "routes": 7,
+        "internal_dependencies": 12,
         "files_with_syntax_errors": 0
       },
       "modules": [
@@ -1627,6 +2219,10 @@
           "file": "app/services/project_scanner.py"
         },
         {
+          "module": "app.services.scan_comparator",
+          "file": "app/services/scan_comparator.py"
+        },
+        {
           "module": "app.services.scan_storage",
           "file": "app/services/scan_storage.py"
         }
@@ -1636,7 +2232,7 @@
           {
             "file": "app/api/project_routes.py",
             "name": "scan_project",
-            "line": 36,
+            "line": 42,
             "end_line": 100,
             "arguments": [
               {
@@ -1649,13 +2245,38 @@
             "docstring": null,
             "decorators": [
               "router.post('/scan', response_model=ProjectScanResponse, status_code=status.HTTP_200_OK, summary='Scan, analyze, and save a local project')"
-            ]
+            ],
+            "content_hash": "4af67089147d5381777d028494d35371f7c2569b29a8ef6d3c5a7f93caa973bc"
+          },
+          {
+            "file": "app/api/project_routes.py",
+            "name": "compare_project_scans",
+            "line": 109,
+            "end_line": 180,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "request",
+                "annotation": "ScanComparisonRequest",
+                "default": null
+              }
+            ],
+            "returns": "ScanComparisonResponse",
+            "docstring": null,
+            "decorators": [
+              "router.post('/{project_name}/compare', response_model=ScanComparisonResponse, status_code=status.HTTP_200_OK, summary='Compare two saved project scans')"
+            ],
+            "content_hash": "f65e854d154837cc7148a38cadc83d65608f13bbf7cc4b964dcd33754bf0e570"
           },
           {
             "file": "app/api/project_routes.py",
             "name": "list_project_scans",
-            "line": 109,
-            "end_line": 129,
+            "line": 189,
+            "end_line": 209,
             "arguments": [
               {
                 "name": "project_name",
@@ -1667,13 +2288,14 @@
             "docstring": null,
             "decorators": [
               "router.get('/{project_name}/scans', response_model=list[ScanSummaryResponse], status_code=status.HTTP_200_OK, summary='List all saved project scans')"
-            ]
+            ],
+            "content_hash": "9fee87ad96b7bb61317223d8db103954a1a1c05b66be3d35ebec432cb3818bec"
           },
           {
             "file": "app/api/project_routes.py",
             "name": "get_latest_project_scan",
-            "line": 138,
-            "end_line": 167,
+            "line": 218,
+            "end_line": 245,
             "arguments": [
               {
                 "name": "project_name",
@@ -1685,13 +2307,14 @@
             "docstring": null,
             "decorators": [
               "router.get('/{project_name}/scans/latest', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get the latest saved project scan')"
-            ]
+            ],
+            "content_hash": "64dd89b3a9b522754a9c2d2bc123210bc60d0b323c6cf26c02a5d696d9cecbe4"
           },
           {
             "file": "app/api/project_routes.py",
             "name": "get_project_scan",
-            "line": 176,
-            "end_line": 205,
+            "line": 254,
+            "end_line": 283,
             "arguments": [
               {
                 "name": "project_name",
@@ -1708,7 +2331,8 @@
             "docstring": null,
             "decorators": [
               "router.get('/{project_name}/scans/{scan_id}', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get one saved project scan')"
-            ]
+            ],
+            "content_hash": "96f8c5bc86d96737aaf383ba89516948ec02150555598c4ac9136c131ba45bde"
           },
           {
             "file": "app/core/config.py",
@@ -1718,7 +2342,8 @@
             "arguments": [],
             "returns": "None",
             "docstring": null,
-            "decorators": []
+            "decorators": [],
+            "content_hash": "893462a3b9e01ca7bfa6946f3b29a12614617815f59026a2de14f6c7f72e24e6"
           },
           {
             "file": "app/main.py",
@@ -1730,7 +2355,8 @@
             "docstring": null,
             "decorators": [
               "app.get('/', tags=['Health'])"
-            ]
+            ],
+            "content_hash": "2db4a19d043fd2b590100e0a2226ed5acfac478481b7c9d46ffd61f5a78fec11"
           },
           {
             "file": "app/main.py",
@@ -1742,7 +2368,8 @@
             "docstring": null,
             "decorators": [
               "app.get('/health', tags=['Health'])"
-            ]
+            ],
+            "content_hash": "39b185fffb8f0448595fb31951e6cd25eca9a48e7f9ac843aa3dddfa2fd6655c"
           }
         ],
         "async_functions": [],
@@ -1756,7 +2383,8 @@
               "BaseModel"
             ],
             "docstring": null,
-            "decorators": []
+            "decorators": [],
+            "content_hash": "63e4969fa8a55d1c539814a6873d700ea035fc39deb1f4355c2a4fa8f7208c76"
           },
           {
             "file": "app/models/project.py",
@@ -1767,49 +2395,78 @@
               "BaseModel"
             ],
             "docstring": null,
-            "decorators": []
+            "decorators": [],
+            "content_hash": "fd46b7a0710e77b9bdf72c4acd46d03db7063115d337949ed951bd916b3bbe6d"
           },
           {
             "file": "app/models/project.py",
             "name": "ProjectScanResponse",
             "line": 26,
-            "end_line": 37,
+            "end_line": 38,
             "bases": [
               "BaseModel"
             ],
             "docstring": null,
-            "decorators": []
+            "decorators": [],
+            "content_hash": "857d83a054157130cac75c6fa2b8572aff25f6fe84a7ad442bc816d2a92a97ae"
           },
           {
             "file": "app/models/project.py",
             "name": "ScanSummaryResponse",
-            "line": 40,
-            "end_line": 48,
+            "line": 41,
+            "end_line": 49,
             "bases": [
               "BaseModel"
             ],
             "docstring": null,
-            "decorators": []
+            "decorators": [],
+            "content_hash": "8ca7cb155d1b20c9503dde59f3b5c6a3c8c1ee4bfa482b7dcc089d312470624d"
           },
           {
             "file": "app/models/project.py",
             "name": "StoredScanResponse",
-            "line": 51,
-            "end_line": 56,
+            "line": 52,
+            "end_line": 57,
             "bases": [
               "BaseModel"
             ],
             "docstring": null,
-            "decorators": []
+            "decorators": [],
+            "content_hash": "0575beab49d4550456c70fc7811ef9f0094becab1e6faeaffff5a4ecc136f165"
+          },
+          {
+            "file": "app/models/project.py",
+            "name": "ScanComparisonRequest",
+            "line": 60,
+            "end_line": 71,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "a63c044c05418efa1c4960065c8fb5a5117099eb5e05134993d24f3cd5125ade"
+          },
+          {
+            "file": "app/models/project.py",
+            "name": "ScanComparisonResponse",
+            "line": 74,
+            "end_line": 82,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "6700d93b1291ab4dc8cc5fe863c846c19efb269eb953e5eb56e03dca9c4da5bf"
           },
           {
             "file": "app/services/code_parser.py",
             "name": "PythonCodeParser",
-            "line": 6,
-            "end_line": 367,
+            "line": 7,
+            "end_line": 641,
             "bases": [],
-            "docstring": "Reads a Python file and extracts its code structure.\n\nExtracted information:\n- imports\n- functions\n- async functions\n- classes\n- class methods\n- FastAPI routes\n- syntax errors",
-            "decorators": []
+            "docstring": "Reads a Python file and extracts its code structure.\n\nExtracted information:\n- imports\n- functions\n- async functions\n- classes\n- class methods\n- FastAPI routes\n- function content hashes\n- method content hashes\n- class content hashes\n- syntax errors",
+            "decorators": [],
+            "content_hash": "174db6bce58facff62064839ac7361335d7deef0103e89967aea6a9a687cbecb"
           },
           {
             "file": "app/services/project_analyzer.py",
@@ -1818,16 +2475,28 @@
             "end_line": 930,
             "bases": [],
             "docstring": "Builds project-level relationships from parsed Python files.\n\nThe analyzer:\n- maps project modules\n- detects internal module dependencies\n- collects functions, classes and methods\n- discovers FastAPI router prefixes\n- discovers include_router relationships\n- builds complete FastAPI endpoint paths\n- creates project-level statistics",
-            "decorators": []
+            "decorators": [],
+            "content_hash": "b7383be65c7c7bc992cb13eb677970bd57ec397b3a298faf5273261348b0f7ab"
           },
           {
             "file": "app/services/project_scanner.py",
             "name": "ProjectScanner",
-            "line": 9,
-            "end_line": 244,
+            "line": 10,
+            "end_line": 281,
             "bases": [],
-            "docstring": "Scans and analyzes a local project directory.\n\nThe scanner:\n- ignores unnecessary folders and files\n- lists project files\n- counts directories\n- counts file extensions\n- calculates project size\n- parses Python source files\n- analyzes project-level relationships",
-            "decorators": []
+            "docstring": "Scans and analyzes a local project directory.\n\nThe scanner:\n- ignores unnecessary folders and files\n- lists project files\n- counts directories\n- counts file extensions\n- calculates project size\n- calculates SHA-256 file hashes\n- parses Python source files\n- analyzes project-level relationships",
+            "decorators": [],
+            "content_hash": "a00f0f64519f2cdc264cdffe8ebbc95d832094ea510d3cd6606505ca5ff95553"
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "name": "ScanComparator",
+            "line": 4,
+            "end_line": 588,
+            "bases": [],
+            "docstring": "Compares two stored AutoDocX project scans.\n\nThe comparator detects:\n- added files\n- deleted files\n- modified files\n- added, removed and modified functions\n- added, removed and modified classes\n- added, removed and modified methods\n- added and removed routes\n- added and removed internal dependencies",
+            "decorators": [],
+            "content_hash": "16cead452defde0c00940f4779ad75a281cd9e55c16b447deff115c5baedf4da"
           },
           {
             "file": "app/services/scan_storage.py",
@@ -1836,7 +2505,8 @@
             "end_line": 344,
             "bases": [],
             "docstring": "Stores and retrieves AutoDocX project scan results.\n\nScans are saved under:\n\n    workspace/scans/<project_name>/<scan_id>.json",
-            "decorators": []
+            "decorators": [],
+            "content_hash": "c9ccaae376e7b1bed44bdca45fde9bff1adbf992f3d15d25ece984f92e7443a2"
           }
         ],
         "methods": [
@@ -1844,8 +2514,8 @@
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "parse_file",
-            "line": 31,
-            "end_line": 105,
+            "line": 36,
+            "end_line": 154,
             "arguments": [
               {
                 "name": "self",
@@ -1866,14 +2536,15 @@
             "returns": "dict[str, Any]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "593f906af1ab2002c951d2ea3332bd7b4950028ab42f0575af59688fd050f80a",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_extract_import",
-            "line": 108,
-            "end_line": 124,
+            "line": 157,
+            "end_line": 177,
             "arguments": [
               {
                 "name": "node",
@@ -1886,14 +2557,15 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "5e53c0ccca0525ad88ab9b80dec9b170b3404779d30e612a386e3877dc01c9ad",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_extract_import_from",
-            "line": 127,
-            "end_line": 148,
+            "line": 180,
+            "end_line": 208,
             "arguments": [
               {
                 "name": "node",
@@ -1906,14 +2578,15 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "61b52ab0e78b8bb52e834668ea53013f2a6d12539e9f75285da203ffb585c340",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_extract_function",
-            "line": 150,
-            "end_line": 165,
+            "line": 210,
+            "end_line": 252,
             "arguments": [
               {
                 "name": "self",
@@ -1929,14 +2602,15 @@
             "returns": "dict[str, Any]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "a067d78780860386ead49d500057a33075935b9e865ddfb52634161986f719e3",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_extract_class",
-            "line": 167,
-            "end_line": 201,
+            "line": 254,
+            "end_line": 321,
             "arguments": [
               {
                 "name": "self",
@@ -1952,14 +2626,15 @@
             "returns": "dict[str, Any]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "5dda064f3ed3ded757daa341b9f624ca56f56d40f2593c17f5befe52713a0952",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_extract_fastapi_routes",
-            "line": 203,
-            "end_line": 267,
+            "line": 323,
+            "end_line": 427,
             "arguments": [
               {
                 "name": "self",
@@ -1975,14 +2650,15 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "babdf1f46d82eceeec4b11e46de355bdb4daec6895d8bf200fe6cf2a69ef86b0",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_extract_arguments",
-            "line": 269,
-            "end_line": 343,
+            "line": 429,
+            "end_line": 536,
             "arguments": [
               {
                 "name": "self",
@@ -1998,14 +2674,94 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "1bdab65615d53e1116253dd7e3f4edf87177a83ea4ecb26c1d0791f4a986534d",
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_calculate_node_hash",
+            "line": 539,
+            "end_line": 568,
+            "arguments": [
+              {
+                "name": "node",
+                "annotation": "ast.AST",
+                "default": null
+              }
+            ],
+            "returns": "str",
+            "docstring": "Creates a stable SHA-256 hash from an AST node.\n\nThe hash changes when the actual Python structure\nchanges, including:\n\n- function body\n- method body\n- arguments\n- decorators\n- return annotation\n- class bases\n- class methods\n\nFormatting-only changes generally do not change\nthis hash.",
+            "decorators": [
+              "staticmethod"
+            ],
+            "content_hash": "264a4c617eeac5801dfdde56dbb4b64559e02cd4cb2df4c8cd4b71be9815e3fd",
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_get_call_keyword_value",
+            "line": 570,
+            "end_line": 583,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "call_node",
+                "annotation": "ast.Call",
+                "default": null
+              },
+              {
+                "name": "keyword_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "Any",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "628b4cbfba6a20376b9fec2a2a0a08052cb3848b66dbd4cb9797a753219aeadd",
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_get_call_keyword_string",
+            "line": 585,
+            "end_line": 615,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "call_node",
+                "annotation": "ast.Call",
+                "default": null
+              },
+              {
+                "name": "keyword_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "str | None",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "c8ceb3e2300f3a5f914e70b1e2c313268f4a42d068687c968f4617d8a0d0eca3",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_node_to_string",
-            "line": 346,
-            "end_line": 355,
+            "line": 618,
+            "end_line": 628,
             "arguments": [
               {
                 "name": "node",
@@ -2018,14 +2774,15 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "72a62b60fc1102ec053103f43001a38e5bac3001296966f964fa1ad535f4e726",
             "is_async": false
           },
           {
             "file": "app/services/code_parser.py",
             "class_name": "PythonCodeParser",
             "name": "_get_literal_value",
-            "line": 358,
-            "end_line": 367,
+            "line": 631,
+            "end_line": 641,
             "arguments": [
               {
                 "name": "node",
@@ -2038,6 +2795,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "ef05e774f2d8b26eb3cdba5583bbee0dd64b47108f9c08f37c2823ca9ec990eb",
             "is_async": false
           },
           {
@@ -2066,6 +2824,7 @@
             "returns": "dict[str, Any]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "71b90cd62b1c589f445028bc2a6a91eb80c1f6f495cb8b755d5ed294cd6e8508",
             "is_async": false
           },
           {
@@ -2089,6 +2848,7 @@
             "returns": "dict[str, str]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "2c3e0a082dd65ffb89cd7b4d84b547748eb0e506daa2e73ef91439aa89dbfc3d",
             "is_async": false
           },
           {
@@ -2117,6 +2877,7 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "6223a1593d6c8d112eb295c2a593fc36c680a4b5bb0964f23d8b4470d74db31d",
             "is_async": false
           },
           {
@@ -2140,6 +2901,7 @@
             "returns": "dict[str, list[dict[str, Any]]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "99a8f4209da7de3b9a0207c5c93323d4adb9f6a48dad0af69ac22f4f9a2b39e6",
             "is_async": false
           },
           {
@@ -2168,6 +2930,7 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "b27c5d05e34a9d1a64ea1c24447f677737aae83c7c32c459edc73c45ef15633d",
             "is_async": false
           },
           {
@@ -2196,6 +2959,7 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "22ca4f874411df12e7e46a9f8d0d23f7e02f0d85593455d287eb3e356eb87d91",
             "is_async": false
           },
           {
@@ -2234,6 +2998,7 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "8756aeca0ccb7fc87c85f299b33c040d25f541667e09bcb8fc29359a861e7d36",
             "is_async": false
           },
           {
@@ -2257,6 +3022,7 @@
             "returns": "dict[tuple[str, str], dict[str, str]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "dff3b018c1d59498d99693eb4991765a21c60dc3981216b9a873ceeafcd677d2",
             "is_async": false
           },
           {
@@ -2295,6 +3061,7 @@
             "returns": "dict[str, int]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "f90fddd82547fdb34981570ec57e144266988b24f9a69843d0b8fed17b9e6165",
             "is_async": false
           },
           {
@@ -2315,6 +3082,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "3b6ba6b8730936d029115522960adfa1670328faaa649a911f77f3c5d960bc37",
             "is_async": false
           },
           {
@@ -2335,6 +3103,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "8593f4014dc25b0067fa61dc5b324f585548b463f9f15b404a46f0a7526caa7f",
             "is_async": false
           },
           {
@@ -2360,6 +3129,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "4462da4fa0846eb0aa8f94c29cc8b534407928aacf0392b860865e7731e5e1a1",
             "is_async": false
           },
           {
@@ -2385,6 +3155,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "548a71c1e59c01df19aece77ca1516aa1c69b7fe20cf00a7324ffbc18095b306",
             "is_async": false
           },
           {
@@ -2405,6 +3176,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "72a62b60fc1102ec053103f43001a38e5bac3001296966f964fa1ad535f4e726",
             "is_async": false
           },
           {
@@ -2425,6 +3197,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "78dd6b2343ef4e1fc71b3e7affcccb887061e58a22ce3067c7fac0d72354054d",
             "is_async": false
           },
           {
@@ -2450,6 +3223,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "dbaf755cc6a2ea67943cdd053aa38c972bef7c21d96513b4ed6bb39858f03c94",
             "is_async": false
           },
           {
@@ -2470,14 +3244,15 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "5f0ac1c2d3119f76e290d9d395d4e8edf86a9615b7bf971184d15917ca212595",
             "is_async": false
           },
           {
             "file": "app/services/project_scanner.py",
             "class_name": "ProjectScanner",
             "name": "__init__",
-            "line": 59,
-            "end_line": 61,
+            "line": 62,
+            "end_line": 64,
             "arguments": [
               {
                 "name": "self",
@@ -2488,14 +3263,15 @@
             "returns": "None",
             "docstring": null,
             "decorators": [],
+            "content_hash": "5d6ece2b24582205915f5e6dc0c5e7a25d4f17879a4a9a0ca862f4fe1dbf87fd",
             "is_async": false
           },
           {
             "file": "app/services/project_scanner.py",
             "class_name": "ProjectScanner",
             "name": "scan_project",
-            "line": 63,
-            "end_line": 171,
+            "line": 66,
+            "end_line": 187,
             "arguments": [
               {
                 "name": "self",
@@ -2511,14 +3287,15 @@
             "returns": "dict[str, Any]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "8725f61f0f9bebe188ec29472a85021067058f9582afce4b7f2e7bb58974eeb6",
             "is_async": false
           },
           {
             "file": "app/services/project_scanner.py",
             "class_name": "ProjectScanner",
             "name": "_parse_python_files",
-            "line": 173,
-            "end_line": 201,
+            "line": 189,
+            "end_line": 217,
             "arguments": [
               {
                 "name": "self",
@@ -2539,14 +3316,15 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "f216d41dbe67f6befbc71af86a0eadedd122bc54f438688d975659b8c2ab6201",
             "is_async": false
           },
           {
             "file": "app/services/project_scanner.py",
             "class_name": "ProjectScanner",
             "name": "_should_ignore",
-            "line": 203,
-            "end_line": 228,
+            "line": 219,
+            "end_line": 244,
             "arguments": [
               {
                 "name": "self",
@@ -2562,14 +3340,36 @@
             "returns": "bool",
             "docstring": null,
             "decorators": [],
+            "content_hash": "014d3a49cc0dac93e33e556aa0c3d2b37a874f5ccf2526424ef5ef956ca9f130",
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_scanner.py",
+            "class_name": "ProjectScanner",
+            "name": "_calculate_file_hash",
+            "line": 247,
+            "end_line": 265,
+            "arguments": [
+              {
+                "name": "file_path",
+                "annotation": "Path",
+                "default": null
+              }
+            ],
+            "returns": "str",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "content_hash": "3a3d0c662aaad04ab15035fb449533515e2850daa7fd2013777e54ee85b7fd34",
             "is_async": false
           },
           {
             "file": "app/services/project_scanner.py",
             "class_name": "ProjectScanner",
             "name": "_validate_project_path",
-            "line": 231,
-            "end_line": 244,
+            "line": 268,
+            "end_line": 281,
             "arguments": [
               {
                 "name": "root_path",
@@ -2582,6 +3382,327 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "c7c2cd75fc4dd5a40d8c5f753eb4d505b5765526a087838921a5968547ce2e64",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "compare_scans",
+            "line": 24,
+            "end_line": 115,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "old_stored_scan",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "new_stored_scan",
+                "annotation": "dict[str, Any]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "9272a40cccba1f6d40947db1114fbd18d6b0b73394cd3c71362dd9c32eb5cf41",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_compare_files",
+            "line": 117,
+            "end_line": 188,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "old_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "new_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "14dc47f86eb7d2c7c06f61fe8cb5ba7efa0cd8d191572b359134ec4d02106815",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_compare_symbols",
+            "line": 190,
+            "end_line": 267,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "old_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "new_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "efd0be897c9b9534a5a5ea536dc9590aed84e4bd511bf51dbb79cc35d36dec33",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_compare_symbol_group",
+            "line": 269,
+            "end_line": 353,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "old_items",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "new_items",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "key_fields",
+                "annotation": "tuple[str, ...]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "9fdce58442a73e9183a5106d8016a868f1d2b3d991fa0ef68a129308deab04f6",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_compare_routes",
+            "line": 355,
+            "end_line": 379,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "old_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "new_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "9a65817e63d76929e1a39ab61a7c09b799b9db9052b34c5a7cf151225f44b5da",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_compare_dependencies",
+            "line": 381,
+            "end_line": 413,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "old_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "new_scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "2a6abb101a1fe04fae19f8be99db0336b02a2904f891eb0a2a6c3aa5461371da",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_build_summary",
+            "line": 415,
+            "end_line": 511,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "file_changes",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "symbol_changes",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "route_changes",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "dependency_changes",
+                "annotation": "dict[str, Any]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, int | bool]",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "5c340a3419fbf294f0845886252e14c4a6df287e84ddbfcc1601fb75a47b715d",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_build_lookup",
+            "line": 514,
+            "end_line": 534,
+            "arguments": [
+              {
+                "name": "items",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "key_fields",
+                "annotation": "tuple[str, ...]",
+                "default": null
+              }
+            ],
+            "returns": "dict[tuple[Any, ...], dict[str, Any]]",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "content_hash": "8386e1b662e12e821aeaafa3b7f0c5c6b7d683201604e192ad70d9d3efc160f3",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_normalize_for_comparison",
+            "line": 536,
+            "end_line": 562,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "value",
+                "annotation": "Any",
+                "default": null
+              }
+            ],
+            "returns": "Any",
+            "docstring": null,
+            "decorators": [],
+            "content_hash": "1d7d65355c24f0724235549a83339a5abf94179969c93786818b1f38ff396729",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_identity_dict",
+            "line": 565,
+            "end_line": 572,
+            "arguments": [
+              {
+                "name": "item",
+                "annotation": "dict[str, Any]",
+                "default": null
+              },
+              {
+                "name": "key_fields",
+                "annotation": "tuple[str, ...]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "content_hash": "a5ffba46cde0b8d398cf4054f853a046170d50ff71e6c099febaa305c16fd1a4",
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_comparator.py",
+            "class_name": "ScanComparator",
+            "name": "_validate_scan_result",
+            "line": 575,
+            "end_line": 588,
+            "arguments": [
+              {
+                "name": "scan_result",
+                "annotation": "Any",
+                "default": null
+              },
+              {
+                "name": "scan_label",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "None",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "content_hash": "7a730174a38d2674bede7d9d1ca12d918c175ec5dbfd260ab9004dfa7f835c2f",
             "is_async": false
           },
           {
@@ -2605,6 +3726,7 @@
             "returns": "None",
             "docstring": null,
             "decorators": [],
+            "content_hash": "0ad1fe6b2f5968a992859b7b7f06f7ad51e9fb3b0d7820907d2247c40d684db7",
             "is_async": false
           },
           {
@@ -2628,6 +3750,7 @@
             "returns": "dict[str, str]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "710f52252280ae7794a9c257ad413d8dd6947a80f7835103c5f9ae1a23518dde",
             "is_async": false
           },
           {
@@ -2656,6 +3779,7 @@
             "returns": "dict[str, Any]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "4e3e84df98b91aa26707841ea8af1cea43a0942e423f1c8f230d1f9ab21017b7",
             "is_async": false
           },
           {
@@ -2679,6 +3803,7 @@
             "returns": "dict[str, Any]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "5ab3b43a2e09b47406500838d571b613c8267188816c62e1faa576e14dd6e27c",
             "is_async": false
           },
           {
@@ -2702,6 +3827,7 @@
             "returns": "list[dict[str, Any]]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "7e54722e2b09137adc4ca29620b115a3c0150daa81cd57b599839eea9223048c",
             "is_async": false
           },
           {
@@ -2725,6 +3851,7 @@
             "returns": "list[Path]",
             "docstring": null,
             "decorators": [],
+            "content_hash": "30077887af3a9fcdf52e66f38eca23995fd1e2c63664d3131ffdcd5cc36bf453",
             "is_async": false
           },
           {
@@ -2753,6 +3880,7 @@
             "returns": "Path",
             "docstring": null,
             "decorators": [],
+            "content_hash": "5d75a56f2566d4af2fdeca50350cfd84694abe1f9eaec46a367b1ee851bb74d7",
             "is_async": false
           },
           {
@@ -2773,6 +3901,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "4a8a66ee64210fafb9bad5da351ebc6095293b1dbed258041d9dfdbc7c18a338",
             "is_async": false
           },
           {
@@ -2793,6 +3922,7 @@
             "decorators": [
               "staticmethod"
             ],
+            "content_hash": "c67868a9065f9fdc55e71629ecfdc1f6888c424e451b95bd5ae8d5fcb6210c73",
             "is_async": false
           }
         ]
@@ -2824,6 +3954,26 @@
           "target_file": "app/models/project.py",
           "target_module": "app.models.project",
           "import_type": "from_import",
+          "imported_name": "ScanComparisonRequest",
+          "alias": null,
+          "line": 7
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/models/project.py",
+          "target_module": "app.models.project",
+          "import_type": "from_import",
+          "imported_name": "ScanComparisonResponse",
+          "alias": null,
+          "line": 7
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/models/project.py",
+          "target_module": "app.models.project",
+          "import_type": "from_import",
           "imported_name": "ScanSummaryResponse",
           "alias": null,
           "line": 7
@@ -2846,7 +3996,17 @@
           "import_type": "from_import",
           "imported_name": "ProjectScanner",
           "alias": null,
-          "line": 13
+          "line": 15
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/services/scan_comparator.py",
+          "target_module": "app.services.scan_comparator",
+          "import_type": "from_import",
+          "imported_name": "ScanComparator",
+          "alias": null,
+          "line": 18
         },
         {
           "source_file": "app/api/project_routes.py",
@@ -2856,7 +4016,7 @@
           "import_type": "from_import",
           "imported_name": "ScanStorage",
           "alias": null,
-          "line": 16
+          "line": 21
         },
         {
           "source_file": "app/main.py",
@@ -2876,7 +4036,7 @@
           "import_type": "from_import",
           "imported_name": "PythonCodeParser",
           "alias": null,
-          "line": 5
+          "line": 6
         },
         {
           "source_file": "app/services/project_scanner.py",
@@ -2886,7 +4046,7 @@
           "import_type": "from_import",
           "imported_name": "ProjectAnalyzer",
           "alias": null,
-          "line": 6
+          "line": 7
         }
       ],
       "router_definitions": [
@@ -2896,7 +4056,7 @@
           "variable_name": "router",
           "router_type": "APIRouter",
           "prefix": "/api/projects",
-          "line": 21
+          "line": 26
         },
         {
           "file": "app/main.py",
@@ -2942,7 +4102,7 @@
           "function_name": "scan_project",
           "method": "POST",
           "path": "/scan",
-          "line": 36,
+          "line": 42,
           "is_async": false,
           "router_name": "router",
           "route_name": null,
@@ -2955,10 +4115,26 @@
         {
           "file": "app/api/project_routes.py",
           "module": "app.api.project_routes",
+          "function_name": "compare_project_scans",
+          "method": "POST",
+          "path": "/{project_name}/compare",
+          "line": 109,
+          "is_async": false,
+          "router_name": "router",
+          "route_name": null,
+          "response_model": "ScanComparisonResponse",
+          "status_code": "status.HTTP_200_OK",
+          "include_router_prefix": null,
+          "router_prefix": "/api/projects",
+          "full_path": "/api/projects/{project_name}/compare"
+        },
+        {
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
           "function_name": "list_project_scans",
           "method": "GET",
           "path": "/{project_name}/scans",
-          "line": 109,
+          "line": 189,
           "is_async": false,
           "router_name": "router",
           "route_name": null,
@@ -2974,7 +4150,7 @@
           "function_name": "get_latest_project_scan",
           "method": "GET",
           "path": "/{project_name}/scans/latest",
-          "line": 138,
+          "line": 218,
           "is_async": false,
           "router_name": "router",
           "route_name": null,
@@ -2990,7 +4166,7 @@
           "function_name": "get_project_scan",
           "method": "GET",
           "path": "/{project_name}/scans/{scan_id}",
-          "line": 176,
+          "line": 254,
           "is_async": false,
           "router_name": "router",
           "route_name": null,

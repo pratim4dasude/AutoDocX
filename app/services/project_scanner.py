@@ -1,3 +1,4 @@
+import hashlib
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ class ProjectScanner:
     - counts directories
     - counts file extensions
     - calculates project size
+    - calculates SHA-256 file hashes
     - parses Python source files
     - analyzes project-level relationships
     """
@@ -38,6 +40,7 @@ class ProjectScanner:
         "htmlcov",
         ".tox",
         ".next",
+        "workspace",
     }
 
     IGNORED_FILES = {
@@ -75,6 +78,7 @@ class ProjectScanner:
         )
 
         files: list[str] = []
+        file_hashes: dict[str, str] = {}
         file_types: Counter[str] = Counter()
 
         total_size_bytes = 0
@@ -105,6 +109,11 @@ class ProjectScanner:
                 file_size = (
                     current_path.stat().st_size
                 )
+
+                file_hash = self._calculate_file_hash(
+                    file_path=current_path,
+                )
+
             except OSError:
                 ignored_items += 1
                 continue
@@ -116,6 +125,10 @@ class ProjectScanner:
             files.append(
                 relative_path_string
             )
+
+            file_hashes[
+                relative_path_string
+            ] = file_hash
 
             total_size_bytes += file_size
 
@@ -131,6 +144,10 @@ class ProjectScanner:
                 ] += 1
 
         files.sort()
+
+        file_hashes = dict(
+            sorted(file_hashes.items())
+        )
 
         parsed_files = (
             self._parse_python_files(
@@ -159,11 +176,10 @@ class ProjectScanner:
             ),
             "ignored_items": ignored_items,
             "file_types": dict(
-                sorted(
-                    file_types.items()
-                )
+                sorted(file_types.items())
             ),
             "files": files,
+            "file_hashes": file_hashes,
             "parsed_files": parsed_files,
             "project_analysis": (
                 project_analysis
@@ -226,6 +242,27 @@ class ProjectScanner:
             return True
 
         return False
+
+    @staticmethod
+    def _calculate_file_hash(
+        file_path: Path,
+    ) -> str:
+        sha256_hash = hashlib.sha256()
+
+        with file_path.open("rb") as file_handle:
+            while True:
+                file_chunk = file_handle.read(
+                    1024 * 1024
+                )
+
+                if not file_chunk:
+                    break
+
+                sha256_hash.update(
+                    file_chunk
+                )
+
+        return sha256_hash.hexdigest()
 
     @staticmethod
     def _validate_project_path(
