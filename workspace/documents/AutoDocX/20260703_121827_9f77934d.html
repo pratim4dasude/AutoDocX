@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>AutoDocX Documentation</title>
+
+    <style>
+        :root {
+            color-scheme: light dark;
+            --background: #f4f6f8;
+            --surface: #ffffff;
+            --surface-soft: #f8fafc;
+            --text: #172033;
+            --muted: #5f6b7a;
+            --border: #dce3ea;
+            --primary: #2563eb;
+            --primary-soft: #dbeafe;
+            --danger: #b42318;
+            --warning: #b54708;
+            --success: #067647;
+            --shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.65;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 28px 22px;
+            background: #111827;
+            color: #ffffff;
+        }
+
+        .sidebar h1 {
+            margin: 0 0 8px;
+            font-size: 22px;
+            line-height: 1.25;
+        }
+
+        .sidebar p {
+            margin: 0 0 24px;
+            color: #cbd5e1;
+            font-size: 13px;
+        }
+
+        .sidebar nav {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .sidebar a {
+            color: #e5e7eb;
+            text-decoration: none;
+            padding: 9px 11px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .sidebar a:hover {
+            background: #1f2937;
+            color: #ffffff;
+        }
+
+        .content {
+            width: 100%;
+            max-width: 1220px;
+            padding: 48px;
+        }
+
+        .hero {
+            padding: 38px;
+            margin-bottom: 26px;
+            border-radius: 18px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #1d4ed8,
+                    #4f46e5
+                );
+            color: #ffffff;
+            box-shadow: var(--shadow);
+        }
+
+        .hero h1 {
+            margin: 0 0 10px;
+            font-size: 38px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            margin: 0;
+            max-width: 760px;
+            color: #dbeafe;
+        }
+
+        .metadata {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(180px, 1fr)
+                );
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .metadata div {
+            padding: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.10);
+        }
+
+        .metadata span {
+            display: block;
+            color: #bfdbfe;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .metadata strong {
+            display: block;
+            margin-top: 4px;
+            overflow-wrap: anywhere;
+        }
+
+        section {
+            margin-bottom: 26px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+
+        section h2 {
+            margin: 0 0 18px;
+            font-size: 25px;
+        }
+
+        .paragraph {
+            white-space: pre-line;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(280px, 1fr)
+                );
+            gap: 16px;
+        }
+
+        .card {
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: var(--surface-soft);
+        }
+
+        .card h3 {
+            margin: 0 0 10px;
+            font-size: 18px;
+        }
+
+        .card p {
+            margin: 8px 0;
+        }
+
+        .label {
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .pill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 12px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: var(--primary-soft);
+            color: #1d4ed8;
+            font-size: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        .flow-step {
+            position: relative;
+            padding: 20px 20px 20px 68px;
+            margin-bottom: 14px;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: var(--surface-soft);
+        }
+
+        .step-number {
+            position: absolute;
+            left: 18px;
+            top: 20px;
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #ffffff;
+            font-weight: 800;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: var(--surface-soft);
+        }
+
+        code {
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: #eef2f7;
+            color: #1e293b;
+            overflow-wrap: anywhere;
+        }
+
+        .severity {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .severity-high {
+            color: var(--danger);
+            background: #fee4e2;
+        }
+
+        .severity-medium {
+            color: var(--warning);
+            background: #fef0c7;
+        }
+
+        .severity-low {
+            color: var(--success);
+            background: #d1fadf;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        footer {
+            padding: 8px 0 36px;
+            color: var(--muted);
+            text-align: center;
+            font-size: 13px;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                display: block;
+            }
+
+            .sidebar {
+                position: static;
+                width: 100%;
+                height: auto;
+            }
+
+            .content {
+                padding: 24px;
+            }
+
+            .hero {
+                padding: 26px;
+            }
+
+            .hero h1 {
+                font-size: 30px;
+            }
+        }
+
+        @media print {
+            .sidebar {
+                display: none;
+            }
+
+            .layout {
+                display: block;
+            }
+
+            .content {
+                max-width: none;
+                padding: 0;
+            }
+
+            section,
+            .hero {
+                break-inside: avoid;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h1>AutoDocX</h1>
+            <p>Generated AutoDocX documentation</p>
+
+            <nav>
+                <a href="#summary">Project Summary</a>
+<a href="#architecture">Architecture Overview</a>
+<a href="#execution-flow">Execution Flow</a>
+<a href="#modules">Module Responsibilities</a>
+<a href="#api">API Overview</a>
+<a href="#dependencies">Key Dependencies</a>
+<a href="#risks">Risks and Gaps</a>
+<a href="#recommended-sections">Recommended Sections</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header class="hero">
+                <h1>AutoDocX</h1>
+
+                <p>
+                    Automatically generated project
+                    documentation based on stored scan
+                    analysis and LLM project understanding.
+                </p>
+
+                <div class="metadata">
+                    <div>
+                        <span>Understanding ID</span>
+                        <strong>
+                            20260703_121827_5b7f429d
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Scan ID</span>
+                        <strong>
+                            20260703_121705_998ae815
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Provider</span>
+                        <strong>
+                            openai
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Model</span>
+                        <strong>
+                            gpt-5-mini
+                        </strong>
+                    </div>
+
+                    <div>
+                        <span>Understanding created</span>
+                        <strong>
+                            2026-07-03T12:18:27.039013+00:00
+                        </strong>
+                    </div>
+                </div>
+            </header>
+
+            <section id="summary">
+                <h2>Project Summary</h2>
+
+                <div class="paragraph">
+                    Confirmed:
+- AutoDocX is a Python application that scans local Python projects, analyzes their code structure, builds an LLM-ready project context, asks a configured LLM to produce a structured project understanding, and generates/saves standalone HTML documentation. This is implemented as a FastAPI service (entrypoint app/main.py) with a Streamlit UI client (ui/streamlit_app.py).
+
+Reasonable inferences:
+- The primary user workflow is to call /api/projects/documentation/sync (sync_project_documentation) to run an end-to-end flow that scans, compares, understands, and produces or updates documentation. The components persist intermediate artifacts (scans, understandings, documents) under a workspace directory (ScanStorage, UnderstandingStorage, DocumentStorage). The LLM provider is chosen via configuration functions in app.core.config and an LLM factory (app.services.llm.factory) creates the provider (OpenAIProvider or AnthropicProvider). Some filesystem path constants (e.g., DOCUMENTS_PATH, UNDERSTANDINGS_PATH) are defined in app.core.config. 
+
+Uncertainties:
+- The exact JSON contract produced by the LLM and the prompt text content are not shown here (prompts module reference exists but full constants are not listed). The concrete storage layout, permissions, and concurrency behavior are inferred from docstrings but not visible in file contents provided.
+                </div>
+            </section>
+
+            <section id="architecture">
+                <h2>Architecture Overview</h2>
+
+                <div class="paragraph">
+                    Confirmed:
+- Layers:
+  - API layer: app.api.project_routes defines HTTP endpoints and orchestrates the workflow using service classes.
+  - Services layer: scanning (ProjectScanner), parsing (PythonCodeParser), analysis (ProjectAnalyzer), context construction (ProjectContextBuilder), LLM orchestration (ProjectUnderstandingService + LLM provider implementations), comparison (ScanComparator), and content generation/storage (DocumentBuilder, DocumentStorage, ScanStorage, UnderstandingStorage).
+  - Configuration layer: app.core.config provides environment-driven configuration (LLM provider, API key, model selection) and directory setup.
+  - UI: ui.streamlit_app contains a Streamlit-based client that calls the FastAPI endpoints.
+
+Reasonable inferences:
+- Data persistence is file-based under a &#x27;workspace&#x27; root (ScanStorage.save_scan docstring referencing workspace/scans/&lt;project_name&gt;/&lt;scan_id&gt;.json and similar docstrings in UnderstandingStorage). DocumentStorage references DOCUMENTS_PATH. These imply a filesystem-backed storage strategy rather than a database.
+- LLM interactions are synchronous blocking calls (provider.generate_json methods are non-async) and responses are parsed to JSON with BaseLLMProvider.parse_json. The factory normalizes provider names and instantiates provider classes.
+
+Uncertainties:
+- Deployment topology (single process, multiple workers) and authentication for the API are not present in the provided context.
+                </div>
+            </section>
+
+            <section id="execution-flow">
+                <h2>Execution Flow</h2>
+                
+                <article class="flow-step">
+                    <div class="step-number">
+                        1
+                    </div>
+
+                    <h3>API request received</h3>
+
+                    <p>
+                        A client calls an endpoint on the FastAPI application (e.g., POST /api/projects/documentation/sync). The request is routed to a handler in app.api.project_routes.
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.main</span><span class="pill">app.api.project_routes</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        2
+                    </div>
+
+                    <h3>Project scan</h3>
+
+                    <p>
+                        The route handler creates or calls ProjectScanner.scan_project to: enumerate files, compute hashes, parse Python files using PythonCodeParser.parse_file, and produce a structured scan result (parsed_files + project-level stats).
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.services.project_scanner</span><span class="pill">app.services.code_parser</span><span class="pill">app.services.project_analyzer</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        3
+                    </div>
+
+                    <h3>Persist scan</h3>
+
+                    <p>
+                        ScanStorage.save_scan is used to store the serialized scan under workspace/scans/&lt;project_name&gt;/&lt;scan_id&gt;.json (per docstring).
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.services.scan_storage</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        4
+                    </div>
+
+                    <h3>Find latest artefacts and decide flow</h3>
+
+                    <p>
+                        The route handler queries DocumentStorage.get_latest_document_metadata and UnderstandingStorage.get_latest_understanding to determine whether a previous document/understanding exists; if so, it may call ScanComparator.compare_scans to detect changes.
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.services.document_storage</span><span class="pill">app.services.understanding_storage</span><span class="pill">app.services.scan_comparator</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        5
+                    </div>
+
+                    <h3>Build LLM-ready context</h3>
+
+                    <p>
+                        ProjectContextBuilder.build_context converts the stored scan into either a detailed or &#x27;llm&#x27; context (smaller, tailored) which is then formatted into a prompt via build_project_understanding_prompt.
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.services.project_context_builder</span><span class="pill">app.services.llm.prompts</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        6
+                    </div>
+
+                    <h3>Call LLM to generate structured understanding</h3>
+
+                    <p>
+                        ProjectUnderstandingService.generate_understanding selects an LLM provider (LLMProviderFactory.create_provider), calls provider.generate_json with system/user prompts, and uses BaseLLMProvider.parse_json to parse the returned text into structured JSON which becomes the stored understanding.
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.services.project_understanding_service</span><span class="pill">app.services.llm.factory</span><span class="pill">app.services.llm.base</span><span class="pill">app.services.llm.openai_provider</span><span class="pill">app.services.llm.anthropic_provider</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        7
+                    </div>
+
+                    <h3>Persist understanding</h3>
+
+                    <p>
+                        UnderstandingStorage.save_understanding stores the parsed understanding (workspace/understandings/&lt;project_name&gt;/&lt;understanding_id&gt;.json per docstring).
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.services.understanding_storage</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        8
+                    </div>
+
+                    <h3>Build and save HTML document</h3>
+
+                    <p>
+                        DocumentBuilder.build_html renders an HTML string from the stored understanding (using html.escape). DocumentStorage.save_document writes the HTML file and metadata; get_project_document_html returns a FileResponse to serve/download HTML.
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.services.document_builder</span><span class="pill">app.services.document_storage</span><span class="pill">app.api.project_routes</span></div>
+                </article>
+                
+
+                <article class="flow-step">
+                    <div class="step-number">
+                        9
+                    </div>
+
+                    <h3>Return response</h3>
+
+                    <p>
+                        The API handler returns a response model (Pydantic models from app.models.project) summarizing identifiers (scan_id, understanding_id, document_id) and status (created/updated/unchanged). The Streamlit client can call these endpoints and display results.
+                    </p>
+
+                    <div class="pill-list"><span class="pill">app.models.project</span><span class="pill">ui.streamlit_app</span><span class="pill">app.api.project_routes</span></div>
+                </article>
+                
+            </section>
+
+            <section id="modules">
+                <h2>Module Responsibilities</h2>
+                <div class="card-grid">
+                <article class="card">
+                    <h3>app.api.project_routes</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/api/project_routes.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        HTTP router defining API endpoints for scanning, comparing, building context, generating/ updating documents, generating and listing understandings and scans, and the end-to-end documentation sync endpoint. Orchestrates services and translates service results into response models and FileResponse when serving HTML.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">sync_project_documentation</span><span class="pill">scan_project</span><span class="pill">list_project_scans</span><span class="pill">get_latest_project_scan</span><span class="pill">get_project_scan</span><span class="pill">compare_project_scans</span><span class="pill">build_project_context</span><span class="pill">understand_project</span><span class="pill">list_project_understandings</span><span class="pill">get_latest_project_understanding</span><span class="pill">get_project_understanding</span><span class="pill">generate_project_document</span><span class="pill">update_project_document</span><span class="pill">list_project_documents</span><span class="pill">get_latest_project_document</span><span class="pill">get_project_document_html</span><span class="pill">_generate_and_save_understanding</span><span class="pill">_generate_and_save_document</span><span class="pill">comparison_contains_changes</span><span class="pill">_value_error_status</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.core.config</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/core/config.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Load environment configuration, provide helpers to choose LLM provider, API key, and model; create required workspace directories and expose filesystem path constants (DOCUMENTS_PATH, UNDERSTANDINGS_PATH inferred).
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">create_required_directories</span><span class="pill">get_llm_provider</span><span class="pill">get_llm_api_key</span><span class="pill">get_llm_model</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.main</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/main.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        FastAPI application entrypoint: creates the FastAPI app, includes routers (router from app.api.project_routes), and exposes simple health endpoints.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">root</span><span class="pill">health_check</span><span class="pill">project_router</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.models.project</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/models/project.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Pydantic models defining request and response schemas for scans, comparisons, project contexts, understandings, document generation and synchronization.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">ProjectScanRequest</span><span class="pill">ProjectScanResponse</span><span class="pill">ScanSummaryResponse</span><span class="pill">StoredScanResponse</span><span class="pill">ScanComparisonRequest</span><span class="pill">ScanComparisonResponse</span><span class="pill">ProjectContextRequest</span><span class="pill">ProjectContextResponse</span><span class="pill">ProjectUnderstandingRequest</span><span class="pill">ProjectUnderstandingResponse</span><span class="pill">UnderstandingSummaryResponse</span><span class="pill">StoredUnderstandingResponse</span><span class="pill">DocumentGenerationRequest</span><span class="pill">DocumentGenerationResponse</span><span class="pill">DocumentSummaryResponse</span><span class="pill">DocumentUpdateRequest</span><span class="pill">DocumentUpdateResponse</span><span class="pill">DocumentationSyncRequest</span><span class="pill">DocumentationSyncResponse</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.code_parser</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/code_parser.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Read Python source files and extract syntactic/semantic structure: imports, functions, async functions, classes, methods, FastAPI routes, and content hashes. Used by ProjectScanner to parse each Python file.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">PythonCodeParser</span><span class="pill">PythonCodeParser.parse_file</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.project_scanner</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/project_scanner.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Top-level project scanner that enumerates files, computes project statistics and SHA-256 hashes, uses PythonCodeParser to parse Python files, and delegates to ProjectAnalyzer for project-level relationships.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">ProjectScanner</span><span class="pill">ProjectScanner.scan_project</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.project_analyzer</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/project_analyzer.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Analyze parsed file outputs to build project-level relationships such as internal module dependency graph, mapping of modules to symbols, discovery of FastAPI router prefixes/endpoint paths, and project statistics.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">ProjectAnalyzer</span><span class="pill">ProjectAnalyzer.analyze_project</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.project_context_builder</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/project_context_builder.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Transform a stored scan into structured project context payloads. Supports &#x27;detailed&#x27; mode with full details and &#x27;llm&#x27; mode producing a compact context for LLM prompts.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">ProjectContextBuilder</span><span class="pill">ProjectContextBuilder.build_context</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.project_understanding_service</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/project_understanding_service.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Create LLM-ready context, choose the LLM provider via LLMProviderFactory, build prompts (using constants and build_project_understanding_prompt), call the provider to generate JSON-structured understanding, and return a structured understanding result.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">ProjectUnderstandingService</span><span class="pill">ProjectUnderstandingService.generate_understanding</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.llm.base</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/llm/base.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Abstract base class defining the LLM provider interface: provider_name (property), generate_json, and a static parse_json_response helper for extracting JSON from model text.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">BaseLLMProvider</span><span class="pill">BaseLLMProvider.parse_json_response</span><span class="pill">BaseLLMProvider.generate_json</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.llm.factory</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/llm/factory.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Factory to normalize provider names and instantiate the correct provider implementation (AnthropicProvider or OpenAIProvider) given provider_name, api_key, and optional model.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">LLMProviderFactory</span><span class="pill">LLMProviderFactory.create_provider</span><span class="pill">LLMProviderFactory.normalize_provider_name</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.llm.openai_provider</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/llm/openai_provider.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Concrete BaseLLMProvider implementation for OpenAI using the Responses API (synchronous generate_json implementation).
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">OpenAIProvider</span><span class="pill">OpenAIProvider.provider_name</span><span class="pill">OpenAIProvider.generate_json</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.llm.anthropic_provider</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/llm/anthropic_provider.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Concrete BaseLLMProvider implementation for Anthropic Claude using the Messages API (synchronous generate_json implementation).
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">AnthropicProvider</span><span class="pill">AnthropicProvider.provider_name</span><span class="pill">AnthropicProvider.generate_json</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.llm.prompts</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/llm/prompts.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Construct prompt text for asking the LLM to produce a structured project understanding (build_project_understanding_prompt). Exposes PROJECT_UNDERSTANDING_SYSTEM_PROMPT used by the understanding service.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">build_project_understanding_prompt</span><span class="pill">PROJECT_UNDERSTANDING_SYSTEM_PROMPT</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.scan_comparator</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/scan_comparator.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Compare two stored scan payloads and detect added/deleted/modified files, symbols (functions/classes/methods), routes, and internal dependencies; produce a structured diff used to decide document updates.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">ScanComparator</span><span class="pill">ScanComparator.compare_scans</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.scan_storage</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/scan_storage.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Persist and retrieve scan JSON results under workspace/scans; list scans and retrieve the latest scan for a project.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">ScanStorage</span><span class="pill">ScanStorage.save_scan</span><span class="pill">ScanStorage.get_scan</span><span class="pill">ScanStorage.get_latest_scan</span><span class="pill">ScanStorage.list_scans</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.understanding_storage</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/understanding_storage.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Persist and retrieve LLM-generated understanding JSON files under workspace/understandings/&lt;project_name&gt;/&lt;understanding_id&gt;.json and list/get latest understandings.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">UnderstandingStorage</span><span class="pill">UnderstandingStorage.save_understanding</span><span class="pill">UnderstandingStorage.get_understanding</span><span class="pill">UnderstandingStorage.get_latest_understanding</span><span class="pill">UnderstandingStorage.list_understandings</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.document_builder</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/document_builder.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Render a saved project understanding into standalone HTML using escaping via html.escape; returns an HTML string to be saved by DocumentStorage.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">DocumentBuilder</span><span class="pill">DocumentBuilder.build_html</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>app.services.document_storage</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            app/services/document_storage.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Save generated HTML documentation files and metadata, list documents, and retrieve document metadata and file paths. Uses a DOCUMENTS_PATH constant from app.core.config.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">DocumentStorage</span><span class="pill">DocumentStorage.save_document</span><span class="pill">DocumentStorage.list_documents</span><span class="pill">DocumentStorage.get_latest_document_metadata</span><span class="pill">DocumentStorage.get_document_metadata</span><span class="pill">DocumentStorage.get_document_file</span></div>
+                </article>
+                
+
+                <article class="card">
+                    <h3>ui.streamlit_app</h3>
+
+                    <p class="label">File</p>
+                    <p>
+                        <code>
+                            ui/streamlit_app.py
+                        </code>
+                    </p>
+
+                    <p class="label">
+                        Responsibility
+                    </p>
+
+                    <p>
+                        Streamlit-based client utilities that call the FastAPI endpoints (normalize_api_url, sync_documentation) and UI helpers for displaying statuses and metadata returned by the API.
+                    </p>
+
+                    <p class="label">
+                        Important symbols
+                    </p>
+
+                    <div class="pill-list"><span class="pill">normalize_api_url</span><span class="pill">build_document_url</span><span class="pill">sync_documentation</span><span class="pill">display_action_status</span><span class="pill">display_identifiers</span><span class="pill">display_comparison_summary</span><span class="pill">display_document_metadata</span></div>
+                </article>
+                </div>
+            </section>
+
+            <section id="api">
+                <h2>API Overview</h2>
+                
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Handler</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    
+                <tr>
+                    <td>
+                        <strong>
+                            POST
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/documentation/sync
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            sync_project_documentation
+                        </code>
+                    </td>
+
+                    <td>
+                        End-to-end documentation sync: scan and save project, compare with existing documents, generate understanding if needed, produce or update HTML documentation, and return metadata/status (DocumentationSyncResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            POST
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/scan
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            scan_project
+                        </code>
+                    </td>
+
+                    <td>
+                        Scan, analyze, and save a local project producing a ProjectScanResponse for the stored scan.
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/scans
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            list_project_scans
+                        </code>
+                    </td>
+
+                    <td>
+                        List all saved scans for a project (returns list[ScanSummaryResponse]).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/scans/latest
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            get_latest_project_scan
+                        </code>
+                    </td>
+
+                    <td>
+                        Retrieve the latest stored scan for a project (StoredScanResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/scans/{scan_id}
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            get_project_scan
+                        </code>
+                    </td>
+
+                    <td>
+                        Retrieve one stored scan by project_name and scan_id (StoredScanResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            POST
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/compare
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            compare_project_scans
+                        </code>
+                    </td>
+
+                    <td>
+                        Compare two saved scans for a project and return a structured diff (ScanComparisonResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            POST
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/context
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            build_project_context
+                        </code>
+                    </td>
+
+                    <td>
+                        Build a compact LLM-ready project context from a stored scan (ProjectContextResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            POST
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/understand
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            understand_project
+                        </code>
+                    </td>
+
+                    <td>
+                        Ask the configured LLM to generate and save a structured project understanding for a stored scan (ProjectUnderstandingResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/understandings
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            list_project_understandings
+                        </code>
+                    </td>
+
+                    <td>
+                        List saved understandings for a project (list[UnderstandingSummaryResponse]).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/understandings/latest
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            get_latest_project_understanding
+                        </code>
+                    </td>
+
+                    <td>
+                        Get the latest stored understanding for a project (StoredUnderstandingResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/understandings/{understanding_id}
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            get_project_understanding
+                        </code>
+                    </td>
+
+                    <td>
+                        Get a specific stored understanding by ID (StoredUnderstandingResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/documents
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            list_project_documents
+                        </code>
+                    </td>
+
+                    <td>
+                        List generated project documents and their metadata (list[DocumentSummaryResponse]).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            POST
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/documents
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            generate_project_document
+                        </code>
+                    </td>
+
+                    <td>
+                        Generate and save an HTML project document from a stored understanding (DocumentGenerationResponse, HTTP 201).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            POST
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/documents/update
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            update_project_document
+                        </code>
+                    </td>
+
+                    <td>
+                        Compare a new scan and create an updated documentation version if changes exist (DocumentUpdateResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/documents/latest
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            get_latest_project_document
+                        </code>
+                    </td>
+
+                    <td>
+                        Get metadata for the latest generated document for a project (DocumentSummaryResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /api/projects/{project_name}/documents/{document_id}/html
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            get_project_document_html
+                        </code>
+                    </td>
+
+                    <td>
+                        Open or download generated HTML documentation (returns FileResponse).
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            root
+                        </code>
+                    </td>
+
+                    <td>
+                        Health / root endpoint exposed by the FastAPI application.
+                    </td>
+                </tr>
+                
+                <tr>
+                    <td>
+                        <strong>
+                            GET
+                        </strong>
+                    </td>
+
+                    <td>
+                        <code>
+                            /health
+                        </code>
+                    </td>
+
+                    <td>
+                        <code>
+                            health_check
+                        </code>
+                    </td>
+
+                    <td>
+                        Health check endpoint for the FastAPI application.
+                    </td>
+                </tr>
+                
+                </tbody>
+            </table>
+        </div>
+        
+            </section>
+
+            <section id="dependencies">
+                <h2>Key Dependencies</h2>
+                <div class="card-grid">
+                <article class="card">
+                    <h3>
+                        app.api.project_routes
+                        &rarr;
+                        app.services.project_scanner
+                    </h3>
+
+                    <p>
+                        Orchestrates scanning logic to produce stored scan payloads used by other workflows (scan_project, sync_project_documentation).
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.api.project_routes
+                        &rarr;
+                        app.services.scan_storage
+                    </h3>
+
+                    <p>
+                        Persist and retrieve scans for comparison and later processing.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.api.project_routes
+                        &rarr;
+                        app.services.project_understanding_service
+                    </h3>
+
+                    <p>
+                        Generate LLM-based structured project understandings from stored scans or contexts.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.api.project_routes
+                        &rarr;
+                        app.services.understanding_storage
+                    </h3>
+
+                    <p>
+                        Persist and retrieve LLM-generated understandings.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.api.project_routes
+                        &rarr;
+                        app.services.document_builder
+                    </h3>
+
+                    <p>
+                        Render HTML content from stored understanding payloads.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.api.project_routes
+                        &rarr;
+                        app.services.document_storage
+                    </h3>
+
+                    <p>
+                        Save and serve generated HTML documentation and metadata.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.api.project_routes
+                        &rarr;
+                        app.services.scan_comparator
+                    </h3>
+
+                    <p>
+                        Compare two scans to detect documentation-relevant changes and drive update decisions.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.services.project_scanner
+                        &rarr;
+                        app.services.code_parser
+                    </h3>
+
+                    <p>
+                        Parse Python source files to extract structural information (functions, classes, routes, hashes).
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.services.project_scanner
+                        &rarr;
+                        app.services.project_analyzer
+                    </h3>
+
+                    <p>
+                        Translate per-file parsed results into project-level relationships and statistics.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.services.project_understanding_service
+                        &rarr;
+                        app.services.llm.factory
+                    </h3>
+
+                    <p>
+                        Create concrete LLM provider instances (OpenAIProvider or AnthropicProvider) for generating JSON understandings.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.services.llm.factory
+                        &rarr;
+                        app.services.llm.openai_provider
+                    </h3>
+
+                    <p>
+                        Instantiate OpenAIProvider when normalized provider name matches OpenAI.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.services.llm.factory
+                        &rarr;
+                        app.services.llm.anthropic_provider
+                    </h3>
+
+                    <p>
+                        Instantiate AnthropicProvider when normalized provider name matches Anthropic.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.services.document_storage
+                        &rarr;
+                        app.core.config
+                    </h3>
+
+                    <p>
+                        DocumentStorage uses DOCUMENTS_PATH defined in config to locate where HTML files are stored.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>
+                        app.services.understanding_storage
+                        &rarr;
+                        app.core.config
+                    </h3>
+
+                    <p>
+                        UnderstandingStorage uses UNDERSTANDINGS_PATH from config to locate understanding JSON files.
+                    </p>
+                </article>
+                </div>
+            </section>
+
+            <section id="risks">
+                <h2>Risks and Gaps</h2>
+                <div class="card-grid">
+                <article class="card">
+                    <span
+                        class="
+                            severity
+                            severity-high
+                        "
+                    >
+                        high
+                    </span>
+
+                    <h3>LLM response parsing fragility</h3>
+
+                    <p>
+                        Parsing free-text LLM responses into JSON is error-prone. While BaseLLMProvider.parse_json_response handles several wrapping formats, malformed responses or partial JSON could break generate_understanding or cause stored understandings to be invalid.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <span
+                        class="
+                            severity
+                            severity-high
+                        "
+                    >
+                        high
+                    </span>
+
+                    <h3>No authentication/authorization in API surface</h3>
+
+                    <p>
+                        There is no evidence of authentication middleware, API keys, or access control on endpoints. Serving stored HTML and providing LLM API keys via configuration may expose sensitive data if deployed without protective measures.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <span
+                        class="
+                            severity
+                            severity-medium
+                        "
+                    >
+                        medium
+                    </span>
+
+                    <h3>Concurrent access and race conditions</h3>
+
+                    <p>
+                        Storage is file-based (workspace/...). Concurrent requests creating scans, understandings, or documents for the same project could race when listing/getting latest artifacts or when saving new files. No locking or transactional behavior is visible from provided modules.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <span
+                        class="
+                            severity
+                            severity-medium
+                        "
+                    >
+                        medium
+                    </span>
+
+                    <h3>Error handling and HTTP status mapping</h3>
+
+                    <p>
+                        Some internal helpers exist (e.g., _value_error_status) to map storage lookup errors to HTTP 404, but full error propagation, validation of LLM responses, and recovery for partial failures are not fully visible.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <span
+                        class="
+                            severity
+                            severity-medium
+                        "
+                    >
+                        medium
+                    </span>
+
+                    <h3>Secrets management</h3>
+
+                    <p>
+                        LLM API keys are obtained via app.core.config.get_llm_api_key, likely from environment variables. There&#x27;s no shown secret rotation or secure storage; keys may be loaded in plaintext into process env.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <span
+                        class="
+                            severity
+                            severity-low
+                        "
+                    >
+                        low
+                    </span>
+
+                    <h3>Testing and observability gaps</h3>
+
+                    <p>
+                        No unit tests or logging/metrics modules are visible in the provided context. Observability for LLM calls, long-running scans, and disk IO is not shown.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <span
+                        class="
+                            severity
+                            severity-medium
+                        "
+                    >
+                        medium
+                    </span>
+
+                    <h3>Unclear prompt and JSON schema</h3>
+
+                    <p>
+                        Full prompt text (PROJECT_UNDERSTANDING_SYSTEM_PROMPT) and the exact JSON schema expected from the LLM are not included, which makes it harder to validate or extend the LLM output and to write deterministic tests.
+                    </p>
+                </article>
+                </div>
+            </section>
+
+            <section id="recommended-sections">
+                <h2>
+                    Recommended Documentation Sections
+                </h2>
+
+                <div class="card-grid">
+                <article class="card">
+                    <h3>Overview and Purpose</h3>
+
+                    <p>
+                        Explain what AutoDocX does, primary use-cases (generate/maintain documentation from Python projects), and quickstart examples.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Architecture and Component Diagram</h3>
+
+                    <p>
+                        Describe layers (API, services, LLM providers, storage, UI) and include a diagram showing interactions between app.api.project_routes, scanner, analyzer, LLM services, and storage.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Execution Flow / Endpoint Workflows</h3>
+
+                    <p>
+                        Step-by-step flows for key operations: documentation sync (POST /api/projects/documentation/sync), standalone scan, generate understanding, and generate/update document. Map to functions: sync_project_documentation, scan_project, generate_project_document, update_project_document.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>API Reference</h3>
+
+                    <p>
+                        Document all endpoints, request/response models (Pydantic classes in app.models.project), path parameters, HTTP status codes, and example payloads/responses for each handler (use exact function names and paths).
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Data Models and Storage Layout</h3>
+
+                    <p>
+                        Detail Pydantic models and the filesystem layout used by ScanStorage, UnderstandingStorage, and DocumentStorage (workspace/scans, workspace/understandings, DOCUMENTS_PATH). Include metadata fields stored with documents and understandings.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>LLM Providers and Prompts</h3>
+
+                    <p>
+                        Document available LLM providers (OpenAIProvider, AnthropicProvider), how to configure provider/model/api_key (app.core.config.get_llm_provider/get_llm_api_key/get_llm_model), and include the prompt templates and expected JSON schema (PROJECT_UNDERSTANDING_SYSTEM_PROMPT and build_project_understanding_prompt).
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Error Handling and Edge Cases</h3>
+
+                    <p>
+                        Document how storage lookup errors are surfaced (e.g., _value_error_status), expected error responses, how malformed LLM responses are handled, and recommended retry/timeout settings.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Security and Secrets Management</h3>
+
+                    <p>
+                        Guidance for securely providing LLM API keys, restricting API access, and recommended deployment practices (network-level protections, secrets stores).
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Concurrency, Performance and Limits</h3>
+
+                    <p>
+                        Describe behavior under concurrent requests, recommended limits for project size, and guidance for long-running scans or large projects. Note file-based storage implications and recommend locking/queueing if needed.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Testing and Development</h3>
+
+                    <p>
+                        Instructions for running local development, the Streamlit UI, how to run scans against example projects, and recommended unit/integration tests for LLM parsing and storage.
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Deployment and Runtime</h3>
+
+                    <p>
+                        Instructions to deploy the FastAPI app (uvicorn/gunicorn), environment variables expected, recommended directory layout, and scripts available (install.bat, start.bat, stop.bat, scripts/setup_runtime.ps1).
+                    </p>
+                </article>
+                
+
+                <article class="card">
+                    <h3>Extending AutoDocX</h3>
+
+                    <p>
+                        How to add a new LLM provider (implement BaseLLMProvider), extend DocumentBuilder output, or change storage backend to a database. Include required interfaces and factory update points.
+                    </p>
+                </article>
+                </div>
+            </section>
+
+            <footer>
+                Generated by AutoDocX from understanding
+                20260703_121827_5b7f429d
+            </footer>
+        </main>
+    </div>
+</body>
+</html>
