@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -61,13 +61,17 @@ class ScanComparisonRequest(BaseModel):
     old_scan_id: str = Field(
         ...,
         min_length=1,
-        description="Scan ID of the older project state",
+        description=(
+            "Scan ID of the older project state"
+        ),
     )
 
     new_scan_id: str = Field(
         ...,
         min_length=1,
-        description="Scan ID of the newer project state",
+        description=(
+            "Scan ID of the newer project state"
+        ),
     )
 
 
@@ -80,3 +84,38 @@ class ScanComparisonResponse(BaseModel):
     symbol_changes: dict[str, Any]
     route_changes: dict[str, Any]
     dependency_changes: dict[str, Any]
+
+
+class ProjectContextRequest(BaseModel):
+    scan_id: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Saved scan ID used to build "
+            "project context"
+        ),
+    )
+
+    mode: Literal[
+        "detailed",
+        "llm",
+    ] = Field(
+        default="llm",
+        description=(
+            "detailed keeps complete context; "
+            "llm creates a reduced context for "
+            "language-model processing"
+        ),
+    )
+
+
+class ProjectContextResponse(BaseModel):
+    context_mode: str
+    project: dict[str, Any]
+    statistics: dict[str, Any]
+    important_files: dict[str, list[str]]
+    modules: list[dict[str, Any]]
+    api_routes: list[dict[str, Any]]
+    internal_dependencies: list[
+        dict[str, Any]
+    ]

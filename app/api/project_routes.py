@@ -5,12 +5,17 @@ from fastapi import (
 )
 
 from app.models.project import (
+    ProjectContextRequest,
+    ProjectContextResponse,
     ProjectScanRequest,
     ProjectScanResponse,
     ScanComparisonRequest,
     ScanComparisonResponse,
     ScanSummaryResponse,
     StoredScanResponse,
+)
+from app.services.project_context_builder import (
+    ProjectContextBuilder,
 )
 from app.services.project_scanner import (
     ProjectScanner,
@@ -31,13 +36,18 @@ router = APIRouter(
 project_scanner = ProjectScanner()
 scan_storage = ScanStorage()
 scan_comparator = ScanComparator()
+project_context_builder = (
+    ProjectContextBuilder()
+)
 
 
 @router.post(
     "/scan",
     response_model=ProjectScanResponse,
     status_code=status.HTTP_200_OK,
-    summary="Scan, analyze, and save a local project",
+    summary=(
+        "Scan, analyze, and save a local project"
+    ),
 )
 def scan_project(
     request: ProjectScanRequest,
@@ -180,6 +190,74 @@ def compare_project_scans(
         ) from error
 
 
+@router.post(
+    "/{project_name}/context",
+    response_model=ProjectContextResponse,
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "Build compact LLM-ready project context"
+    ),
+)
+def build_project_context(
+    project_name: str,
+    request: ProjectContextRequest,
+) -> ProjectContextResponse:
+    try:
+        stored_scan = scan_storage.get_scan(
+            project_name=project_name,
+            scan_id=request.scan_id,
+        )
+
+        project_context = (
+            project_context_builder.build_context(
+                stored_scan=stored_scan,
+                mode=request.mode,
+            )
+        )
+
+        return ProjectContextResponse(
+            **project_context
+        )
+
+    except ValueError as error:
+        error_message = str(error)
+
+        if "Scan not found" in error_message:
+            response_status = (
+                status.HTTP_404_NOT_FOUND
+            )
+        else:
+            response_status = (
+                status.HTTP_400_BAD_REQUEST
+            )
+
+        raise HTTPException(
+            status_code=response_status,
+            detail=error_message,
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "Project context generation failed: "
+                f"{error}"
+            ),
+        ) from error
+
+
 @router.get(
     "/{project_name}/scans",
     response_model=list[ScanSummaryResponse],
@@ -219,8 +297,10 @@ def get_latest_project_scan(
     project_name: str,
 ) -> StoredScanResponse:
     try:
-        stored_scan = scan_storage.get_latest_scan(
-            project_name=project_name,
+        stored_scan = (
+            scan_storage.get_latest_scan(
+                project_name=project_name,
+            )
         )
 
         return StoredScanResponse(
