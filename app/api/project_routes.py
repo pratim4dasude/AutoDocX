@@ -4,15 +4,25 @@ from fastapi import (
     status,
 )
 
+from app.core.config import (
+    get_llm_api_key,
+    get_llm_model,
+    get_llm_provider,
+)
+
 from app.models.project import (
     ProjectContextRequest,
     ProjectContextResponse,
     ProjectScanRequest,
     ProjectScanResponse,
+    ProjectUnderstandingRequest,
+    ProjectUnderstandingResponse,
     ScanComparisonRequest,
     ScanComparisonResponse,
     ScanSummaryResponse,
     StoredScanResponse,
+    StoredUnderstandingResponse,
+    UnderstandingSummaryResponse,
 )
 from app.services.project_context_builder import (
     ProjectContextBuilder,
@@ -20,13 +30,18 @@ from app.services.project_context_builder import (
 from app.services.project_scanner import (
     ProjectScanner,
 )
+from app.services.project_understanding_service import (
+    ProjectUnderstandingService,
+)
 from app.services.scan_comparator import (
     ScanComparator,
 )
 from app.services.scan_storage import (
     ScanStorage,
 )
-
+from app.services.understanding_storage import (
+    UnderstandingStorage,
+)
 
 router = APIRouter(
     prefix="/api/projects",
@@ -36,10 +51,13 @@ router = APIRouter(
 project_scanner = ProjectScanner()
 scan_storage = ScanStorage()
 scan_comparator = ScanComparator()
-project_context_builder = (
-    ProjectContextBuilder()
+project_context_builder = ProjectContextBuilder()
+project_understanding_service = (
+    ProjectUnderstandingService()
 )
-
+understanding_storage = (
+    UnderstandingStorage()
+)
 
 @router.post(
     "/scan",
@@ -55,7 +73,7 @@ def scan_project(
     try:
         scan_result = (
             project_scanner.scan_project(
-                project_path=request.project_path
+                project_path=request.project_path,
             )
         )
 
@@ -69,30 +87,25 @@ def scan_project(
         }
 
         return ProjectScanResponse(
-            **response_data
+            **response_data,
         )
 
     except ValueError as error:
         raise HTTPException(
-            status_code=(
-                status.HTTP_400_BAD_REQUEST
-            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
         ) from error
 
     except PermissionError as error:
         raise HTTPException(
-            status_code=(
-                status.HTTP_403_FORBIDDEN
-            ),
+            status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Permission denied: {error}",
         ) from error
 
     except RuntimeError as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=str(error),
         ) from error
@@ -100,13 +113,9 @@ def scan_project(
     except Exception as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail=(
-                "Project scan failed: "
-                f"{error}"
-            ),
+            detail=f"Project scan failed: {error}",
         ) from error
 
 
@@ -148,7 +157,7 @@ def compare_project_scans(
         )
 
         return ScanComparisonResponse(
-            **comparison_result
+            **comparison_result,
         )
 
     except ValueError as error:
@@ -171,8 +180,7 @@ def compare_project_scans(
     except RuntimeError as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=str(error),
         ) from error
@@ -180,13 +188,9 @@ def compare_project_scans(
     except Exception as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail=(
-                "Scan comparison failed: "
-                f"{error}"
-            ),
+            detail=f"Scan comparison failed: {error}",
         ) from error
 
 
@@ -216,7 +220,7 @@ def build_project_context(
         )
 
         return ProjectContextResponse(
-            **project_context
+            **project_context,
         )
 
     except ValueError as error:
@@ -239,8 +243,102 @@ def build_project_context(
     except RuntimeError as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "Project context generation failed: "
+                f"{error}"
+            ),
+        ) from error
+
+@router.post(
+    "/{project_name}/understand",
+    response_model=(
+        ProjectUnderstandingResponse
+    ),
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "Generate and save structured project "
+        "understanding using the configured LLM"
+    ),
+)
+def understand_project(
+    project_name: str,
+    request: ProjectUnderstandingRequest,
+) -> ProjectUnderstandingResponse:
+    try:
+        stored_scan = scan_storage.get_scan(
+            project_name=project_name,
+            scan_id=request.scan_id,
+        )
+
+        provider_name = get_llm_provider()
+
+        api_key = get_llm_api_key(
+            provider_name=provider_name,
+        )
+
+        model_name = get_llm_model(
+            provider_name=provider_name,
+        )
+
+        understanding_result = (
+            project_understanding_service
+            .generate_understanding(
+                stored_scan=stored_scan,
+                provider_name=provider_name,
+                api_key=api_key,
+                model=model_name,
+            )
+        )
+
+        storage_info = (
+            understanding_storage
+            .save_understanding(
+                understanding_result=(
+                    understanding_result
+                ),
+            )
+        )
+
+        response_data = {
+            **understanding_result,
+            "storage": storage_info,
+        }
+
+        return ProjectUnderstandingResponse(
+            **response_data,
+        )
+
+    except ValueError as error:
+        error_message = str(error)
+
+        if "Scan not found" in error_message:
+            response_status = (
+                status.HTTP_404_NOT_FOUND
+            )
+        else:
+            response_status = (
+                status.HTTP_400_BAD_REQUEST
+            )
+
+        raise HTTPException(
+            status_code=response_status,
+            detail=error_message,
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_502_BAD_GATEWAY
             ),
             detail=str(error),
         ) from error
@@ -252,12 +350,143 @@ def build_project_context(
                 .HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=(
-                "Project context generation failed: "
-                f"{error}"
+                "Project understanding "
+                "generation failed."
             ),
         ) from error
 
 
+@router.get(
+    "/{project_name}/understandings",
+    response_model=list[
+        UnderstandingSummaryResponse
+    ],
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "List saved project understandings"
+    ),
+)
+def list_project_understandings(
+    project_name: str,
+) -> list[UnderstandingSummaryResponse]:
+    try:
+        saved_understandings = (
+            understanding_storage
+            .list_understandings(
+                project_name=project_name,
+            )
+        )
+
+        return [
+            UnderstandingSummaryResponse(
+                **saved_understanding
+            )
+            for saved_understanding
+            in saved_understandings
+        ]
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+
+@router.get(
+    "/{project_name}/understandings/latest",
+    response_model=(
+        StoredUnderstandingResponse
+    ),
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "Get the latest saved project "
+        "understanding"
+    ),
+)
+def get_latest_project_understanding(
+    project_name: str,
+) -> StoredUnderstandingResponse:
+    try:
+        stored_understanding = (
+            understanding_storage
+            .get_latest_understanding(
+                project_name=project_name,
+            )
+        )
+
+        return StoredUnderstandingResponse(
+            **stored_understanding,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+            detail=str(error),
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
+
+
+@router.get(
+    (
+        "/{project_name}/understandings/"
+        "{understanding_id}"
+    ),
+    response_model=(
+        StoredUnderstandingResponse
+    ),
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "Get one saved project understanding"
+    ),
+)
+def get_project_understanding(
+    project_name: str,
+    understanding_id: str,
+) -> StoredUnderstandingResponse:
+    try:
+        stored_understanding = (
+            understanding_storage
+            .get_understanding(
+                project_name=project_name,
+                understanding_id=(
+                    understanding_id
+                ),
+            )
+        )
+
+        return StoredUnderstandingResponse(
+            **stored_understanding,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+            detail=str(error),
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status
+                .HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=str(error),
+        ) from error
 @router.get(
     "/{project_name}/scans",
     response_model=list[ScanSummaryResponse],
@@ -280,8 +509,7 @@ def list_project_scans(
     except RuntimeError as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=str(error),
         ) from error
@@ -304,22 +532,19 @@ def get_latest_project_scan(
         )
 
         return StoredScanResponse(
-            **stored_scan
+            **stored_scan,
         )
 
     except ValueError as error:
         raise HTTPException(
-            status_code=(
-                status.HTTP_404_NOT_FOUND
-            ),
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
         ) from error
 
     except RuntimeError as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=str(error),
         ) from error
@@ -342,22 +567,19 @@ def get_project_scan(
         )
 
         return StoredScanResponse(
-            **stored_scan
+            **stored_scan,
         )
 
     except ValueError as error:
         raise HTTPException(
-            status_code=(
-                status.HTTP_404_NOT_FOUND
-            ),
+            status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
         ) from error
 
     except RuntimeError as error:
         raise HTTPException(
             status_code=(
-                status
-                .HTTP_500_INTERNAL_SERVER_ERROR
+                status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
             detail=str(error),
         ) from error

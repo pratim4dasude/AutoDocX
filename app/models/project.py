@@ -1,7 +1,9 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
-
+from pydantic import (
+    BaseModel,
+    Field,
+)
 
 class ProjectScanRequest(BaseModel):
     project_path: str = Field(
@@ -119,3 +121,57 @@ class ProjectContextResponse(BaseModel):
     internal_dependencies: list[
         dict[str, Any]
     ]
+
+class ProjectUnderstandingRequest(
+    BaseModel
+):
+    scan_id: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Saved project scan used for "
+            "LLM analysis"
+        ),
+    )
+
+
+
+class UnderstandingStorageInfo(
+    BaseModel
+):
+    understanding_id: str
+    created_at: str
+    understanding_file: str
+
+
+class UnderstandingSummaryResponse(
+    BaseModel
+):
+    understanding_id: str
+    created_at: str
+    project_name: str
+    scan_id: str
+    provider: str
+    model: str
+
+
+class StoredUnderstandingResponse(
+    BaseModel
+):
+    understanding_id: str
+    created_at: str
+    project_name: str
+    scan_id: str
+    provider: str
+    model: str
+    understanding: dict[str, Any]
+
+class ProjectUnderstandingResponse(
+    BaseModel
+):
+    project_name: str
+    scan_id: str
+    provider: str
+    model: str
+    understanding: dict[str, Any]
+    storage: UnderstandingStorageInfo

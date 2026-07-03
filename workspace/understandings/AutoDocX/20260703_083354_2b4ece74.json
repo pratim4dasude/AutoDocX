@@ -1,0 +1,475 @@
+{
+  "understanding_id": "20260703_083354_2b4ece74",
+  "created_at": "2026-07-03T08:33:54.722013+00:00",
+  "project_name": "AutoDocX",
+  "scan_id": "20260703_075430_abfa6580",
+  "provider": "openai",
+  "model": "gpt-5-mini",
+  "understanding": {
+    "project_summary": "Confirmed: AutoDocX is a FastAPI-based service that scans local Python projects, parses and analyzes their code structure, stores scan results, compares scans, builds compact project contexts (including an LLM-friendly context) and uses configured LLM providers to generate structured project understanding. Reasonable inference: It is intended as a developer tool to produce machine-readable documentation and project metadata suitable for downstream LLM prompts or documentation generation.",
+    "architecture_overview": "Confirmed: Core components include a FastAPI router (app.api.project_routes) mounted from the application entry (app/main.py); scanning and parsing services (app.services.project_scanner, app.services.code_parser, app.services.project_analyzer); persistent storage (app.services.scan_storage) that writes scans under workspace/scans/<project_name>/<scan_id>.json; comparison logic (app.services.scan_comparator); project context builder (app.services.project_context_builder); and an LLM integration layer (app.services.llm.*) with a BaseLLMProvider, concrete OpenAIProvider and AnthropicProvider, and an LLMProviderFactory. Configuration helpers live in app.core.config and Pydantic models are declared in app.models.project. Reasonable inference: At runtime incoming API requests drive the orchestrated use of scanner, analyzer, storage and LLM provider components to produce API responses. Confirmed: ProjectUnderstandingService composes the context builder and LLM factory and uses prompts from app.services.llm.prompts.",
+    "execution_flow": [
+      {
+        "step": 1,
+        "title": "Application startup and router registration",
+        "description": "Confirmed: app/main.py creates the FastAPI app, registers project_routes.router (alias project_router) and exposes root and health endpoints (/ and /health). Inference: create_required_directories from app.core.config is likely called on startup (not explicitly shown) to prepare workspace directories.",
+        "related_modules": [
+          "app.main",
+          "app.api.project_routes",
+          "app.core.config"
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Scan a local project (/api/projects/scan)",
+        "description": "Confirmed: POST /api/projects/scan is handled by scan_project in app.api.project_routes. That handler uses ProjectScanner.scan_project which enumerates files, calculates SHA-256 file hashes, invokes PythonCodeParser.parse_file for Python files, and calls ProjectAnalyzer.analyze_project to produce project-level relationships. The scan result is returned as ProjectScanResponse and saved via ScanStorage.save_scan.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.project_scanner",
+          "app.services.code_parser",
+          "app.services.project_analyzer",
+          "app.services.scan_storage",
+          "app.models.project"
+        ]
+      },
+      {
+        "step": 3,
+        "title": "List or retrieve stored scans",
+        "description": "Confirmed: GET /api/projects/{project_name}/scans returns a list of scan summaries (list_project_scans). GET /api/projects/{project_name}/scans/latest and GET /api/projects/{project_name}/scans/{scan_id} return StoredScanResponse objects using ScanStorage.get_latest_scan and ScanStorage.get_scan respectively. Scans are persisted under workspace/scans/<project_name>/*.json per ScanStorage docstring.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.scan_storage",
+          "app.models.project"
+        ]
+      },
+      {
+        "step": 4,
+        "title": "Compare two saved scans (/api/projects/{project_name}/compare)",
+        "description": "Confirmed: POST /api/projects/{project_name}/compare is handled by compare_project_scans which uses ScanComparator.compare_scans to detect added/removed/modified files, functions, classes, methods, routes and internal dependencies. The result is returned as ScanComparisonResponse.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.scan_comparator",
+          "app.services.scan_storage",
+          "app.models.project"
+        ]
+      },
+      {
+        "step": 5,
+        "title": "Build project context (/api/projects/{project_name}/context)",
+        "description": "Confirmed: POST /api/projects/{project_name}/context is handled by build_project_context which uses ProjectContextBuilder.build_context to convert a stored scan into a structured context. Confirmed: ProjectContextBuilder supports at least 'detailed' and 'llm' modes (detailed keeps full metadata; llm produces a smaller context). The result is returned as ProjectContextResponse.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.project_context_builder",
+          "app.services.scan_storage",
+          "app.models.project"
+        ]
+      },
+      {
+        "step": 6,
+        "title": "Generate structured project understanding using an LLM (/api/projects/{project_name}/understand)",
+        "description": "Confirmed: POST /api/projects/{project_name}/understand is handled by understand_project which delegates to ProjectUnderstandingService.generate_understanding. That service builds the LLM-ready context via ProjectContextBuilder, builds prompts (build_project_understanding_prompt and system prompt constant), instantiates an LLM provider via LLMProviderFactory.create_provider (using provider name, API key and optional model), and calls the provider.generate_json to obtain a parsed JSON understanding. The response is ProjectUnderstandingResponse. Confirmed: LLM providers implemented include OpenAIProvider and AnthropicProvider which both implement BaseLLMProvider.generate_json and provider_name.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.project_understanding_service",
+          "app.services.project_context_builder",
+          "app.services.llm.factory",
+          "app.services.llm.openai_provider",
+          "app.services.llm.anthropic_provider",
+          "app.services.llm.prompts",
+          "app.core.config",
+          "app.models.project"
+        ]
+      },
+      {
+        "step": 7,
+        "title": "Configuration and LLM credentials",
+        "description": "Confirmed: app.core.config exposes get_llm_provider, get_llm_api_key(provider_name) and get_llm_model(provider_name) used by the API handlers/services to select providers and obtain credentials. Reasonable inference: environment variables (dotenv) are used to configure workspace and LLM credentials; credentials are read at request-time through these helpers.",
+        "related_modules": [
+          "app.core.config",
+          "app.api.project_routes",
+          "app.services.project_understanding_service"
+        ]
+      }
+    ],
+    "module_responsibilities": [
+      {
+        "module": "app.api.project_routes",
+        "file": "app/api/project_routes.py",
+        "responsibility": "HTTP API layer: defines FastAPI endpoints for scanning projects, comparing scans, building context, generating LLM-based understanding, and listing/retrieving stored scans. It validates requests/responses using Pydantic models and orchestrates service calls (scanner, context builder, storage, comparator, understanding service). Confirmed: routes include /scan, /{project_name}/compare, /{project_name}/context, /{project_name}/understand, /{project_name}/scans and scan retrieval endpoints.",
+        "important_symbols": [
+          "scan_project",
+          "compare_project_scans",
+          "build_project_context",
+          "understand_project",
+          "list_project_scans",
+          "get_latest_project_scan",
+          "get_project_scan"
+        ]
+      },
+      {
+        "module": "app.core.config",
+        "file": "app/core/config.py",
+        "responsibility": "Application configuration helpers: loads environment variables (dotenv) and exposes functions to create required directories and retrieve LLM provider, API key and model selections.",
+        "important_symbols": [
+          "create_required_directories",
+          "get_llm_provider",
+          "get_llm_api_key",
+          "get_llm_model"
+        ]
+      },
+      {
+        "module": "app.main",
+        "file": "app/main.py",
+        "responsibility": "Application entry point and ASGI app definition: constructs FastAPI app, mounts project routes (project_router) and exposes health endpoints (/ and /health).",
+        "important_symbols": [
+          "app",
+          "root",
+          "health_check",
+          "project_router"
+        ]
+      },
+      {
+        "module": "app.models.project",
+        "file": "app/models/project.py",
+        "responsibility": "Pydantic schema definitions for request and response payloads used across the API (scan requests/responses, stored scan, summaries, context requests/responses, understanding requests/responses, and scan comparison models).",
+        "important_symbols": [
+          "ProjectScanRequest",
+          "ProjectScanResponse",
+          "ScanSummaryResponse",
+          "StoredScanResponse",
+          "ScanComparisonRequest",
+          "ScanComparisonResponse",
+          "ProjectContextRequest",
+          "ProjectContextResponse",
+          "ProjectUnderstandingRequest",
+          "ProjectUnderstandingResponse",
+          "ScanStorageInfo"
+        ]
+      },
+      {
+        "module": "app.services.code_parser",
+        "file": "app/services/code_parser.py",
+        "responsibility": "Parses Python source files to extract code structure and metadata. Confirmed: PythonCodeParser.parse_file returns imports, functions, async functions, classes, class methods, FastAPI routes, content hashes and syntax error information for a single file.",
+        "important_symbols": [
+          "PythonCodeParser",
+          "PythonCodeParser.parse_file"
+        ]
+      },
+      {
+        "module": "app.services.project_scanner",
+        "file": "app/services/project_scanner.py",
+        "responsibility": "High-level project scanner that walks a project directory, filters ignored files, computes file/directory statistics and hashes, invokes PythonCodeParser for Python files and delegates analysis to ProjectAnalyzer to create a complete scan result.",
+        "important_symbols": [
+          "ProjectScanner",
+          "ProjectScanner.__init__",
+          "ProjectScanner.scan_project"
+        ]
+      },
+      {
+        "module": "app.services.project_analyzer",
+        "file": "app/services/project_analyzer.py",
+        "responsibility": "Analyzes parsed files across the project to map modules, discover internal dependencies, collect symbols (functions, classes, methods), resolve FastAPI router prefixes and include_router relationships and produce project-wide statistics and fully resolved endpoint paths.",
+        "important_symbols": [
+          "ProjectAnalyzer",
+          "ProjectAnalyzer.analyze_project"
+        ]
+      },
+      {
+        "module": "app.services.project_context_builder",
+        "file": "app/services/project_context_builder.py",
+        "responsibility": "Converts stored scan results into structured project context. Confirmed: supports at least two modes: 'detailed' (full metadata) and 'llm' (smaller LLM-friendly context). Used by ProjectUnderstandingService and by the /context API endpoint.",
+        "important_symbols": [
+          "ProjectContextBuilder",
+          "ProjectContextBuilder.build_context"
+        ]
+      },
+      {
+        "module": "app.services.scan_storage",
+        "file": "app/services/scan_storage.py",
+        "responsibility": "Persists and retrieves scan JSON results in a workspace directory (default 'workspace'). Confirmed methods include save_scan, get_scan, get_latest_scan and list_scans. The docstring specifies the storage location workspace/scans/<project_name>/<scan_id>.json.",
+        "important_symbols": [
+          "ScanStorage",
+          "ScanStorage.save_scan",
+          "ScanStorage.get_scan",
+          "ScanStorage.get_latest_scan",
+          "ScanStorage.list_scans"
+        ]
+      },
+      {
+        "module": "app.services.scan_comparator",
+        "file": "app/services/scan_comparator.py",
+        "responsibility": "Compares two stored scans to detect file-level and symbol-level changes (added/removed/modified files, functions, classes, methods, routes and internal dependencies) and produces a structured diff used by comparison API responses.",
+        "important_symbols": [
+          "ScanComparator",
+          "ScanComparator.compare_scans"
+        ]
+      },
+      {
+        "module": "app.services.project_understanding_service",
+        "file": "app/services/project_understanding_service.py",
+        "responsibility": "Orchestrates building an LLM-ready project context and invoking a selected LLM provider to generate parsed JSON project understanding. It uses ProjectContextBuilder, prompt-building helpers and the LLMProviderFactory to instantiate concrete providers.",
+        "important_symbols": [
+          "ProjectUnderstandingService",
+          "ProjectUnderstandingService.generate_understanding"
+        ]
+      },
+      {
+        "module": "app.services.llm.base",
+        "file": "app/services/llm/base.py",
+        "responsibility": "Abstract base class defining the provider interface every LLM integration must implement: provider_name (property), generate_json(prompt) and the helper parse_json_response to robustly extract JSON from model outputs.",
+        "important_symbols": [
+          "BaseLLMProvider",
+          "BaseLLMProvider.generate_json",
+          "BaseLLMProvider.parse_json_response"
+        ]
+      },
+      {
+        "module": "app.services.llm.openai_provider",
+        "file": "app/services/llm/openai_provider.py",
+        "responsibility": "Concrete LLM provider implementation for OpenAI using the Responses API. Implements provider_name and generate_json. Imported by the LLMProviderFactory.",
+        "important_symbols": [
+          "OpenAIProvider",
+          "OpenAIProvider.generate_json",
+          "OpenAIProvider.provider_name"
+        ]
+      },
+      {
+        "module": "app.services.llm.anthropic_provider",
+        "file": "app/services/llm/anthropic_provider.py",
+        "responsibility": "Concrete LLM provider implementation for Anthropic Claude using the Messages API. Implements provider_name and generate_json. Imported by the LLMProviderFactory.",
+        "important_symbols": [
+          "AnthropicProvider",
+          "AnthropicProvider.generate_json",
+          "AnthropicProvider.provider_name"
+        ]
+      },
+      {
+        "module": "app.services.llm.factory",
+        "file": "app/services/llm/factory.py",
+        "responsibility": "Factory class to normalize provider names and instantiate the appropriate BaseLLMProvider concrete class (OpenAIProvider or AnthropicProvider) given provider name, API key and optional model.",
+        "important_symbols": [
+          "LLMProviderFactory",
+          "LLMProviderFactory.create_provider",
+          "LLMProviderFactory.normalize_provider_name"
+        ]
+      },
+      {
+        "module": "app.services.llm.prompts",
+        "file": "app/services/llm/prompts.py",
+        "responsibility": "Provides prompt text builders and constants used to construct system and user prompts for the project understanding flow. Confirmed function build_project_understanding_prompt(project_context) exists.",
+        "important_symbols": [
+          "build_project_understanding_prompt",
+          "PROJECT_UNDERSTANDING_SYSTEM_PROMPT"
+        ]
+      }
+    ],
+    "api_overview": [
+      {
+        "method": "GET",
+        "path": "/",
+        "handler": "root",
+        "purpose": "Health / entry endpoint. Confirmed: defined in app/main.py and tagged 'Health'."
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "handler": "health_check",
+        "purpose": "Liveness/health check. Confirmed: defined in app/main.py and tagged 'Health'."
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/scan",
+        "handler": "scan_project",
+        "purpose": "Scan, analyze and save a local project. Confirmed: accepts ProjectScanRequest and returns ProjectScanResponse."
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/compare",
+        "handler": "compare_project_scans",
+        "purpose": "Compare two saved project scans and return a structured diff. Confirmed: accepts ScanComparisonRequest and returns ScanComparisonResponse."
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/context",
+        "handler": "build_project_context",
+        "purpose": "Build compact, LLM-ready project context or detailed context from a stored scan. Confirmed: returns ProjectContextResponse."
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/understand",
+        "handler": "understand_project",
+        "purpose": "Generate structured project understanding via the configured LLM provider. Confirmed: returns ProjectUnderstandingResponse and uses configured provider, API key and optional model."
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/scans",
+        "handler": "list_project_scans",
+        "purpose": "List all saved scans for a given project. Confirmed: returns list[ScanSummaryResponse]."
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/scans/latest",
+        "handler": "get_latest_project_scan",
+        "purpose": "Return the latest saved scan for the project. Confirmed: returns StoredScanResponse."
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/scans/{scan_id}",
+        "handler": "get_project_scan",
+        "purpose": "Retrieve one saved scan by scan_id. Confirmed: returns StoredScanResponse."
+      }
+    ],
+    "key_dependencies": [
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.project_scanner",
+        "purpose": "Invokes ProjectScanner.scan_project to produce a full project scan when handling /api/projects/scan."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.scan_storage",
+        "purpose": "Saves scan results and retrieves stored scans for endpoints that list/get scans and for persistence of scan results."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.project_context_builder",
+        "purpose": "Builds structured project context for the /context endpoint and to prepare context for LLM calls."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.project_understanding_service",
+        "purpose": "Delegates to ProjectUnderstandingService.generate_understanding to produce LLM-generated project understanding for /understand."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.scan_comparator",
+        "purpose": "Uses ScanComparator.compare_scans to implement the compare API."
+      },
+      {
+        "source": "app.services.project_scanner",
+        "target": "app.services.code_parser",
+        "purpose": "Calls PythonCodeParser.parse_file to extract code structure from each Python file during scanning."
+      },
+      {
+        "source": "app.services.project_scanner",
+        "target": "app.services.project_analyzer",
+        "purpose": "Passes parsed files to ProjectAnalyzer.analyze_project to compute project-level relationships and statistics."
+      },
+      {
+        "source": "app.services.project_understanding_service",
+        "target": "app.services.project_context_builder",
+        "purpose": "Builds the LLM-ready context used as input to the LLM provider."
+      },
+      {
+        "source": "app.services.project_understanding_service",
+        "target": "app.services.llm.factory",
+        "purpose": "Creates concrete LLM provider instances (OpenAIProvider or AnthropicProvider) based on provider name and credentials."
+      },
+      {
+        "source": "app.services.llm.factory",
+        "target": "app.services.llm.openai_provider",
+        "purpose": "Depends on OpenAIProvider to support OpenAI as a concrete provider.",
+        "severity": "low"
+      },
+      {
+        "source": "app.services.llm.factory",
+        "target": "app.services.llm.anthropic_provider",
+        "purpose": "Depends on AnthropicProvider to support Anthropic as a concrete provider.",
+        "severity": "low"
+      },
+      {
+        "source": "app.main",
+        "target": "app.api.project_routes",
+        "purpose": "Registers the project routes with the FastAPI application so endpoints are exposed at runtime."
+      }
+    ],
+    "risks_and_gaps": [
+      {
+        "title": "Secrets and credentials exposure / management",
+        "description": "Confirmed: LLM API keys come from app.core.config.get_llm_api_key(provider_name) and dotenv. Reasonable inference: current code reads keys from env at runtime; there is no evidence of secret rotation, vault integration, or encryption at rest for workspace files. If environment/configuration files are not secured, keys could be exposed.",
+        "severity": "high"
+      },
+      {
+        "title": "No authentication or authorization on API routes",
+        "description": "Confirmed: API routes are defined and there is no mention of auth middleware, tokens, or access control in the provided context. Reasonable inference: the service is unauthenticated by default which may be acceptable for local tooling but risky if exposed.",
+        "severity": "high"
+      },
+      {
+        "title": "LLM response parsing fragility",
+        "description": "Confirmed: BaseLLMProvider.parse_json_response exists to parse JSON embedded in text. Reasonable inference: parsing free-text LLM responses into strict JSON can be brittle; additional validation and robust error handling are necessary to handle unexpected outputs or hallucinated structures.",
+        "severity": "medium"
+      },
+      {
+        "title": "Synchronous/blocking design and scalability",
+        "description": "Confirmed: nearly all functions are synchronous (statistics show 0 async functions). Reasonable inference: scanning projects, calling remote LLM APIs, and file I/O may block worker threads. This design can limit concurrency under load and may delay responses; long-running scans could time out in typical server environments.",
+        "severity": "medium"
+      },
+      {
+        "title": "Missing error handling and validation surface in context",
+        "description": "Confirmed: API handlers and service methods are present but the code-level error handling, retries, and validation logic are not visible in the context. Reasonable inference: failure modes (corrupt files, permission errors, LLM failures) need explicit handling and reporting to avoid 500s or data loss.",
+        "severity": "medium"
+      },
+      {
+        "title": "Storage assumptions and workspace management",
+        "description": "Confirmed: ScanStorage saves JSON under workspace/scans/<project_name>/<scan_id>.json. Reasonable inference: no details on cleanup, quotas, or concurrency control when multiple requests target the same project. Disk usage and permission errors are potential operational issues.",
+        "severity": "medium"
+      },
+      {
+        "title": "Limited provider support and extensibility notes",
+        "description": "Confirmed: OpenAI and Anthropic providers are implemented and selected via LLMProviderFactory. Reasonable inference: adding new providers requires implementing BaseLLMProvider and registering it in the factory; the factory's provider normalization behavior and supported names should be documented.",
+        "severity": "low"
+      },
+      {
+        "title": "Testing, CI, and observability not present in supplied context",
+        "description": "Confirmed: no tests, logging configuration or CI scripts are visible in the provided files list. Reasonable inference: additional infrastructure documentation and tests should be created to ensure correctness and maintainability.",
+        "severity": "low"
+      }
+    ],
+    "recommended_document_sections": [
+      {
+        "title": "Project Overview",
+        "purpose": "Explain AutoDocX purpose, capabilities and high-level architecture (scanning, analysis, storage, comparison, LLM-based understanding). Include a short diagram or component list."
+      },
+      {
+        "title": "Getting Started and Deployment",
+        "purpose": "Steps to install, configure environment variables (LLM keys, workspace path), run create_required_directories, and start the FastAPI app using provided scripts (start.bat, stop.bat, setup_runtime.ps1)."
+      },
+      {
+        "title": "API Reference",
+        "purpose": "Detailed documentation of each endpoint (/api/projects/* and health endpoints), request/response schemas (linking to Pydantic models in app.models.project), expected status codes and example payloads."
+      },
+      {
+        "title": "Data Models and Storage Format",
+        "purpose": "Document Pydantic models, the structure of stored scan JSON files, storage layout (workspace/scans/<project_name>/<scan_id>.json) and retention/cleanup guidance."
+      },
+      {
+        "title": "LLM Provider Integration",
+        "purpose": "Describe BaseLLMProvider interface, how to add new providers, LLMProviderFactory behavior, environment configuration (provider name, API key, optional model), and prompt design (PROJECT_UNDERSTANDING_SYSTEM_PROMPT and build_project_understanding_prompt)."
+      },
+      {
+        "title": "Scanning and Parsing Details",
+        "purpose": "Explain ProjectScanner behavior (ignore rules, hashing, file statistics), PythonCodeParser outputs (imports, functions, classes, routes, content hashes and syntax errors) and ProjectAnalyzer responsibilities (dependency mapping and route path resolution)."
+      },
+      {
+        "title": "Error Handling and Retries",
+        "purpose": "Document known failure modes, recommended error handling strategies, retry policies for LLM calls, and how the API surfaces errors to clients."
+      },
+      {
+        "title": "Security and Secrets Management",
+        "purpose": "Guidance on securing environment variables, recommended secret stores/vaults, least-privilege considerations, and suggestions for adding authentication/authorization to the API."
+      },
+      {
+        "title": "Operational Considerations",
+        "purpose": "Performance expectations, concurrency and scaling notes (synchronous design), workspace disk usage, permissions, and recommended resource limits or background job patterns for long-running scans."
+      },
+      {
+        "title": "Testing and CI",
+        "purpose": "Suggested test matrix, unit/integration test targets (parsers, analyzers, providers), and a sample CI pipeline to validate builds and run tests."
+      },
+      {
+        "title": "Extensibility Guide",
+        "purpose": "How to extend the system: add new LLM providers, support additional file types, change storage backend, or add authentication middleware."
+      }
+    ]
+  }
+}
