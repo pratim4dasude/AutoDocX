@@ -38,7 +38,12 @@ class DocumentStorage:
         understanding_id: str,
         scan_id: str,
         html_content: str,
-    ) -> dict[str, str]:
+        previous_document_id: str | None = None,
+        update_type: str = "initial",
+        comparison_summary: (
+            dict[str, Any] | None
+        ) = None,
+    ) -> dict[str, Any]:
         if not project_name.strip():
             raise ValueError(
                 "Project name is required."
@@ -49,9 +54,22 @@ class DocumentStorage:
                 "Understanding ID is required."
             )
 
+        if not scan_id.strip():
+            raise ValueError(
+                "Scan ID is required."
+            )
+
         if not html_content.strip():
             raise ValueError(
                 "HTML content is empty."
+            )
+
+        if update_type not in {
+            "initial",
+            "version_update",
+        }:
+            raise ValueError(
+                "Invalid document update type."
             )
 
         created_at = datetime.now(
@@ -100,7 +118,7 @@ class DocumentStorage:
             )
         )
 
-        metadata = {
+        metadata: dict[str, Any] = {
             "document_id": document_id,
             "created_at": (
                 created_at.isoformat()
@@ -111,6 +129,13 @@ class DocumentStorage:
                 understanding_id
             ),
             "document_type": "html",
+            "update_type": update_type,
+            "previous_document_id": (
+                previous_document_id
+            ),
+            "comparison_summary": (
+                comparison_summary
+            ),
             "document_file": str(
                 html_file
             ),
@@ -194,6 +219,22 @@ class DocumentStorage:
             )
 
         return documents
+
+    def get_latest_document_metadata(
+        self,
+        project_name: str,
+    ) -> dict[str, Any]:
+        documents = self.list_documents(
+            project_name=project_name,
+        )
+
+        if not documents:
+            raise ValueError(
+                "No generated documents found "
+                f"for project: {project_name}"
+            )
+
+        return documents[0]
 
     def get_document_metadata(
         self,

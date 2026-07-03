@@ -198,6 +198,17 @@ class DocumentStorageInfo(
     scan_id: str
     understanding_id: str
     document_type: str
+
+    update_type: str = "initial"
+
+    previous_document_id: (
+        str | None
+    ) = None
+
+    comparison_summary: (
+        dict[str, Any] | None
+    ) = None
+
     document_file: str
     metadata_file: str
 
@@ -218,5 +229,54 @@ class DocumentSummaryResponse(
     scan_id: str
     understanding_id: str
     document_type: str
+
+    update_type: str = "initial"
+
+    previous_document_id: (
+        str | None
+    ) = None
+
+    comparison_summary: (
+        dict[str, Any] | None
+    ) = None
+
     document_file: str
     metadata_file: str
+
+class DocumentUpdateRequest(
+    BaseModel
+):
+    document_id: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Existing generated document that "
+            "will be checked for updates"
+        ),
+    )
+
+    new_scan_id: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "New saved scan used to update "
+            "the documentation"
+        ),
+    )
+
+
+class DocumentUpdateResponse(
+    BaseModel
+):
+    updated: bool
+    message: str
+    project_name: str
+    previous_document_id: str
+    document_id: str
+    old_scan_id: str
+    new_scan_id: str
+    comparison_summary: dict[str, Any]
+    understanding_id: str | None = None
+    document: (
+        DocumentStorageInfo | None
+    ) = None
