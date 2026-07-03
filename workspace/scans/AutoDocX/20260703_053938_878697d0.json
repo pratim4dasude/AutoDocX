@@ -1,0 +1,3022 @@
+{
+  "scan_id": "20260703_053938_878697d0",
+  "created_at": "2026-07-03T05:39:38.001681+00:00",
+  "project_name": "AutoDocX",
+  "project_path": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX",
+  "scan_result": {
+    "project_name": "AutoDocX",
+    "project_path": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX",
+    "total_files": 19,
+    "total_directories": 12,
+    "total_size_bytes": 68661,
+    "ignored_items": 2438,
+    "file_types": {
+      ".bat": 3,
+      ".ps1": 1,
+      ".py": 13,
+      ".txt": 1,
+      "[no extension]": 1
+    },
+    "files": [
+      ".gitignore",
+      "app/__init__.py",
+      "app/api/__init__.py",
+      "app/api/project_routes.py",
+      "app/core/__init__.py",
+      "app/core/config.py",
+      "app/main.py",
+      "app/models/__init__.py",
+      "app/models/project.py",
+      "app/services/__init__.py",
+      "app/services/code_parser.py",
+      "app/services/project_analyzer.py",
+      "app/services/project_scanner.py",
+      "app/services/scan_storage.py",
+      "install.bat",
+      "requirements.txt",
+      "scripts/setup_runtime.ps1",
+      "start.bat",
+      "stop.bat"
+    ],
+    "parsed_files": [
+      {
+        "path": "app/__init__.py",
+        "language": "python",
+        "imports": [],
+        "functions": [],
+        "async_functions": [],
+        "classes": [],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/api/__init__.py",
+        "language": "python",
+        "imports": [],
+        "functions": [],
+        "async_functions": [],
+        "classes": [],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/api/project_routes.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "from_import",
+            "module": "fastapi",
+            "name": "APIRouter",
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "fastapi",
+            "name": "HTTPException",
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "fastapi",
+            "name": "status",
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "app.models.project",
+            "name": "ProjectScanRequest",
+            "alias": null,
+            "line": 7
+          },
+          {
+            "type": "from_import",
+            "module": "app.models.project",
+            "name": "ProjectScanResponse",
+            "alias": null,
+            "line": 7
+          },
+          {
+            "type": "from_import",
+            "module": "app.models.project",
+            "name": "ScanSummaryResponse",
+            "alias": null,
+            "line": 7
+          },
+          {
+            "type": "from_import",
+            "module": "app.models.project",
+            "name": "StoredScanResponse",
+            "alias": null,
+            "line": 7
+          },
+          {
+            "type": "from_import",
+            "module": "app.services.project_scanner",
+            "name": "ProjectScanner",
+            "alias": null,
+            "line": 13
+          },
+          {
+            "type": "from_import",
+            "module": "app.services.scan_storage",
+            "name": "ScanStorage",
+            "alias": null,
+            "line": 16
+          }
+        ],
+        "functions": [
+          {
+            "name": "scan_project",
+            "line": 36,
+            "end_line": 100,
+            "arguments": [
+              {
+                "name": "request",
+                "annotation": "ProjectScanRequest",
+                "default": null
+              }
+            ],
+            "returns": "ProjectScanResponse",
+            "docstring": null,
+            "decorators": [
+              "router.post('/scan', response_model=ProjectScanResponse, status_code=status.HTTP_200_OK, summary='Scan, analyze, and save a local project')"
+            ]
+          },
+          {
+            "name": "list_project_scans",
+            "line": 109,
+            "end_line": 129,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "list[ScanSummaryResponse]",
+            "docstring": null,
+            "decorators": [
+              "router.get('/{project_name}/scans', response_model=list[ScanSummaryResponse], status_code=status.HTTP_200_OK, summary='List all saved project scans')"
+            ]
+          },
+          {
+            "name": "get_latest_project_scan",
+            "line": 138,
+            "end_line": 167,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "StoredScanResponse",
+            "docstring": null,
+            "decorators": [
+              "router.get('/{project_name}/scans/latest', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get the latest saved project scan')"
+            ]
+          },
+          {
+            "name": "get_project_scan",
+            "line": 176,
+            "end_line": 205,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "scan_id",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "StoredScanResponse",
+            "docstring": null,
+            "decorators": [
+              "router.get('/{project_name}/scans/{scan_id}', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get one saved project scan')"
+            ]
+          }
+        ],
+        "async_functions": [],
+        "classes": [],
+        "routes": [
+          {
+            "function_name": "scan_project",
+            "method": "POST",
+            "path": "/scan",
+            "line": 36,
+            "is_async": false,
+            "router_name": "router",
+            "route_name": null,
+            "response_model": "ProjectScanResponse",
+            "status_code": "status.HTTP_200_OK"
+          },
+          {
+            "function_name": "list_project_scans",
+            "method": "GET",
+            "path": "/{project_name}/scans",
+            "line": 109,
+            "is_async": false,
+            "router_name": "router",
+            "route_name": null,
+            "response_model": "list[ScanSummaryResponse]",
+            "status_code": "status.HTTP_200_OK"
+          },
+          {
+            "function_name": "get_latest_project_scan",
+            "method": "GET",
+            "path": "/{project_name}/scans/latest",
+            "line": 138,
+            "is_async": false,
+            "router_name": "router",
+            "route_name": null,
+            "response_model": "StoredScanResponse",
+            "status_code": "status.HTTP_200_OK"
+          },
+          {
+            "function_name": "get_project_scan",
+            "method": "GET",
+            "path": "/{project_name}/scans/{scan_id}",
+            "line": 176,
+            "is_async": false,
+            "router_name": "router",
+            "route_name": null,
+            "response_model": "StoredScanResponse",
+            "status_code": "status.HTTP_200_OK"
+          }
+        ],
+        "syntax_error": null
+      },
+      {
+        "path": "app/core/__init__.py",
+        "language": "python",
+        "imports": [],
+        "functions": [],
+        "async_functions": [],
+        "classes": [],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/core/config.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "from_import",
+            "module": "pathlib",
+            "name": "Path",
+            "alias": null,
+            "line": 1
+          }
+        ],
+        "functions": [
+          {
+            "name": "create_required_directories",
+            "line": 13,
+            "end_line": 23,
+            "arguments": [],
+            "returns": "None",
+            "docstring": null,
+            "decorators": []
+          }
+        ],
+        "async_functions": [],
+        "classes": [],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/main.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "from_import",
+            "module": "fastapi",
+            "name": "FastAPI",
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "app.api.project_routes",
+            "name": "router",
+            "alias": "project_router",
+            "line": 3
+          }
+        ],
+        "functions": [
+          {
+            "name": "root",
+            "line": 19,
+            "end_line": 22,
+            "arguments": [],
+            "returns": "dict[str, str]",
+            "docstring": null,
+            "decorators": [
+              "app.get('/', tags=['Health'])"
+            ]
+          },
+          {
+            "name": "health_check",
+            "line": 29,
+            "end_line": 32,
+            "arguments": [],
+            "returns": "dict[str, str]",
+            "docstring": null,
+            "decorators": [
+              "app.get('/health', tags=['Health'])"
+            ]
+          }
+        ],
+        "async_functions": [],
+        "classes": [],
+        "routes": [
+          {
+            "function_name": "root",
+            "method": "GET",
+            "path": "/",
+            "line": 19,
+            "is_async": false,
+            "router_name": "app",
+            "route_name": null,
+            "response_model": null,
+            "status_code": null
+          },
+          {
+            "function_name": "health_check",
+            "method": "GET",
+            "path": "/health",
+            "line": 29,
+            "is_async": false,
+            "router_name": "app",
+            "route_name": null,
+            "response_model": null,
+            "status_code": null
+          }
+        ],
+        "syntax_error": null
+      },
+      {
+        "path": "app/models/__init__.py",
+        "language": "python",
+        "imports": [],
+        "functions": [],
+        "async_functions": [],
+        "classes": [],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/models/project.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "from_import",
+            "module": "typing",
+            "name": "Any",
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "pydantic",
+            "name": "BaseModel",
+            "alias": null,
+            "line": 3
+          },
+          {
+            "type": "from_import",
+            "module": "pydantic",
+            "name": "Field",
+            "alias": null,
+            "line": 3
+          }
+        ],
+        "functions": [],
+        "async_functions": [],
+        "classes": [
+          {
+            "name": "ProjectScanRequest",
+            "line": 6,
+            "end_line": 17,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "ScanStorageInfo",
+            "line": 20,
+            "end_line": 23,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "ProjectScanResponse",
+            "line": 26,
+            "end_line": 37,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "ScanSummaryResponse",
+            "line": 40,
+            "end_line": 48,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "methods": []
+          },
+          {
+            "name": "StoredScanResponse",
+            "line": 51,
+            "end_line": 56,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": [],
+            "methods": []
+          }
+        ],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/services/__init__.py",
+        "language": "python",
+        "imports": [],
+        "functions": [],
+        "async_functions": [],
+        "classes": [],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/services/code_parser.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "import",
+            "module": "ast",
+            "name": null,
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "pathlib",
+            "name": "Path",
+            "alias": null,
+            "line": 2
+          },
+          {
+            "type": "from_import",
+            "module": "typing",
+            "name": "Any",
+            "alias": null,
+            "line": 3
+          }
+        ],
+        "functions": [],
+        "async_functions": [],
+        "classes": [
+          {
+            "name": "PythonCodeParser",
+            "line": 6,
+            "end_line": 367,
+            "bases": [],
+            "docstring": "Reads a Python file and extracts its code structure.\n\nExtracted information:\n- imports\n- functions\n- async functions\n- classes\n- class methods\n- FastAPI routes\n- syntax errors",
+            "decorators": [],
+            "methods": [
+              {
+                "name": "parse_file",
+                "line": 31,
+                "end_line": 105,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_root",
+                    "annotation": "Path",
+                    "default": null
+                  },
+                  {
+                    "name": "relative_file_path",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_extract_import",
+                "line": 108,
+                "end_line": 124,
+                "arguments": [
+                  {
+                    "name": "node",
+                    "annotation": "ast.Import",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_extract_import_from",
+                "line": 127,
+                "end_line": 148,
+                "arguments": [
+                  {
+                    "name": "node",
+                    "annotation": "ast.ImportFrom",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_extract_function",
+                "line": 150,
+                "end_line": 165,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "node",
+                    "annotation": "ast.FunctionDef | ast.AsyncFunctionDef",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_extract_class",
+                "line": 167,
+                "end_line": 201,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "node",
+                    "annotation": "ast.ClassDef",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_extract_fastapi_routes",
+                "line": 203,
+                "end_line": 267,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "node",
+                    "annotation": "ast.FunctionDef | ast.AsyncFunctionDef",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_extract_arguments",
+                "line": 269,
+                "end_line": 343,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "arguments",
+                    "annotation": "ast.arguments",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_node_to_string",
+                "line": 346,
+                "end_line": 355,
+                "arguments": [
+                  {
+                    "name": "node",
+                    "annotation": "ast.AST | None",
+                    "default": null
+                  }
+                ],
+                "returns": "str | None",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_get_literal_value",
+                "line": 358,
+                "end_line": 367,
+                "arguments": [
+                  {
+                    "name": "node",
+                    "annotation": "ast.AST",
+                    "default": null
+                  }
+                ],
+                "returns": "Any",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              }
+            ]
+          }
+        ],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/services/project_analyzer.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "import",
+            "module": "ast",
+            "name": null,
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "pathlib",
+            "name": "Path",
+            "alias": null,
+            "line": 2
+          },
+          {
+            "type": "from_import",
+            "module": "pathlib",
+            "name": "PurePosixPath",
+            "alias": null,
+            "line": 2
+          },
+          {
+            "type": "from_import",
+            "module": "typing",
+            "name": "Any",
+            "alias": null,
+            "line": 3
+          }
+        ],
+        "functions": [],
+        "async_functions": [],
+        "classes": [
+          {
+            "name": "ProjectAnalyzer",
+            "line": 6,
+            "end_line": 930,
+            "bases": [],
+            "docstring": "Builds project-level relationships from parsed Python files.\n\nThe analyzer:\n- maps project modules\n- detects internal module dependencies\n- collects functions, classes and methods\n- discovers FastAPI router prefixes\n- discovers include_router relationships\n- builds complete FastAPI endpoint paths\n- creates project-level statistics",
+            "decorators": [],
+            "methods": [
+              {
+                "name": "analyze_project",
+                "line": 20,
+                "end_line": 86,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_root",
+                    "annotation": "Path",
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_build_module_map",
+                "line": 88,
+                "end_line": 109,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, str]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_build_internal_dependencies",
+                "line": 111,
+                "end_line": 180,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "module_map",
+                    "annotation": "dict[str, str]",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_collect_symbols",
+                "line": 182,
+                "end_line": 284,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, list[dict[str, Any]]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_discover_router_definitions",
+                "line": 286,
+                "end_line": 380,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_root",
+                    "annotation": "Path",
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_discover_router_inclusions",
+                "line": 382,
+                "end_line": 495,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_root",
+                    "annotation": "Path",
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_collect_routes",
+                "line": 497,
+                "end_line": 657,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "router_definitions",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "router_inclusions",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "internal_dependencies",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_build_imported_router_lookup",
+                "line": 659,
+                "end_line": 696,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "internal_dependencies",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[tuple[str, str], dict[str, str]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_build_statistics",
+                "line": 698,
+                "end_line": 737,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "parsed_files",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "symbols",
+                    "annotation": "dict[str, list[dict[str, Any]]]",
+                    "default": null
+                  },
+                  {
+                    "name": "routes",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  },
+                  {
+                    "name": "internal_dependencies",
+                    "annotation": "list[dict[str, Any]]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, int]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_read_syntax_tree",
+                "line": 740,
+                "end_line": 758,
+                "arguments": [
+                  {
+                    "name": "file_path",
+                    "annotation": "Path",
+                    "default": null
+                  }
+                ],
+                "returns": "ast.Module | None",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_collect_import_aliases",
+                "line": 761,
+                "end_line": 799,
+                "arguments": [
+                  {
+                    "name": "syntax_tree",
+                    "annotation": "ast.Module",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, tuple[str, str | None]]",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_resolve_router_reference",
+                "line": 802,
+                "end_line": 837,
+                "arguments": [
+                  {
+                    "name": "expression",
+                    "annotation": "str",
+                    "default": null
+                  },
+                  {
+                    "name": "import_aliases",
+                    "annotation": "dict[str, tuple[str, str | None]]",
+                    "default": null
+                  }
+                ],
+                "returns": "tuple[str | None, str | None]",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_get_keyword_literal",
+                "line": 840,
+                "end_line": 858,
+                "arguments": [
+                  {
+                    "name": "call",
+                    "annotation": "ast.Call",
+                    "default": null
+                  },
+                  {
+                    "name": "keyword_name",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "Any",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_node_to_string",
+                "line": 861,
+                "end_line": 870,
+                "arguments": [
+                  {
+                    "name": "node",
+                    "annotation": "ast.AST | None",
+                    "default": null
+                  }
+                ],
+                "returns": "str | None",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_path_to_module",
+                "line": 873,
+                "end_line": 885,
+                "arguments": [
+                  {
+                    "name": "file_path",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "str",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_find_project_module",
+                "line": 888,
+                "end_line": 914,
+                "arguments": [
+                  {
+                    "name": "imported_module",
+                    "annotation": "str",
+                    "default": null
+                  },
+                  {
+                    "name": "project_modules",
+                    "annotation": "set[str]",
+                    "default": null
+                  }
+                ],
+                "returns": "str | None",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_join_paths",
+                "line": 917,
+                "end_line": 930,
+                "arguments": [
+                  {
+                    "name": "*path_parts",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "str",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              }
+            ]
+          }
+        ],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/services/project_scanner.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "from_import",
+            "module": "collections",
+            "name": "Counter",
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "from_import",
+            "module": "pathlib",
+            "name": "Path",
+            "alias": null,
+            "line": 2
+          },
+          {
+            "type": "from_import",
+            "module": "typing",
+            "name": "Any",
+            "alias": null,
+            "line": 3
+          },
+          {
+            "type": "from_import",
+            "module": "app.services.code_parser",
+            "name": "PythonCodeParser",
+            "alias": null,
+            "line": 5
+          },
+          {
+            "type": "from_import",
+            "module": "app.services.project_analyzer",
+            "name": "ProjectAnalyzer",
+            "alias": null,
+            "line": 6
+          }
+        ],
+        "functions": [],
+        "async_functions": [],
+        "classes": [
+          {
+            "name": "ProjectScanner",
+            "line": 9,
+            "end_line": 244,
+            "bases": [],
+            "docstring": "Scans and analyzes a local project directory.\n\nThe scanner:\n- ignores unnecessary folders and files\n- lists project files\n- counts directories\n- counts file extensions\n- calculates project size\n- parses Python source files\n- analyzes project-level relationships",
+            "decorators": [],
+            "methods": [
+              {
+                "name": "__init__",
+                "line": 59,
+                "end_line": 61,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  }
+                ],
+                "returns": "None",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "scan_project",
+                "line": 63,
+                "end_line": 171,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_path",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_parse_python_files",
+                "line": 173,
+                "end_line": 201,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "root_path",
+                    "annotation": "Path",
+                    "default": null
+                  },
+                  {
+                    "name": "files",
+                    "annotation": "list[str]",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_should_ignore",
+                "line": 203,
+                "end_line": 228,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "relative_path",
+                    "annotation": "Path",
+                    "default": null
+                  }
+                ],
+                "returns": "bool",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_validate_project_path",
+                "line": 231,
+                "end_line": 244,
+                "arguments": [
+                  {
+                    "name": "root_path",
+                    "annotation": "Path",
+                    "default": null
+                  }
+                ],
+                "returns": "None",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              }
+            ]
+          }
+        ],
+        "routes": [],
+        "syntax_error": null
+      },
+      {
+        "path": "app/services/scan_storage.py",
+        "language": "python",
+        "imports": [
+          {
+            "type": "import",
+            "module": "json",
+            "name": null,
+            "alias": null,
+            "line": 1
+          },
+          {
+            "type": "import",
+            "module": "re",
+            "name": null,
+            "alias": null,
+            "line": 2
+          },
+          {
+            "type": "from_import",
+            "module": "datetime",
+            "name": "datetime",
+            "alias": null,
+            "line": 3
+          },
+          {
+            "type": "from_import",
+            "module": "datetime",
+            "name": "timezone",
+            "alias": null,
+            "line": 3
+          },
+          {
+            "type": "from_import",
+            "module": "pathlib",
+            "name": "Path",
+            "alias": null,
+            "line": 4
+          },
+          {
+            "type": "from_import",
+            "module": "typing",
+            "name": "Any",
+            "alias": null,
+            "line": 5
+          },
+          {
+            "type": "from_import",
+            "module": "uuid",
+            "name": "uuid4",
+            "alias": null,
+            "line": 6
+          }
+        ],
+        "functions": [],
+        "async_functions": [],
+        "classes": [
+          {
+            "name": "ScanStorage",
+            "line": 9,
+            "end_line": 344,
+            "bases": [],
+            "docstring": "Stores and retrieves AutoDocX project scan results.\n\nScans are saved under:\n\n    workspace/scans/<project_name>/<scan_id>.json",
+            "decorators": [],
+            "methods": [
+              {
+                "name": "__init__",
+                "line": 18,
+                "end_line": 33,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "workspace_path",
+                    "annotation": "str | Path",
+                    "default": "'workspace'"
+                  }
+                ],
+                "returns": "None",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "save_scan",
+                "line": 35,
+                "end_line": 114,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "scan_result",
+                    "annotation": "dict[str, Any]",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, str]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "get_scan",
+                "line": 116,
+                "end_line": 135,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_name",
+                    "annotation": "str",
+                    "default": null
+                  },
+                  {
+                    "name": "scan_id",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "get_latest_scan",
+                "line": 137,
+                "end_line": 160,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_name",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "list_scans",
+                "line": 162,
+                "end_line": 245,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_name",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "list[dict[str, Any]]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_get_project_scan_files",
+                "line": 247,
+                "end_line": 265,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_name",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "list[Path]",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_build_scan_file_path",
+                "line": 267,
+                "end_line": 284,
+                "arguments": [
+                  {
+                    "name": "self",
+                    "annotation": null,
+                    "default": null
+                  },
+                  {
+                    "name": "project_name",
+                    "annotation": "str",
+                    "default": null
+                  },
+                  {
+                    "name": "scan_id",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "Path",
+                "docstring": null,
+                "decorators": [],
+                "is_async": false
+              },
+              {
+                "name": "_read_scan_file",
+                "line": 287,
+                "end_line": 322,
+                "arguments": [
+                  {
+                    "name": "scan_file_path",
+                    "annotation": "Path",
+                    "default": null
+                  }
+                ],
+                "returns": "dict[str, Any]",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              },
+              {
+                "name": "_sanitize_name",
+                "line": 325,
+                "end_line": 344,
+                "arguments": [
+                  {
+                    "name": "value",
+                    "annotation": "str",
+                    "default": null
+                  }
+                ],
+                "returns": "str",
+                "docstring": null,
+                "decorators": [
+                  "staticmethod"
+                ],
+                "is_async": false
+              }
+            ]
+          }
+        ],
+        "routes": [],
+        "syntax_error": null
+      }
+    ],
+    "project_analysis": {
+      "statistics": {
+        "parsed_python_files": 13,
+        "functions": 7,
+        "async_functions": 0,
+        "classes": 9,
+        "methods": 40,
+        "routes": 6,
+        "internal_dependencies": 9,
+        "files_with_syntax_errors": 0
+      },
+      "modules": [
+        {
+          "module": "app",
+          "file": "app/__init__.py"
+        },
+        {
+          "module": "app.api",
+          "file": "app/api/__init__.py"
+        },
+        {
+          "module": "app.api.project_routes",
+          "file": "app/api/project_routes.py"
+        },
+        {
+          "module": "app.core",
+          "file": "app/core/__init__.py"
+        },
+        {
+          "module": "app.core.config",
+          "file": "app/core/config.py"
+        },
+        {
+          "module": "app.main",
+          "file": "app/main.py"
+        },
+        {
+          "module": "app.models",
+          "file": "app/models/__init__.py"
+        },
+        {
+          "module": "app.models.project",
+          "file": "app/models/project.py"
+        },
+        {
+          "module": "app.services",
+          "file": "app/services/__init__.py"
+        },
+        {
+          "module": "app.services.code_parser",
+          "file": "app/services/code_parser.py"
+        },
+        {
+          "module": "app.services.project_analyzer",
+          "file": "app/services/project_analyzer.py"
+        },
+        {
+          "module": "app.services.project_scanner",
+          "file": "app/services/project_scanner.py"
+        },
+        {
+          "module": "app.services.scan_storage",
+          "file": "app/services/scan_storage.py"
+        }
+      ],
+      "symbols": {
+        "functions": [
+          {
+            "file": "app/api/project_routes.py",
+            "name": "scan_project",
+            "line": 36,
+            "end_line": 100,
+            "arguments": [
+              {
+                "name": "request",
+                "annotation": "ProjectScanRequest",
+                "default": null
+              }
+            ],
+            "returns": "ProjectScanResponse",
+            "docstring": null,
+            "decorators": [
+              "router.post('/scan', response_model=ProjectScanResponse, status_code=status.HTTP_200_OK, summary='Scan, analyze, and save a local project')"
+            ]
+          },
+          {
+            "file": "app/api/project_routes.py",
+            "name": "list_project_scans",
+            "line": 109,
+            "end_line": 129,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "list[ScanSummaryResponse]",
+            "docstring": null,
+            "decorators": [
+              "router.get('/{project_name}/scans', response_model=list[ScanSummaryResponse], status_code=status.HTTP_200_OK, summary='List all saved project scans')"
+            ]
+          },
+          {
+            "file": "app/api/project_routes.py",
+            "name": "get_latest_project_scan",
+            "line": 138,
+            "end_line": 167,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "StoredScanResponse",
+            "docstring": null,
+            "decorators": [
+              "router.get('/{project_name}/scans/latest', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get the latest saved project scan')"
+            ]
+          },
+          {
+            "file": "app/api/project_routes.py",
+            "name": "get_project_scan",
+            "line": 176,
+            "end_line": 205,
+            "arguments": [
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "scan_id",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "StoredScanResponse",
+            "docstring": null,
+            "decorators": [
+              "router.get('/{project_name}/scans/{scan_id}', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get one saved project scan')"
+            ]
+          },
+          {
+            "file": "app/core/config.py",
+            "name": "create_required_directories",
+            "line": 13,
+            "end_line": 23,
+            "arguments": [],
+            "returns": "None",
+            "docstring": null,
+            "decorators": []
+          },
+          {
+            "file": "app/main.py",
+            "name": "root",
+            "line": 19,
+            "end_line": 22,
+            "arguments": [],
+            "returns": "dict[str, str]",
+            "docstring": null,
+            "decorators": [
+              "app.get('/', tags=['Health'])"
+            ]
+          },
+          {
+            "file": "app/main.py",
+            "name": "health_check",
+            "line": 29,
+            "end_line": 32,
+            "arguments": [],
+            "returns": "dict[str, str]",
+            "docstring": null,
+            "decorators": [
+              "app.get('/health', tags=['Health'])"
+            ]
+          }
+        ],
+        "async_functions": [],
+        "classes": [
+          {
+            "file": "app/models/project.py",
+            "name": "ProjectScanRequest",
+            "line": 6,
+            "end_line": 17,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": []
+          },
+          {
+            "file": "app/models/project.py",
+            "name": "ScanStorageInfo",
+            "line": 20,
+            "end_line": 23,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": []
+          },
+          {
+            "file": "app/models/project.py",
+            "name": "ProjectScanResponse",
+            "line": 26,
+            "end_line": 37,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": []
+          },
+          {
+            "file": "app/models/project.py",
+            "name": "ScanSummaryResponse",
+            "line": 40,
+            "end_line": 48,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": []
+          },
+          {
+            "file": "app/models/project.py",
+            "name": "StoredScanResponse",
+            "line": 51,
+            "end_line": 56,
+            "bases": [
+              "BaseModel"
+            ],
+            "docstring": null,
+            "decorators": []
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "name": "PythonCodeParser",
+            "line": 6,
+            "end_line": 367,
+            "bases": [],
+            "docstring": "Reads a Python file and extracts its code structure.\n\nExtracted information:\n- imports\n- functions\n- async functions\n- classes\n- class methods\n- FastAPI routes\n- syntax errors",
+            "decorators": []
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "name": "ProjectAnalyzer",
+            "line": 6,
+            "end_line": 930,
+            "bases": [],
+            "docstring": "Builds project-level relationships from parsed Python files.\n\nThe analyzer:\n- maps project modules\n- detects internal module dependencies\n- collects functions, classes and methods\n- discovers FastAPI router prefixes\n- discovers include_router relationships\n- builds complete FastAPI endpoint paths\n- creates project-level statistics",
+            "decorators": []
+          },
+          {
+            "file": "app/services/project_scanner.py",
+            "name": "ProjectScanner",
+            "line": 9,
+            "end_line": 244,
+            "bases": [],
+            "docstring": "Scans and analyzes a local project directory.\n\nThe scanner:\n- ignores unnecessary folders and files\n- lists project files\n- counts directories\n- counts file extensions\n- calculates project size\n- parses Python source files\n- analyzes project-level relationships",
+            "decorators": []
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "name": "ScanStorage",
+            "line": 9,
+            "end_line": 344,
+            "bases": [],
+            "docstring": "Stores and retrieves AutoDocX project scan results.\n\nScans are saved under:\n\n    workspace/scans/<project_name>/<scan_id>.json",
+            "decorators": []
+          }
+        ],
+        "methods": [
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "parse_file",
+            "line": 31,
+            "end_line": 105,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_root",
+                "annotation": "Path",
+                "default": null
+              },
+              {
+                "name": "relative_file_path",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_extract_import",
+            "line": 108,
+            "end_line": 124,
+            "arguments": [
+              {
+                "name": "node",
+                "annotation": "ast.Import",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_extract_import_from",
+            "line": 127,
+            "end_line": 148,
+            "arguments": [
+              {
+                "name": "node",
+                "annotation": "ast.ImportFrom",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_extract_function",
+            "line": 150,
+            "end_line": 165,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "node",
+                "annotation": "ast.FunctionDef | ast.AsyncFunctionDef",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_extract_class",
+            "line": 167,
+            "end_line": 201,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "node",
+                "annotation": "ast.ClassDef",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_extract_fastapi_routes",
+            "line": 203,
+            "end_line": 267,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "node",
+                "annotation": "ast.FunctionDef | ast.AsyncFunctionDef",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_extract_arguments",
+            "line": 269,
+            "end_line": 343,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "arguments",
+                "annotation": "ast.arguments",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_node_to_string",
+            "line": 346,
+            "end_line": 355,
+            "arguments": [
+              {
+                "name": "node",
+                "annotation": "ast.AST | None",
+                "default": null
+              }
+            ],
+            "returns": "str | None",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/code_parser.py",
+            "class_name": "PythonCodeParser",
+            "name": "_get_literal_value",
+            "line": 358,
+            "end_line": 367,
+            "arguments": [
+              {
+                "name": "node",
+                "annotation": "ast.AST",
+                "default": null
+              }
+            ],
+            "returns": "Any",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "analyze_project",
+            "line": 20,
+            "end_line": 86,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_root",
+                "annotation": "Path",
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_build_module_map",
+            "line": 88,
+            "end_line": 109,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, str]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_build_internal_dependencies",
+            "line": 111,
+            "end_line": 180,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "module_map",
+                "annotation": "dict[str, str]",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_collect_symbols",
+            "line": 182,
+            "end_line": 284,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, list[dict[str, Any]]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_discover_router_definitions",
+            "line": 286,
+            "end_line": 380,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_root",
+                "annotation": "Path",
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_discover_router_inclusions",
+            "line": 382,
+            "end_line": 495,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_root",
+                "annotation": "Path",
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_collect_routes",
+            "line": 497,
+            "end_line": 657,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "router_definitions",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "router_inclusions",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "internal_dependencies",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_build_imported_router_lookup",
+            "line": 659,
+            "end_line": 696,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "internal_dependencies",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "dict[tuple[str, str], dict[str, str]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_build_statistics",
+            "line": 698,
+            "end_line": 737,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "parsed_files",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "symbols",
+                "annotation": "dict[str, list[dict[str, Any]]]",
+                "default": null
+              },
+              {
+                "name": "routes",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              },
+              {
+                "name": "internal_dependencies",
+                "annotation": "list[dict[str, Any]]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, int]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_read_syntax_tree",
+            "line": 740,
+            "end_line": 758,
+            "arguments": [
+              {
+                "name": "file_path",
+                "annotation": "Path",
+                "default": null
+              }
+            ],
+            "returns": "ast.Module | None",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_collect_import_aliases",
+            "line": 761,
+            "end_line": 799,
+            "arguments": [
+              {
+                "name": "syntax_tree",
+                "annotation": "ast.Module",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, tuple[str, str | None]]",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_resolve_router_reference",
+            "line": 802,
+            "end_line": 837,
+            "arguments": [
+              {
+                "name": "expression",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "import_aliases",
+                "annotation": "dict[str, tuple[str, str | None]]",
+                "default": null
+              }
+            ],
+            "returns": "tuple[str | None, str | None]",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_get_keyword_literal",
+            "line": 840,
+            "end_line": 858,
+            "arguments": [
+              {
+                "name": "call",
+                "annotation": "ast.Call",
+                "default": null
+              },
+              {
+                "name": "keyword_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "Any",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_node_to_string",
+            "line": 861,
+            "end_line": 870,
+            "arguments": [
+              {
+                "name": "node",
+                "annotation": "ast.AST | None",
+                "default": null
+              }
+            ],
+            "returns": "str | None",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_path_to_module",
+            "line": 873,
+            "end_line": 885,
+            "arguments": [
+              {
+                "name": "file_path",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "str",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_find_project_module",
+            "line": 888,
+            "end_line": 914,
+            "arguments": [
+              {
+                "name": "imported_module",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "project_modules",
+                "annotation": "set[str]",
+                "default": null
+              }
+            ],
+            "returns": "str | None",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_analyzer.py",
+            "class_name": "ProjectAnalyzer",
+            "name": "_join_paths",
+            "line": 917,
+            "end_line": 930,
+            "arguments": [
+              {
+                "name": "*path_parts",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "str",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_scanner.py",
+            "class_name": "ProjectScanner",
+            "name": "__init__",
+            "line": 59,
+            "end_line": 61,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              }
+            ],
+            "returns": "None",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_scanner.py",
+            "class_name": "ProjectScanner",
+            "name": "scan_project",
+            "line": 63,
+            "end_line": 171,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_path",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_scanner.py",
+            "class_name": "ProjectScanner",
+            "name": "_parse_python_files",
+            "line": 173,
+            "end_line": 201,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "root_path",
+                "annotation": "Path",
+                "default": null
+              },
+              {
+                "name": "files",
+                "annotation": "list[str]",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_scanner.py",
+            "class_name": "ProjectScanner",
+            "name": "_should_ignore",
+            "line": 203,
+            "end_line": 228,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "relative_path",
+                "annotation": "Path",
+                "default": null
+              }
+            ],
+            "returns": "bool",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/project_scanner.py",
+            "class_name": "ProjectScanner",
+            "name": "_validate_project_path",
+            "line": 231,
+            "end_line": 244,
+            "arguments": [
+              {
+                "name": "root_path",
+                "annotation": "Path",
+                "default": null
+              }
+            ],
+            "returns": "None",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "__init__",
+            "line": 18,
+            "end_line": 33,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "workspace_path",
+                "annotation": "str | Path",
+                "default": "'workspace'"
+              }
+            ],
+            "returns": "None",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "save_scan",
+            "line": 35,
+            "end_line": 114,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "scan_result",
+                "annotation": "dict[str, Any]",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, str]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "get_scan",
+            "line": 116,
+            "end_line": 135,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "scan_id",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "get_latest_scan",
+            "line": 137,
+            "end_line": 160,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "list_scans",
+            "line": 162,
+            "end_line": 245,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "list[dict[str, Any]]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "_get_project_scan_files",
+            "line": 247,
+            "end_line": 265,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "list[Path]",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "_build_scan_file_path",
+            "line": 267,
+            "end_line": 284,
+            "arguments": [
+              {
+                "name": "self",
+                "annotation": null,
+                "default": null
+              },
+              {
+                "name": "project_name",
+                "annotation": "str",
+                "default": null
+              },
+              {
+                "name": "scan_id",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "Path",
+            "docstring": null,
+            "decorators": [],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "_read_scan_file",
+            "line": 287,
+            "end_line": 322,
+            "arguments": [
+              {
+                "name": "scan_file_path",
+                "annotation": "Path",
+                "default": null
+              }
+            ],
+            "returns": "dict[str, Any]",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          },
+          {
+            "file": "app/services/scan_storage.py",
+            "class_name": "ScanStorage",
+            "name": "_sanitize_name",
+            "line": 325,
+            "end_line": 344,
+            "arguments": [
+              {
+                "name": "value",
+                "annotation": "str",
+                "default": null
+              }
+            ],
+            "returns": "str",
+            "docstring": null,
+            "decorators": [
+              "staticmethod"
+            ],
+            "is_async": false
+          }
+        ]
+      },
+      "internal_dependencies": [
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/models/project.py",
+          "target_module": "app.models.project",
+          "import_type": "from_import",
+          "imported_name": "ProjectScanRequest",
+          "alias": null,
+          "line": 7
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/models/project.py",
+          "target_module": "app.models.project",
+          "import_type": "from_import",
+          "imported_name": "ProjectScanResponse",
+          "alias": null,
+          "line": 7
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/models/project.py",
+          "target_module": "app.models.project",
+          "import_type": "from_import",
+          "imported_name": "ScanSummaryResponse",
+          "alias": null,
+          "line": 7
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/models/project.py",
+          "target_module": "app.models.project",
+          "import_type": "from_import",
+          "imported_name": "StoredScanResponse",
+          "alias": null,
+          "line": 7
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/services/project_scanner.py",
+          "target_module": "app.services.project_scanner",
+          "import_type": "from_import",
+          "imported_name": "ProjectScanner",
+          "alias": null,
+          "line": 13
+        },
+        {
+          "source_file": "app/api/project_routes.py",
+          "source_module": "app.api.project_routes",
+          "target_file": "app/services/scan_storage.py",
+          "target_module": "app.services.scan_storage",
+          "import_type": "from_import",
+          "imported_name": "ScanStorage",
+          "alias": null,
+          "line": 16
+        },
+        {
+          "source_file": "app/main.py",
+          "source_module": "app.main",
+          "target_file": "app/api/project_routes.py",
+          "target_module": "app.api.project_routes",
+          "import_type": "from_import",
+          "imported_name": "router",
+          "alias": "project_router",
+          "line": 3
+        },
+        {
+          "source_file": "app/services/project_scanner.py",
+          "source_module": "app.services.project_scanner",
+          "target_file": "app/services/code_parser.py",
+          "target_module": "app.services.code_parser",
+          "import_type": "from_import",
+          "imported_name": "PythonCodeParser",
+          "alias": null,
+          "line": 5
+        },
+        {
+          "source_file": "app/services/project_scanner.py",
+          "source_module": "app.services.project_scanner",
+          "target_file": "app/services/project_analyzer.py",
+          "target_module": "app.services.project_analyzer",
+          "import_type": "from_import",
+          "imported_name": "ProjectAnalyzer",
+          "alias": null,
+          "line": 6
+        }
+      ],
+      "router_definitions": [
+        {
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "variable_name": "router",
+          "router_type": "APIRouter",
+          "prefix": "/api/projects",
+          "line": 21
+        },
+        {
+          "file": "app/main.py",
+          "module": "app.main",
+          "variable_name": "app",
+          "router_type": "FastAPI",
+          "prefix": "",
+          "line": 6
+        }
+      ],
+      "router_inclusions": [
+        {
+          "file": "app/main.py",
+          "module": "app.main",
+          "application_variable": "app",
+          "included_expression": "project_router",
+          "included_module": "app.api.project_routes",
+          "included_variable": "router",
+          "prefix": "",
+          "line": 12
+        }
+      ],
+      "routes": [
+        {
+          "file": "app/main.py",
+          "module": "app.main",
+          "function_name": "root",
+          "method": "GET",
+          "path": "/",
+          "line": 19,
+          "is_async": false,
+          "router_name": "app",
+          "route_name": null,
+          "response_model": null,
+          "status_code": null,
+          "include_router_prefix": null,
+          "router_prefix": null,
+          "full_path": "/"
+        },
+        {
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "function_name": "scan_project",
+          "method": "POST",
+          "path": "/scan",
+          "line": 36,
+          "is_async": false,
+          "router_name": "router",
+          "route_name": null,
+          "response_model": "ProjectScanResponse",
+          "status_code": "status.HTTP_200_OK",
+          "include_router_prefix": null,
+          "router_prefix": "/api/projects",
+          "full_path": "/api/projects/scan"
+        },
+        {
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "function_name": "list_project_scans",
+          "method": "GET",
+          "path": "/{project_name}/scans",
+          "line": 109,
+          "is_async": false,
+          "router_name": "router",
+          "route_name": null,
+          "response_model": "list[ScanSummaryResponse]",
+          "status_code": "status.HTTP_200_OK",
+          "include_router_prefix": null,
+          "router_prefix": "/api/projects",
+          "full_path": "/api/projects/{project_name}/scans"
+        },
+        {
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "function_name": "get_latest_project_scan",
+          "method": "GET",
+          "path": "/{project_name}/scans/latest",
+          "line": 138,
+          "is_async": false,
+          "router_name": "router",
+          "route_name": null,
+          "response_model": "StoredScanResponse",
+          "status_code": "status.HTTP_200_OK",
+          "include_router_prefix": null,
+          "router_prefix": "/api/projects",
+          "full_path": "/api/projects/{project_name}/scans/latest"
+        },
+        {
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "function_name": "get_project_scan",
+          "method": "GET",
+          "path": "/{project_name}/scans/{scan_id}",
+          "line": 176,
+          "is_async": false,
+          "router_name": "router",
+          "route_name": null,
+          "response_model": "StoredScanResponse",
+          "status_code": "status.HTTP_200_OK",
+          "include_router_prefix": null,
+          "router_prefix": "/api/projects",
+          "full_path": "/api/projects/{project_name}/scans/{scan_id}"
+        },
+        {
+          "file": "app/main.py",
+          "module": "app.main",
+          "function_name": "health_check",
+          "method": "GET",
+          "path": "/health",
+          "line": 29,
+          "is_async": false,
+          "router_name": "app",
+          "route_name": null,
+          "response_model": null,
+          "status_code": null,
+          "include_router_prefix": null,
+          "router_prefix": null,
+          "full_path": "/health"
+        }
+      ]
+    }
+  }
+}
