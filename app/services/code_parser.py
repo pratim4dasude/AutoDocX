@@ -324,8 +324,114 @@ class PythonCodeParser:
                 node=node,
                 max_lines=18,
             ),
+            "called_functions": self._extract_called_functions(node),
+            "called_functions_preview": self._build_called_functions_preview(node),
             "content_hash": self._calculate_node_hash(node),
         }
+
+    @staticmethod
+    def _extract_called_functions(
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> list[str]:
+        called_functions: list[str] = []
+
+        for child in ast.walk(node):
+            if not isinstance(child, ast.Call):
+                continue
+
+            call_name = PythonCodeParser._get_call_name(
+                child.func,
+            )
+
+            if call_name and call_name not in called_functions:
+                called_functions.append(call_name)
+
+        return called_functions
+
+    @staticmethod
+    def _get_call_name(
+        node: ast.AST,
+    ) -> str:
+        if isinstance(node, ast.Name):
+            return node.id
+
+        if isinstance(node, ast.Attribute):
+            parent_name = PythonCodeParser._get_call_name(
+                node.value,
+            )
+
+            if parent_name:
+                return f"{parent_name}.{node.attr}"
+
+            return node.attr
+
+        if isinstance(node, ast.Call):
+            return PythonCodeParser._get_call_name(
+                node.func,
+            )
+
+        if isinstance(node, ast.Subscript):
+            return PythonCodeParser._get_call_name(
+                node.value,
+            )
+
+        return ""
+
+    @staticmethod
+    def _build_called_functions_preview(
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+    ) -> list[str]:
+        previews: list[str] = []
+
+        for child in ast.walk(node):
+            if not isinstance(child, ast.Call):
+                continue
+
+            call_name = PythonCodeParser._get_call_name(
+                child.func,
+            )
+
+            if not call_name:
+                continue
+
+            argument_parts: list[str] = []
+
+            for argument in child.args:
+                argument_text = PythonCodeParser._node_to_string(
+                    argument,
+                )
+
+                if argument_text:
+                    argument_parts.append(argument_text)
+
+            for keyword in child.keywords:
+                if keyword.arg is None:
+                    continue
+
+                value_text = PythonCodeParser._node_to_string(
+                    keyword.value,
+                )
+
+                if not value_text:
+                    value_text = "..."
+
+                argument_parts.append(
+                    f"{keyword.arg}={value_text}"
+                )
+
+            if argument_parts:
+                preview = (
+                    f"{call_name}("
+                    + ", ".join(argument_parts)
+                    + ")"
+                )
+            else:
+                preview = f"{call_name}(...)"
+
+            if preview not in previews:
+                previews.append(preview)
+
+        return previews
 
     def _extract_class(
         self,
@@ -539,6 +645,14 @@ class PythonCodeParser:
                     "decorator": self._node_to_string(decorator),
                     "docstring": ast.get_docstring(node),
                     "source_preview": function_data["source_preview"],
+                    "called_functions": function_data.get(
+                        "called_functions",
+                        [],
+                    ),
+                    "called_functions_preview": function_data.get(
+                        "called_functions_preview",
+                        [],
+                    ),
                     "content_hash": function_data["content_hash"],
                 }
             )

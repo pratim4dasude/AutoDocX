@@ -1624,7 +1624,19 @@ print(response.json())</code></pre>
                     name=name,
                     signature=signature,
                     returns=returns,
+                    called_functions=function.get(
+                        "called_functions",
+                        [],
+                    ),
+                    called_functions_preview=function.get(
+                        "called_functions_preview",
+                        [],
+                    ),
                 )
+
+            calls_html = DocumentBuilder._build_called_functions_block(
+                function,
+            )
 
             parameters_html = DocumentBuilder._build_parameters_table(
                 function.get("arguments", []),
@@ -1644,6 +1656,8 @@ print(response.json())</code></pre>
 
                     <p>{escape(docstring)}</p>
 
+                    {calls_html}
+
                     <p class="small-label">Parameters</p>
                     {parameters_html}
 
@@ -1662,13 +1676,252 @@ print(response.json())</code></pre>
         """
 
     @staticmethod
+    def _build_called_functions_block(
+            function: dict[str, Any],
+    ) -> str:
+        called_functions = function.get(
+            "called_functions",
+            [],
+        )
+
+        called_function_previews = function.get(
+            "called_functions_preview",
+            [],
+        )
+
+        if not isinstance(called_functions, list):
+            called_functions = []
+
+        if not isinstance(called_function_previews, list):
+            called_function_previews = []
+
+        visible_calls = [
+            str(call).strip()
+            for call in called_functions
+            if str(call).strip()
+        ]
+
+        visible_previews = [
+            str(call).strip()
+            for call in called_function_previews
+            if str(call).strip()
+        ]
+
+        if not visible_calls and not visible_previews:
+            return ""
+
+        rows: list[str] = []
+
+        max_rows = max(
+            len(visible_calls),
+            len(visible_previews),
+        )
+
+        for index in range(max_rows):
+            call_name = (
+                visible_calls[index]
+                if index < len(visible_calls)
+                else "-"
+            )
+
+            call_preview = (
+                visible_previews[index]
+                if index < len(visible_previews)
+                else call_name
+            )
+
+            rows.append(
+                f"""
+                <tr>
+                    <td><code>{escape(call_name)}</code></td>
+                    <td><code>{escape(call_preview)}</code></td>
+                    <td>
+                        {escape(DocumentBuilder._describe_called_function(call_name))}
+                    </td>
+                </tr>
+                """
+            )
+
+        return f"""
+        <p class="small-label">Calls made by this function</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Called function</th>
+                        <th>Call details</th>
+                        <th>Why it matters</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {"".join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+
+    @staticmethod
+    def _describe_called_function(
+            call_name: str,
+    ) -> str:
+        clean_call_name = call_name.strip()
+
+        if not clean_call_name or clean_call_name == "-":
+            return "Function call used by this workflow."
+
+        readable_name = (
+            clean_call_name
+            .split(".")[-1]
+            .strip("_")
+            .replace("_", " ")
+        )
+
+        if clean_call_name.startswith("print"):
+            return "Writes information to the console or terminal."
+
+        if clean_call_name.startswith("open"):
+            return "Opens a file or resource for reading or writing."
+
+        if "read" in readable_name:
+            return "Reads input data needed by the workflow."
+
+        if (
+            "write" in readable_name
+            or "save" in readable_name
+            or "store" in readable_name
+        ):
+            return "Writes or persists output produced by the workflow."
+
+        if "load" in readable_name:
+            return "Loads data or configuration needed for processing."
+
+        if "process" in readable_name:
+            return "Runs the main processing logic for this workflow."
+
+        if "generate" in readable_name:
+            return "Generates output data, files, reports, or documentation."
+
+        if "build" in readable_name:
+            return "Builds an intermediate structure or final output."
+
+        if "parse" in readable_name:
+            return "Parses input content into structured data."
+
+        if "extract" in readable_name:
+            return "Extracts useful information from the input data."
+
+        if "scan" in readable_name:
+            return "Scans files, folders, or project structure."
+
+        if "validate" in readable_name:
+            return "Validates input before the workflow continues."
+
+        if "compare" in readable_name:
+            return "Compares two inputs or project states."
+
+        return (
+            f"Calls {clean_call_name}, which appears to support the "
+            f"{readable_name} step in this function."
+        )
+
+    @staticmethod
     def _build_function_purpose_sentence(
             name: str,
             signature: str,
             returns: str,
+            called_functions: Any | None = None,
+            called_functions_preview: Any | None = None,
     ) -> str:
         clean_name = name.strip()
         readable_name = clean_name.strip("_").replace("_", " ")
+
+        calls = (
+            called_functions
+            if isinstance(called_functions, list)
+            else []
+        )
+
+        call_previews = (
+            called_functions_preview
+            if isinstance(called_functions_preview, list)
+            else []
+        )
+
+        visible_calls = [
+            str(call).strip()
+            for call in calls
+            if str(call).strip()
+        ]
+
+        visible_previews = [
+            str(call).strip()
+            for call in call_previews
+            if str(call).strip()
+        ]
+
+        if clean_name == "main":
+            if visible_previews:
+                first_call = visible_previews[0]
+                first_call_name = (
+                    visible_calls[0]
+                    if visible_calls
+                    else first_call
+                )
+
+                return (
+                    "This function is the script entrypoint. "
+                    "When this file is executed directly, it starts the "
+                    "actual workflow by calling "
+                    f"{first_call_name}. "
+                    f"The call is made as {first_call}. "
+                    "Review the called function next to understand the "
+                    "main business logic executed by this script."
+                )
+
+            if visible_calls:
+                return (
+                    "This function is the script entrypoint. "
+                    "When this file is executed directly, it starts the "
+                    "actual workflow by calling "
+                    f"{', '.join(visible_calls[:3])}. "
+                    "Review these called functions next to understand what "
+                    "the script really does."
+                )
+
+            return (
+                "This function is the script entrypoint for this module. "
+                "No function-call metadata was available in the current "
+                "documentation payload. Regenerate the scan after enabling "
+                "called function parsing to show the workflow started by "
+                "this main function."
+            )
+
+        if visible_previews:
+            first_call = visible_previews[0]
+            first_call_name = (
+                visible_calls[0]
+                if visible_calls
+                else first_call
+            )
+
+            return (
+                f"Implements the {readable_name} operation for this module. "
+                "It coordinates the workflow by calling "
+                f"{first_call_name}. "
+                f"The call is made as {first_call}. "
+                f"It returns {returns or 'a result'} used by the surrounding "
+                "workflow."
+            )
+
+        if visible_calls:
+            return (
+                f"Implements the {readable_name} operation for this module. "
+                "It coordinates work through internal or imported calls such as "
+                f"{', '.join(visible_calls[:3])}. "
+                f"It returns {returns or 'a result'} used by the surrounding "
+                "workflow."
+            )
 
         if clean_name.startswith("_build_"):
             subject = clean_name.replace("_build_", "").replace("_", " ")
@@ -2487,3 +2740,5 @@ print(response.json())"""
             lines.append(stripped)
 
         return "\n".join(lines).strip()
+
+

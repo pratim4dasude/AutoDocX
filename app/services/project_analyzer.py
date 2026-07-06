@@ -499,6 +499,14 @@ class ProjectAnalyzer:
                         "include_router_prefix",
                     ),
                     "source_preview": route.get("source_preview"),
+                    "called_functions": route.get(
+                        "called_functions",
+                        [],
+                    ),
+                    "called_functions_preview": route.get(
+                        "called_functions_preview",
+                        [],
+                    ),
                 }
             )
 

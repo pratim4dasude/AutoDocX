@@ -391,6 +391,11 @@ class ProjectContextBuilder:
             "returns": function.get("returns"),
             "docstring": function.get("docstring"),
             "decorators": function.get("decorators", []),
+            "called_functions": function.get("called_functions", []),
+            "called_functions_preview": function.get(
+                "called_functions_preview",
+                [],
+            ),
             "is_async": function.get("is_async", False),
             "line": function.get("line"),
             "end_line": function.get("end_line"),
@@ -514,6 +519,11 @@ class ProjectContextBuilder:
             "description": route.get("description"),
             "tags": route.get("tags", []),
             "docstring": route.get("docstring"),
+            "called_functions": route.get("called_functions", []),
+            "called_functions_preview": route.get(
+                "called_functions_preview",
+                [],
+            ),
             "is_async": route.get("is_async", False),
             "line": route.get("line"),
         }
@@ -561,6 +571,11 @@ class ProjectContextBuilder:
                     "description": route.get("description"),
                     "tags": route.get("tags", []),
                     "docstring": route.get("docstring"),
+                    "called_functions": route.get("called_functions", []),
+                    "called_functions_preview": route.get(
+                        "called_functions_preview",
+                        [],
+                    ),
                     "is_async": route.get("is_async", False),
                     "line": route.get("line"),
                     "source_preview": route.get("source_preview"),
@@ -609,6 +624,11 @@ class ProjectContextBuilder:
                     "description": route.get("description"),
                     "tags": route.get("tags", []),
                     "docstring": route.get("docstring"),
+                    "called_functions": route.get("called_functions", []),
+                    "called_functions_preview": route.get(
+                        "called_functions_preview",
+                        [],
+                    ),
                     "file": route.get("file"),
                     "module": route.get("module"),
                     "line": route.get("line"),
