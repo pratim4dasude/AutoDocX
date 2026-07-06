@@ -4,8 +4,19 @@ from typing import Any
 
 class DocumentBuilder:
     """
-    Builds a standalone HTML documentation file
+    Builds a standalone professional developer documentation HTML
     from a saved project understanding.
+
+    The output is closer to developer documentation pages:
+    - left navigation
+    - main article content
+    - right table of contents
+    - API reference cards
+    - parameter tables
+    - module reference cards
+    - class/function/method signatures
+    - code examples
+    - clean callouts
     """
 
     def build_html(
@@ -54,36 +65,31 @@ class DocumentBuilder:
             )
         )
 
-        understanding = (
-            stored_understanding.get(
-                "understanding",
-                {},
-            )
+        understanding = stored_understanding.get(
+            "understanding",
+            {},
         )
 
-        if not isinstance(
-            understanding,
-            dict,
-        ):
+        if not isinstance(understanding, dict):
             raise ValueError(
-                "Stored understanding contains "
-                "invalid understanding data."
+                "Stored understanding contains invalid understanding data."
             )
 
-        project_summary = str(
-            understanding.get(
-                "project_summary",
-                "No project summary available.",
+        project_summary = self._clean_llm_text(
+            str(
+                understanding.get(
+                    "project_summary",
+                    "No project summary available.",
+                )
             )
         )
 
-        architecture_overview = str(
-            understanding.get(
-                "architecture_overview",
-                (
-                    "No architecture overview "
-                    "available."
-                ),
+        architecture_overview = self._clean_llm_text(
+            str(
+                understanding.get(
+                    "architecture_overview",
+                    "No architecture overview available.",
+                )
             )
         )
 
@@ -92,11 +98,9 @@ class DocumentBuilder:
             [],
         )
 
-        module_responsibilities = (
-            understanding.get(
-                "module_responsibilities",
-                [],
-            )
+        module_responsibilities = understanding.get(
+            "module_responsibilities",
+            [],
         )
 
         api_overview = understanding.get(
@@ -114,56 +118,57 @@ class DocumentBuilder:
             [],
         )
 
-        recommended_sections = (
-            understanding.get(
-                "recommended_document_sections",
-                [],
-            )
+        developer_reference = understanding.get(
+            "developer_reference",
+            {},
         )
 
-        navigation = self._build_navigation(
-            execution_flow=execution_flow,
-            module_responsibilities=(
-                module_responsibilities
-            ),
+        statistics = {}
+
+        if isinstance(developer_reference, dict):
+            statistics = developer_reference.get(
+                "statistics",
+                {},
+            )
+
+        navigation = self._build_left_navigation(
             api_overview=api_overview,
-            key_dependencies=key_dependencies,
+            module_responsibilities=module_responsibilities,
+        )
+
+        right_toc = self._build_right_toc(
+            api_overview=api_overview,
+            module_responsibilities=module_responsibilities,
             risks_and_gaps=risks_and_gaps,
-            recommended_sections=(
-                recommended_sections
-            ),
+            statistics=statistics,
         )
 
-        execution_html = (
-            self._build_execution_flow(
-                execution_flow
-            )
+        quickstart_html = self._build_quickstart(
+            project_name=project_name,
         )
 
-        modules_html = (
-            self._build_module_responsibilities(
-                module_responsibilities
-            )
+        statistics_html = self._build_statistics(
+            statistics,
         )
 
-        api_html = self._build_api_overview(
-            api_overview
+        api_reference_html = self._build_api_reference(
+            api_overview,
         )
 
-        dependencies_html = (
-            self._build_dependencies(
-                key_dependencies
-            )
+        modules_html = self._build_module_reference(
+            module_responsibilities,
         )
 
-        risks_html = self._build_risks(
-            risks_and_gaps
+        execution_html = self._build_execution_flow(
+            execution_flow,
         )
 
-        recommended_html = (
-            self._build_recommended_sections(
-                recommended_sections
-            )
+        dependencies_html = self._build_dependencies(
+            key_dependencies,
+        )
+
+        troubleshooting_html = self._build_troubleshooting(
+            risks_and_gaps,
         )
 
         return f"""<!DOCTYPE html>
@@ -178,19 +183,27 @@ class DocumentBuilder:
 
     <style>
         :root {{
-            color-scheme: light dark;
-            --background: #f4f6f8;
-            --surface: #ffffff;
-            --surface-soft: #f8fafc;
-            --text: #172033;
-            --muted: #5f6b7a;
-            --border: #dce3ea;
-            --primary: #2563eb;
-            --primary-soft: #dbeafe;
-            --danger: #b42318;
-            --warning: #b54708;
-            --success: #067647;
-            --shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+            color-scheme: dark;
+            --bg: #0b0f19;
+            --bg-soft: #0f172a;
+            --sidebar: #080d18;
+            --surface: #101827;
+            --surface-soft: #111d31;
+            --surface-muted: #172033;
+            --border: #233047;
+            --border-soft: #1b2638;
+            --text: #e5e7eb;
+            --text-strong: #f8fafc;
+            --muted: #94a3b8;
+            --muted-soft: #64748b;
+            --primary: #8b5cf6;
+            --primary-soft: rgba(139, 92, 246, 0.16);
+            --blue: #60a5fa;
+            --green: #34d399;
+            --yellow: #fbbf24;
+            --red: #fb7185;
+            --code-bg: #0b1220;
+            --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
         }}
 
         * {{
@@ -203,6 +216,8 @@ class DocumentBuilder:
 
         body {{
             margin: 0;
+            background: var(--bg);
+            color: var(--text);
             font-family:
                 Inter,
                 ui-sans-serif,
@@ -211,262 +226,587 @@ class DocumentBuilder:
                 BlinkMacSystemFont,
                 "Segoe UI",
                 sans-serif;
-            background: var(--background);
-            color: var(--text);
-            line-height: 1.65;
+            line-height: 1.7;
         }}
 
-        .layout {{
+        a {{
+            color: inherit;
+        }}
+
+        .shell {{
             display: grid;
-            grid-template-columns: 280px minmax(0, 1fr);
+            grid-template-columns: 300px minmax(0, 1fr) 280px;
             min-height: 100vh;
         }}
 
-        .sidebar {{
+        .left-sidebar {{
             position: sticky;
             top: 0;
             height: 100vh;
             overflow-y: auto;
-            padding: 28px 22px;
-            background: #111827;
-            color: #ffffff;
+            border-right: 1px solid var(--border-soft);
+            background: var(--sidebar);
+            padding: 24px 18px;
         }}
 
-        .sidebar h1 {{
-            margin: 0 0 8px;
-            font-size: 22px;
-            line-height: 1.25;
+        .brand {{
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 22px;
+            padding: 0 8px;
         }}
 
-        .sidebar p {{
-            margin: 0 0 24px;
-            color: #cbd5e1;
+        .brand-mark {{
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            background: linear-gradient(
+                135deg,
+                var(--primary),
+                var(--blue)
+            );
+            box-shadow: 0 0 30px rgba(139, 92, 246, 0.75);
+        }}
+
+        .brand h1 {{
+            margin: 0;
+            color: var(--text-strong);
+            font-size: 19px;
+            letter-spacing: -0.02em;
+        }}
+
+        .search-box {{
+            margin: 0 8px 24px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #070c16;
+            color: var(--muted);
             font-size: 13px;
         }}
 
-        .sidebar nav {{
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
+        .nav-group {{
+            margin-bottom: 24px;
         }}
 
-        .sidebar a {{
-            color: #e5e7eb;
+        .nav-title {{
+            margin: 0 8px 8px;
+            color: var(--muted-soft);
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }}
+
+        .left-sidebar nav a {{
+            display: block;
+            padding: 8px 10px;
+            border-radius: 9px;
+            color: #cbd5e1;
             text-decoration: none;
-            padding: 9px 11px;
-            border-radius: 8px;
             font-size: 14px;
         }}
 
-        .sidebar a:hover {{
-            background: #1f2937;
-            color: #ffffff;
+        .left-sidebar nav a:hover {{
+            background: var(--surface-muted);
+            color: var(--text-strong);
         }}
 
-        .content {{
-            width: 100%;
-            max-width: 1220px;
-            padding: 48px;
+        .main {{
+            min-width: 0;
+            padding: 58px 64px 80px;
         }}
 
-        .hero {{
-            padding: 38px;
-            margin-bottom: 26px;
-            border-radius: 18px;
-            background:
-                linear-gradient(
-                    135deg,
-                    #1d4ed8,
-                    #4f46e5
-                );
-            color: #ffffff;
-            box-shadow: var(--shadow);
+        .article {{
+            max-width: 960px;
+            margin: 0 auto;
         }}
 
-        .hero h1 {{
-            margin: 0 0 10px;
-            font-size: 38px;
-            line-height: 1.2;
-        }}
-
-        .hero p {{
-            margin: 0;
-            max-width: 760px;
-            color: #dbeafe;
-        }}
-
-        .metadata {{
-            display: grid;
-            grid-template-columns:
-                repeat(
-                    auto-fit,
-                    minmax(180px, 1fr)
-                );
-            gap: 12px;
-            margin-top: 24px;
-        }}
-
-        .metadata div {{
-            padding: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.10);
-        }}
-
-        .metadata span {{
-            display: block;
-            color: #bfdbfe;
+        .eyebrow {{
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--primary-soft);
+            color: #ddd6fe;
             font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: 700;
         }}
 
-        .metadata strong {{
-            display: block;
-            margin-top: 4px;
+        .page-title {{
+            margin: 0 0 18px;
+            color: var(--text-strong);
+            font-size: 44px;
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+        }}
+
+        .lead {{
+            max-width: 780px;
+            margin: 0 0 30px;
+            color: #cbd5e1;
+            font-size: 18px;
+        }}
+
+        .meta-strip {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 42px;
+        }}
+
+        .meta-chip {{
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            padding: 7px 10px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 12px;
+        }}
+
+        .meta-chip strong {{
+            color: var(--text);
+            font-weight: 700;
             overflow-wrap: anywhere;
         }}
 
-        section {{
-            margin-bottom: 26px;
-            padding: 30px;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            background: var(--surface);
-            box-shadow: var(--shadow);
+        .doc-section {{
+            padding-top: 30px;
+            margin-top: 38px;
+            border-top: 1px solid var(--border-soft);
         }}
 
-        section h2 {{
-            margin: 0 0 18px;
-            font-size: 25px;
+        .doc-section h2 {{
+            margin: 0 0 14px;
+            color: var(--text-strong);
+            font-size: 28px;
+            line-height: 1.25;
+            letter-spacing: -0.03em;
+        }}
+
+        .doc-section h3 {{
+            margin: 28px 0 10px;
+            color: var(--text-strong);
+            font-size: 20px;
+            letter-spacing: -0.02em;
         }}
 
         .paragraph {{
             white-space: pre-line;
+            color: #cbd5e1;
         }}
 
-        .card-grid {{
+        .callout {{
+            margin: 22px 0;
+            padding: 18px 20px;
+            border-left: 4px solid var(--green);
+            border-radius: 12px;
+            background: rgba(52, 211, 153, 0.09);
+            color: #d1fae5;
+        }}
+
+        .callout.warning {{
+            border-left-color: var(--yellow);
+            background: rgba(251, 191, 36, 0.09);
+            color: #fef3c7;
+        }}
+
+        .stats-grid {{
             display: grid;
             grid-template-columns:
                 repeat(
                     auto-fit,
-                    minmax(280px, 1fr)
+                    minmax(150px, 1fr)
                 );
-            gap: 16px;
+            gap: 12px;
+            margin-top: 18px;
         }}
 
-        .card {{
-            padding: 20px;
+        .stat-card {{
+            padding: 16px;
             border: 1px solid var(--border);
-            border-radius: 13px;
-            background: var(--surface-soft);
+            border-radius: 14px;
+            background: var(--surface);
         }}
 
-        .card h3 {{
-            margin: 0 0 10px;
+        .stat-card span {{
+            display: block;
+            color: var(--muted-soft);
+            font-size: 11px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }}
+
+        .stat-card strong {{
+            display: block;
+            margin-top: 4px;
+            color: var(--text-strong);
+            font-size: 22px;
+        }}
+
+        .reference-card {{
+            margin: 22px 0;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }}
+
+        .reference-header {{
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(
+                180deg,
+                var(--surface-soft),
+                var(--surface)
+            );
+        }}
+
+        .reference-header h3 {{
+            margin: 0;
             font-size: 18px;
         }}
 
-        .card p {{
-            margin: 8px 0;
+        .reference-header p {{
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 14px;
         }}
 
-        .label {{
+        .reference-body {{
+            padding: 18px;
+        }}
+
+        .signature {{
+            display: block;
+            margin: 12px 0 0;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--code-bg);
+            color: #dbeafe;
+            font-family:
+                "JetBrains Mono",
+                "SFMono-Regular",
+                Consolas,
+                "Liberation Mono",
+                monospace;
+            font-size: 13px;
+            line-height: 1.65;
+            overflow-x: auto;
+            white-space: pre;
+        }}
+
+        .code-block {{
+            position: relative;
+            margin: 18px 0;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--code-bg);
+            overflow: hidden;
+        }}
+
+        .code-title {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+            background: #0f172a;
             color: var(--muted);
             font-size: 12px;
             font-weight: 700;
+        }}
+
+        pre {{
+            margin: 0;
+            padding: 18px;
+            overflow-x: auto;
+        }}
+
+        code {{
+            font-family:
+                "JetBrains Mono",
+                "SFMono-Regular",
+                Consolas,
+                "Liberation Mono",
+                monospace;
+            font-size: 13px;
+        }}
+
+        p code,
+        li code,
+        td code {{
+            padding: 2px 6px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: #111827;
+            color: #bfdbfe;
+            overflow-wrap: anywhere;
+        }}
+
+        .endpoint {{
+            display: grid;
+            grid-template-columns: 78px minmax(0, 1fr);
+            gap: 12px;
+            align-items: start;
+        }}
+
+        .method {{
+            display: inline-flex;
+            justify-content: center;
+            min-width: 68px;
+            padding: 5px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+        }}
+
+        .method-get {{
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--green);
+        }}
+
+        .method-post {{
+            background: rgba(96, 165, 250, 0.14);
+            color: var(--blue);
+        }}
+
+        .method-put,
+        .method-patch {{
+            background: rgba(251, 191, 36, 0.14);
+            color: var(--yellow);
+        }}
+
+        .method-delete {{
+            background: rgba(251, 113, 133, 0.14);
+            color: var(--red);
+        }}
+
+        .path {{
+            color: var(--text-strong);
+            font-family:
+                "JetBrains Mono",
+                "SFMono-Regular",
+                Consolas,
+                monospace;
+            font-size: 14px;
+            overflow-wrap: anywhere;
+        }}
+
+        .small-label {{
+            margin: 18px 0 8px;
+            color: var(--muted-soft);
+            font-size: 11px;
+            font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
+        }}
+
+        .sub-reference {{
+            margin: 14px 0;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #0d1525;
+        }}
+
+        .sub-reference h4 {{
+            margin: 0 0 8px;
+            color: var(--text-strong);
+            font-size: 15px;
+        }}
+
+        .sub-reference p {{
+            margin: 8px 0 0;
+            color: #cbd5e1;
+            font-size: 14px;
         }}
 
         .pill-list {{
             display: flex;
             flex-wrap: wrap;
             gap: 7px;
-            margin-top: 12px;
+            margin-top: 10px;
         }}
 
         .pill {{
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             padding: 5px 9px;
+            border: 1px solid var(--border);
             border-radius: 999px;
-            background: var(--primary-soft);
-            color: #1d4ed8;
+            background: #101827;
+            color: #c4b5fd;
             font-size: 12px;
             overflow-wrap: anywhere;
         }}
 
-        .flow-step {{
-            position: relative;
-            padding: 20px 20px 20px 68px;
-            margin-bottom: 14px;
+        .table-wrap {{
+            overflow-x: auto;
             border: 1px solid var(--border);
-            border-radius: 13px;
-            background: var(--surface-soft);
-        }}
-
-        .step-number {{
-            position: absolute;
-            left: 18px;
-            top: 20px;
-            display: grid;
-            place-items: center;
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: #ffffff;
-            font-weight: 800;
+            border-radius: 14px;
+            margin: 12px 0;
         }}
 
         table {{
             width: 100%;
             border-collapse: collapse;
+            min-width: 680px;
             font-size: 14px;
         }}
 
         th,
         td {{
-            padding: 13px;
+            padding: 12px 14px;
             border-bottom: 1px solid var(--border);
             text-align: left;
             vertical-align: top;
         }}
 
-        th {{
-            background: var(--surface-soft);
+        tr:last-child td {{
+            border-bottom: 0;
         }}
 
-        code {{
-            padding: 2px 6px;
-            border-radius: 6px;
-            background: #eef2f7;
-            color: #1e293b;
-            overflow-wrap: anywhere;
+        th {{
+            background: var(--surface-soft);
+            color: var(--text-strong);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }}
+
+        td {{
+            color: #cbd5e1;
+        }}
+
+        .flow-list {{
+            display: grid;
+            gap: 12px;
+        }}
+
+        .flow-step {{
+            display: grid;
+            grid-template-columns: 38px minmax(0, 1fr);
+            gap: 14px;
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+        }}
+
+        .step-number {{
+            display: grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-soft);
+            color: #c4b5fd;
+            font-weight: 900;
+        }}
+
+        .flow-step h3 {{
+            margin: 0 0 6px;
+            font-size: 16px;
+        }}
+
+        .flow-step p {{
+            margin: 0;
+            color: #cbd5e1;
         }}
 
         .severity {{
-            display: inline-block;
-            padding: 5px 9px;
+            display: inline-flex;
+            padding: 4px 8px;
             border-radius: 999px;
-            font-size: 12px;
-            font-weight: 800;
+            font-size: 11px;
+            font-weight: 900;
             text-transform: uppercase;
         }}
 
         .severity-high {{
-            color: var(--danger);
-            background: #fee4e2;
+            background: rgba(251, 113, 133, 0.14);
+            color: var(--red);
         }}
 
         .severity-medium {{
-            color: var(--warning);
-            background: #fef0c7;
+            background: rgba(251, 191, 36, 0.14);
+            color: var(--yellow);
         }}
 
         .severity-low {{
-            color: var(--success);
-            background: #d1fadf;
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--green);
+        }}
+
+        .dependency-grid,
+        .risk-grid {{
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fit,
+                    minmax(260px, 1fr)
+                );
+            gap: 14px;
+        }}
+
+        .mini-card {{
+            padding: 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+        }}
+
+        .mini-card h3 {{
+            margin: 0 0 8px;
+            font-size: 16px;
+        }}
+
+        .mini-card p {{
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 14px;
+        }}
+
+        .right-toc {{
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            border-left: 1px solid var(--border-soft);
+            background: var(--bg);
+            padding: 72px 22px 24px;
+        }}
+
+        .right-toc h2 {{
+            margin: 0 0 12px;
+            color: var(--text-strong);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }}
+
+        .right-toc a {{
+            display: block;
+            padding: 6px 0;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 13px;
+        }}
+
+        .right-toc a:hover {{
+            color: var(--text-strong);
         }}
 
         .empty {{
@@ -475,52 +815,68 @@ class DocumentBuilder:
         }}
 
         footer {{
-            padding: 8px 0 36px;
-            color: var(--muted);
-            text-align: center;
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-soft);
+            color: var(--muted-soft);
             font-size: 13px;
         }}
 
-        @media (max-width: 900px) {{
-            .layout {{
+        @media (max-width: 1180px) {{
+            .shell {{
+                grid-template-columns: 280px minmax(0, 1fr);
+            }}
+
+            .right-toc {{
+                display: none;
+            }}
+        }}
+
+        @media (max-width: 860px) {{
+            .shell {{
                 display: block;
             }}
 
-            .sidebar {{
+            .left-sidebar {{
                 position: static;
-                width: 100%;
                 height: auto;
             }}
 
-            .content {{
-                padding: 24px;
+            .main {{
+                padding: 34px 22px 60px;
             }}
 
-            .hero {{
-                padding: 26px;
+            .page-title {{
+                font-size: 34px;
             }}
 
-            .hero h1 {{
-                font-size: 30px;
+            .lead {{
+                font-size: 16px;
             }}
         }}
 
         @media print {{
-            .sidebar {{
+            .left-sidebar,
+            .right-toc {{
                 display: none;
             }}
 
-            .layout {{
+            .shell {{
                 display: block;
             }}
 
-            .content {{
-                max-width: none;
+            .main {{
                 padding: 0;
             }}
 
-            section,
-            .hero {{
+            .article {{
+                max-width: none;
+            }}
+
+            .reference-card,
+            .mini-card,
+            .flow-step,
+            .sub-reference {{
                 break-inside: avoid;
                 box-shadow: none;
             }}
@@ -529,274 +885,555 @@ class DocumentBuilder:
 </head>
 
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <h1>{escape(project_name)}</h1>
-            <p>Generated AutoDocX documentation</p>
+    <div class="shell">
+        <aside class="left-sidebar">
+            <div class="brand">
+                <span class="brand-mark"></span>
+                <h1>{escape(project_name)}</h1>
+            </div>
 
-            <nav>
-                {navigation}
-            </nav>
+            <div class="search-box">
+                Developer reference
+            </div>
+
+            {navigation}
         </aside>
 
-        <main class="content">
-            <header class="hero">
-                <h1>{escape(project_name)}</h1>
+        <main class="main">
+            <article class="article">
+                <span class="eyebrow">
+                    Auto-generated developer documentation
+                </span>
 
-                <p>
-                    Automatically generated project
-                    documentation based on stored scan
-                    analysis and LLM project understanding.
+                <h1 class="page-title">
+                    {escape(project_name)}
+                </h1>
+
+                <p class="lead">
+                    Developer-focused documentation generated from
+                    project scan data and code structure. Use this page
+                    to understand the project, inspect APIs, review
+                    modules, and see class/function signatures.
                 </p>
 
-                <div class="metadata">
-                    <div>
-                        <span>Understanding ID</span>
-                        <strong>
-                            {escape(understanding_id)}
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>Scan ID</span>
-                        <strong>
-                            {escape(scan_id)}
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>Provider</span>
-                        <strong>
-                            {escape(provider)}
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>Model</span>
-                        <strong>
-                            {escape(model)}
-                        </strong>
-                    </div>
-
-                    <div>
-                        <span>Understanding created</span>
-                        <strong>
-                            {escape(created_at)}
-                        </strong>
-                    </div>
+                <div class="meta-strip">
+                    {self._build_meta_chip("Provider", provider)}
+                    {self._build_meta_chip("Model", model)}
+                    {self._build_meta_chip("Scan", scan_id)}
+                    {self._build_meta_chip("Understanding", understanding_id)}
+                    {self._build_meta_chip("Created", created_at)}
                 </div>
-            </header>
 
-            <section id="summary">
-                <h2>Project Summary</h2>
+                <section
+                    id="overview"
+                    class="doc-section"
+                >
+                    <h2>Overview</h2>
 
-                <div class="paragraph">
-                    {escape(project_summary)}
-                </div>
-            </section>
+                    <div class="paragraph">
+                        {escape(project_summary)}
+                    </div>
 
-            <section id="architecture">
-                <h2>Architecture Overview</h2>
+                    <div class="callout">
+                        API paths, handlers, signatures, parameters,
+                        classes, and methods are taken from parser data
+                        where available, not guessed by the LLM.
+                    </div>
+                </section>
 
-                <div class="paragraph">
-                    {escape(architecture_overview)}
-                </div>
-            </section>
+                <section
+                    id="quickstart"
+                    class="doc-section"
+                >
+                    <h2>Quickstart</h2>
 
-            <section id="execution-flow">
-                <h2>Execution Flow</h2>
-                {execution_html}
-            </section>
+                    {quickstart_html}
+                </section>
 
-            <section id="modules">
-                <h2>Module Responsibilities</h2>
-                {modules_html}
-            </section>
+                <section
+                    id="project-statistics"
+                    class="doc-section"
+                >
+                    <h2>Project Statistics</h2>
 
-            <section id="api">
-                <h2>API Overview</h2>
-                {api_html}
-            </section>
+                    {statistics_html}
+                </section>
 
-            <section id="dependencies">
-                <h2>Key Dependencies</h2>
-                {dependencies_html}
-            </section>
+                <section
+                    id="architecture"
+                    class="doc-section"
+                >
+                    <h2>Architecture</h2>
 
-            <section id="risks">
-                <h2>Risks and Gaps</h2>
-                {risks_html}
-            </section>
+                    <div class="paragraph">
+                        {escape(architecture_overview)}
+                    </div>
+                </section>
 
-            <section id="recommended-sections">
-                <h2>
-                    Recommended Documentation Sections
-                </h2>
+                <section
+                    id="api-reference"
+                    class="doc-section"
+                >
+                    <h2>API Reference</h2>
 
-                {recommended_html}
-            </section>
+                    <p>
+                        The following endpoints were discovered from
+                        FastAPI route decorators and router inclusion
+                        analysis.
+                    </p>
 
-            <footer>
-                Generated by AutoDocX from understanding
-                {escape(understanding_id)}
-            </footer>
+                    {api_reference_html}
+                </section>
+
+                <section
+                    id="module-reference"
+                    class="doc-section"
+                >
+                    <h2>Python Module Reference</h2>
+
+                    <p>
+                        Each module includes file path, responsibility,
+                        public symbols, constants, functions, classes,
+                        methods, and local API routes where available.
+                    </p>
+
+                    {modules_html}
+                </section>
+
+                <section
+                    id="execution-flow"
+                    class="doc-section"
+                >
+                    <h2>Execution Flow</h2>
+
+                    {execution_html}
+                </section>
+
+                <section
+                    id="dependencies"
+                    class="doc-section"
+                >
+                    <h2>Internal Dependencies</h2>
+
+                    {dependencies_html}
+                </section>
+
+                <section
+                    id="troubleshooting"
+                    class="doc-section"
+                >
+                    <h2>Troubleshooting and Production Notes</h2>
+
+                    {troubleshooting_html}
+                </section>
+
+                <footer>
+                    Generated by AutoDocX from understanding
+                    <code>{escape(understanding_id)}</code>.
+                </footer>
+            </article>
         </main>
+
+        <aside class="right-toc">
+            {right_toc}
+        </aside>
     </div>
 </body>
 </html>
 """
 
     @staticmethod
-    def _build_navigation(
-        execution_flow: Any,
-        module_responsibilities: Any,
+    def _build_left_navigation(
         api_overview: Any,
-        key_dependencies: Any,
+        module_responsibilities: Any,
+    ) -> str:
+        api_links = ""
+
+        if isinstance(api_overview, list) and api_overview:
+            endpoint_links: list[str] = []
+
+            for index, endpoint in enumerate(api_overview, start=1):
+                if not isinstance(endpoint, dict):
+                    continue
+
+                method = str(endpoint.get("method", "")).upper()
+                path = str(endpoint.get("path", ""))
+                label = f"{method} {path}".strip()
+
+                endpoint_links.append(
+                    f"""
+                    <a href="#endpoint-{index}">
+                        {escape(label)}
+                    </a>
+                    """
+                )
+
+            api_links = "\n".join(endpoint_links)
+
+        module_links = ""
+
+        if isinstance(module_responsibilities, list):
+            links: list[str] = []
+
+            for index, module in enumerate(
+                module_responsibilities,
+                start=1,
+            ):
+                if not isinstance(module, dict):
+                    continue
+
+                module_name = str(
+                    module.get(
+                        "module",
+                        f"Module {index}",
+                    )
+                )
+
+                links.append(
+                    f"""
+                    <a href="#module-{index}">
+                        {escape(module_name)}
+                    </a>
+                    """
+                )
+
+            module_links = "\n".join(links)
+
+        return f"""
+        <nav>
+            <div class="nav-group">
+                <p class="nav-title">Get started</p>
+                <a href="#overview">Overview</a>
+                <a href="#quickstart">Quickstart</a>
+                <a href="#project-statistics">Project Statistics</a>
+                <a href="#architecture">Architecture</a>
+            </div>
+
+            <div class="nav-group">
+                <p class="nav-title">API Reference</p>
+                <a href="#api-reference">All endpoints</a>
+                {api_links}
+            </div>
+
+            <div class="nav-group">
+                <p class="nav-title">Modules</p>
+                <a href="#module-reference">All modules</a>
+                {module_links}
+            </div>
+
+            <div class="nav-group">
+                <p class="nav-title">Operations</p>
+                <a href="#execution-flow">Execution Flow</a>
+                <a href="#dependencies">Internal Dependencies</a>
+                <a href="#troubleshooting">Troubleshooting</a>
+            </div>
+        </nav>
+        """
+
+    @staticmethod
+    def _build_right_toc(
+        api_overview: Any,
+        module_responsibilities: Any,
         risks_and_gaps: Any,
-        recommended_sections: Any,
+        statistics: Any,
     ) -> str:
         links = [
-            (
-                "summary",
-                "Project Summary",
-                True,
-            ),
-            (
-                "architecture",
-                "Architecture Overview",
-                True,
-            ),
-            (
-                "execution-flow",
-                "Execution Flow",
-                bool(execution_flow),
-            ),
-            (
-                "modules",
-                "Module Responsibilities",
-                bool(module_responsibilities),
-            ),
-            (
-                "api",
-                "API Overview",
-                bool(api_overview),
-            ),
-            (
-                "dependencies",
-                "Key Dependencies",
-                bool(key_dependencies),
-            ),
-            (
-                "risks",
-                "Risks and Gaps",
-                bool(risks_and_gaps),
-            ),
-            (
-                "recommended-sections",
-                "Recommended Sections",
-                bool(recommended_sections),
-            ),
+            ("overview", "Overview"),
+            ("quickstart", "Quickstart"),
+            ("project-statistics", "Project Statistics"),
+            ("architecture", "Architecture"),
+            ("api-reference", "API Reference"),
+            ("module-reference", "Python Module Reference"),
+            ("execution-flow", "Execution Flow"),
+            ("dependencies", "Internal Dependencies"),
+            ("troubleshooting", "Troubleshooting"),
         ]
 
-        return "\n".join(
-            (
-                f'<a href="#{section_id}">'
-                f"{escape(title)}</a>"
+        api_count = (
+            len(api_overview)
+            if isinstance(api_overview, list)
+            else 0
+        )
+
+        module_count = (
+            len(module_responsibilities)
+            if isinstance(module_responsibilities, list)
+            else 0
+        )
+
+        risk_count = (
+            len(risks_and_gaps)
+            if isinstance(risks_and_gaps, list)
+            else 0
+        )
+
+        class_count = 0
+        function_count = 0
+
+        if isinstance(statistics, dict):
+            class_count = int(statistics.get("classes", 0) or 0)
+            function_count = int(statistics.get("functions", 0) or 0)
+
+        link_html = "\n".join(
+            f'<a href="#{section_id}">{escape(title)}</a>'
+            for section_id, title in links
+        )
+
+        return f"""
+        <h2>On this page</h2>
+        {link_html}
+
+        <div class="mini-card" style="margin-top: 22px;">
+            <h3>Page stats</h3>
+            <p>{api_count} endpoints</p>
+            <p>{module_count} modules</p>
+            <p>{class_count} classes</p>
+            <p>{function_count} functions</p>
+            <p>{risk_count} production notes</p>
+        </div>
+        """
+
+    @staticmethod
+    def _build_quickstart(
+        project_name: str,
+    ) -> str:
+        safe_project_name = escape(project_name)
+
+        return f"""
+        <p>
+            Start the FastAPI server, then open the generated API docs
+            or call the project documentation sync endpoint.
+        </p>
+
+        <div class="code-block">
+            <div class="code-title">
+                <span>Run the application</span>
+                <span>PowerShell / terminal</span>
+            </div>
+            <pre><code>python -m uvicorn app.main:app --reload</code></pre>
+        </div>
+
+        <div class="code-block">
+            <div class="code-title">
+                <span>Generate documentation</span>
+                <span>Python request example</span>
+            </div>
+            <pre><code>import requests
+
+response = requests.post(
+    "http://127.0.0.1:8000/api/projects/documentation/sync",
+    json={{
+        "project_path": r"C:\\path\\to\\{safe_project_name}"
+    }},
+    timeout=900,
+)
+
+response.raise_for_status()
+print(response.json())</code></pre>
+        </div>
+        """
+
+    @staticmethod
+    def _build_statistics(
+        statistics: Any,
+    ) -> str:
+        if not isinstance(statistics, dict) or not statistics:
+            return (
+                '<p class="empty">'
+                "No project statistics available."
+                "</p>"
             )
-            for section_id, title, enabled in links
-            if enabled
+
+        preferred_keys = [
+            ("python_modules", "Python modules"),
+            ("modules", "Modules"),
+            ("api_routes", "API routes"),
+            ("routes", "Routes"),
+            ("classes", "Classes"),
+            ("functions", "Functions"),
+            ("async_functions", "Async functions"),
+            ("methods", "Methods"),
+            ("constants", "Constants"),
+            ("internal_dependencies", "Dependencies"),
+            ("documented_functions", "Documented functions"),
+            ("documented_classes", "Documented classes"),
+            ("modules_with_syntax_errors", "Syntax error modules"),
+        ]
+
+        cards: list[str] = []
+
+        for key, label in preferred_keys:
+            if key not in statistics:
+                continue
+
+            cards.append(
+                f"""
+                <article class="stat-card">
+                    <span>{escape(label)}</span>
+                    <strong>{escape(str(statistics.get(key)))}</strong>
+                </article>
+                """
+            )
+
+        if not cards:
+            return (
+                '<p class="empty">'
+                "No project statistics available."
+                "</p>"
+            )
+
+        return (
+            '<div class="stats-grid">'
+            + "\n".join(cards)
+            + "</div>"
         )
 
     @staticmethod
-    def _build_execution_flow(
-        execution_flow: Any,
+    def _build_api_reference(
+        api_overview: Any,
     ) -> str:
-        if not isinstance(
-            execution_flow,
-            list,
-        ) or not execution_flow:
+        if not isinstance(api_overview, list) or not api_overview:
             return (
                 '<p class="empty">'
-                "No execution flow available."
+                "No API reference information available."
                 "</p>"
             )
 
         cards: list[str] = []
 
-        for index, item in enumerate(
-            execution_flow,
-            start=1,
-        ):
-            if not isinstance(item, dict):
+        for index, endpoint in enumerate(api_overview, start=1):
+            if not isinstance(endpoint, dict):
                 continue
 
-            step = item.get(
-                "step",
-                index,
+            method = str(endpoint.get("method", "")).upper()
+            path = str(endpoint.get("path", ""))
+            handler = str(endpoint.get("handler", ""))
+            handler_signature = str(
+                endpoint.get("handler_signature") or ""
             )
+            returns = str(endpoint.get("returns") or "")
+            response_model = str(endpoint.get("response_model") or "")
+            status_code = str(endpoint.get("status_code") or "")
+            file_path = str(endpoint.get("file") or "")
+            module_name = str(endpoint.get("module") or "")
+            line = str(endpoint.get("line") or "")
 
-            title = str(
-                item.get(
-                    "title",
-                    f"Step {step}",
+            purpose = DocumentBuilder._clean_llm_text(
+                str(
+                    endpoint.get("purpose")
+                    or endpoint.get("summary")
+                    or endpoint.get("description")
+                    or endpoint.get("docstring")
+                    or "API endpoint discovered from route decorators."
                 )
             )
 
-            description = str(
-                item.get(
-                    "description",
-                    "",
-                )
+            method_class = DocumentBuilder._get_method_class(method)
+
+            example_json = DocumentBuilder._build_endpoint_example_json(
+                path,
             )
 
-            related_modules = item.get(
-                "related_modules",
-                [],
+            parameters_html = DocumentBuilder._build_parameters_table(
+                endpoint.get("arguments", []),
             )
 
-            pills = (
-                DocumentBuilder._build_pills(
-                    related_modules
-                )
+            tags_html = DocumentBuilder._build_pills(
+                endpoint.get("tags", []),
+            )
+
+            returns_html = DocumentBuilder._build_returns_block(
+                returns=returns,
+                response_model=response_model,
+                status_code=status_code,
             )
 
             cards.append(
                 f"""
-                <article class="flow-step">
-                    <div class="step-number">
-                        {escape(str(step))}
+                <article
+                    id="endpoint-{index}"
+                    class="reference-card"
+                >
+                    <div class="reference-header">
+                        <div class="endpoint">
+                            <span class="method {method_class}">
+                                {escape(method)}
+                            </span>
+
+                            <div>
+                                <div class="path">
+                                    {escape(path)}
+                                </div>
+
+                                <p>{escape(purpose)}</p>
+                            </div>
+                        </div>
                     </div>
 
-                    <h3>{escape(title)}</h3>
+                    <div class="reference-body">
+                        <p class="small-label">Handler</p>
+                        <p><code>{escape(handler)}</code></p>
 
-                    <p>
-                        {escape(description)}
-                    </p>
+                        {
+                            DocumentBuilder._build_optional_signature(
+                                label="Handler signature",
+                                signature=handler_signature,
+                            )
+                        }
 
-                    {pills}
+                        <p class="small-label">Location</p>
+                        <p>
+                            <code>{escape(module_name)}</code>
+                            ·
+                            <code>{escape(file_path)}</code>
+                            {DocumentBuilder._build_line_text(line)}
+                        </p>
+
+                        <p class="small-label">Tags</p>
+                        {tags_html}
+
+                        <p class="small-label">Parameters</p>
+                        {parameters_html}
+
+                        <p class="small-label">Returns</p>
+                        {returns_html}
+
+                        <p class="small-label">Request example</p>
+                        <div class="code-block">
+                            <div class="code-title">
+                                <span>Example</span>
+                                <span>requests</span>
+                            </div>
+                            <pre><code>{escape(example_json)}</code></pre>
+                        </div>
+                    </div>
                 </article>
                 """
+            )
+
+        if not cards:
+            return (
+                '<p class="empty">'
+                "No API reference information available."
+                "</p>"
             )
 
         return "\n".join(cards)
 
     @staticmethod
-    def _build_module_responsibilities(
+    def _build_module_reference(
         modules: Any,
     ) -> str:
-        if not isinstance(
-            modules,
-            list,
-        ) or not modules:
+        if not isinstance(modules, list) or not modules:
             return (
                 '<p class="empty">'
-                "No module responsibilities available."
+                "No module reference information available."
                 "</p>"
             )
 
         cards: list[str] = []
 
-        for module in modules:
+        for index, module in enumerate(modules, start=1):
             if not isinstance(module, dict):
                 continue
 
@@ -814,10 +1451,12 @@ class DocumentBuilder:
                 )
             )
 
-            responsibility = str(
-                module.get(
-                    "responsibility",
-                    "",
+            responsibility = DocumentBuilder._clean_llm_text(
+                str(
+                    module.get("responsibility")
+                    or module.get("summary")
+                    or module.get("purpose_hint")
+                    or ""
                 )
             )
 
@@ -826,34 +1465,70 @@ class DocumentBuilder:
                 [],
             )
 
+            import_example = DocumentBuilder._build_import_example(
+                module_name,
+                symbols,
+            )
+
+            constants_html = DocumentBuilder._build_constants_table(
+                module.get("constants", []),
+            )
+
+            functions_html = DocumentBuilder._build_function_blocks(
+                title="Functions",
+                functions=module.get("functions", []),
+            )
+
+            async_functions_html = DocumentBuilder._build_function_blocks(
+                title="Async functions",
+                functions=module.get("async_functions", []),
+            )
+
+            classes_html = DocumentBuilder._build_class_blocks(
+                module.get("classes", []),
+            )
+
+            routes_html = DocumentBuilder._build_module_routes_table(
+                module.get("routes", []),
+            )
+
             cards.append(
                 f"""
-                <article class="card">
-                    <h3>{escape(module_name)}</h3>
+                <article
+                    id="module-{index}"
+                    class="reference-card"
+                >
+                    <div class="reference-header">
+                        <h3>
+                            <code>{escape(module_name)}</code>
+                        </h3>
 
-                    <p class="label">File</p>
-                    <p>
-                        <code>
-                            {escape(file_path)}
-                        </code>
-                    </p>
+                        <p>
+                            <code>{escape(file_path)}</code>
+                        </p>
+                    </div>
 
-                    <p class="label">
-                        Responsibility
-                    </p>
+                    <div class="reference-body">
+                        <p>{escape(responsibility)}</p>
 
-                    <p>
-                        {escape(responsibility)}
-                    </p>
+                        <p class="small-label">Public symbols</p>
+                        {DocumentBuilder._build_pills(symbols)}
 
-                    <p class="label">
-                        Important symbols
-                    </p>
+                        <p class="small-label">Usage pattern</p>
+                        <div class="code-block">
+                            <div class="code-title">
+                                <span>Import example</span>
+                                <span>Python</span>
+                            </div>
+                            <pre><code>{escape(import_example)}</code></pre>
+                        </div>
 
-                    {
-                        DocumentBuilder
-                        ._build_pills(symbols)
-                    }
+                        {constants_html}
+                        {functions_html}
+                        {async_functions_html}
+                        {classes_html}
+                        {routes_html}
+                    </div>
                 </article>
                 """
             )
@@ -861,111 +1536,53 @@ class DocumentBuilder:
         if not cards:
             return (
                 '<p class="empty">'
-                "No module responsibilities available."
+                "No module reference information available."
                 "</p>"
             )
 
-        return (
-            '<div class="card-grid">'
-            + "\n".join(cards)
-            + "</div>"
-        )
+        return "\n".join(cards)
 
     @staticmethod
-    def _build_api_overview(
-        api_overview: Any,
+    def _build_constants_table(
+        constants: Any,
     ) -> str:
-        if not isinstance(
-            api_overview,
-            list,
-        ) or not api_overview:
-            return (
-                '<p class="empty">'
-                "No API information available."
-                "</p>"
-            )
+        if not isinstance(constants, list) or not constants:
+            return ""
 
         rows: list[str] = []
 
-        for endpoint in api_overview:
-            if not isinstance(endpoint, dict):
+        for constant in constants:
+            if not isinstance(constant, dict):
                 continue
 
-            method = str(
-                endpoint.get(
-                    "method",
-                    "",
-                )
-            )
-
-            path = str(
-                endpoint.get(
-                    "path",
-                    "",
-                )
-            )
-
-            handler = str(
-                endpoint.get(
-                    "handler",
-                    "",
-                )
-            )
-
-            purpose = str(
-                endpoint.get(
-                    "purpose",
-                    "",
-                )
-            )
+            name = str(constant.get("name") or "")
+            annotation = str(constant.get("annotation") or "")
+            value = str(constant.get("value") or "")
 
             rows.append(
                 f"""
                 <tr>
-                    <td>
-                        <strong>
-                            {escape(method)}
-                        </strong>
-                    </td>
-
-                    <td>
-                        <code>
-                            {escape(path)}
-                        </code>
-                    </td>
-
-                    <td>
-                        <code>
-                            {escape(handler)}
-                        </code>
-                    </td>
-
-                    <td>
-                        {escape(purpose)}
-                    </td>
+                    <td><code>{escape(name)}</code></td>
+                    <td>{escape(annotation or "-")}</td>
+                    <td><code>{escape(value or "-")}</code></td>
                 </tr>
                 """
             )
 
         if not rows:
-            return (
-                '<p class="empty">'
-                "No API information available."
-                "</p>"
-            )
+            return ""
 
         return f"""
-        <div style="overflow-x: auto;">
+        <p class="small-label">Constants</p>
+        <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Method</th>
-                        <th>Path</th>
-                        <th>Handler</th>
-                        <th>Purpose</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Value</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     {"".join(rows)}
                 </tbody>
@@ -974,13 +1591,441 @@ class DocumentBuilder:
         """
 
     @staticmethod
+    def _build_function_blocks(
+        title: str,
+        functions: Any,
+    ) -> str:
+        if not isinstance(functions, list) or not functions:
+            return ""
+
+        blocks: list[str] = []
+
+        for function in functions:
+            if not isinstance(function, dict):
+                continue
+
+            name = str(function.get("name") or "unknown_function")
+            signature = str(function.get("signature") or name)
+            docstring = DocumentBuilder._clean_llm_text(
+                str(function.get("docstring") or "")
+            )
+            returns = str(function.get("returns") or "")
+
+            parameters_html = DocumentBuilder._build_parameters_table(
+                function.get("arguments", []),
+            )
+
+            returns_html = DocumentBuilder._build_returns_block(
+                returns=returns,
+                response_model="",
+                status_code="",
+            )
+
+            blocks.append(
+                f"""
+                <div class="sub-reference">
+                    <h4><code>{escape(name)}</code></h4>
+                    <code class="signature">{escape(signature)}</code>
+
+                    {
+                        f"<p>{escape(docstring)}</p>"
+                        if docstring
+                        else ""
+                    }
+
+                    <p class="small-label">Parameters</p>
+                    {parameters_html}
+
+                    <p class="small-label">Returns</p>
+                    {returns_html}
+                </div>
+                """
+            )
+
+        if not blocks:
+            return ""
+
+        return f"""
+        <p class="small-label">{escape(title)}</p>
+        {"".join(blocks)}
+        """
+
+    @staticmethod
+    def _build_class_blocks(
+        classes: Any,
+    ) -> str:
+        if not isinstance(classes, list) or not classes:
+            return ""
+
+        blocks: list[str] = []
+
+        for class_item in classes:
+            if not isinstance(class_item, dict):
+                continue
+
+            class_name = str(class_item.get("name") or "UnknownClass")
+            signature = str(class_item.get("signature") or f"class {class_name}:")
+            docstring = DocumentBuilder._clean_llm_text(
+                str(class_item.get("docstring") or "")
+            )
+
+            attributes_html = DocumentBuilder._build_attributes_table(
+                class_item.get("attributes", []),
+            )
+
+            methods_html = DocumentBuilder._build_function_blocks(
+                title="Methods",
+                functions=class_item.get("methods", []),
+            )
+
+            blocks.append(
+                f"""
+                <div class="sub-reference">
+                    <h4><code>{escape(class_name)}</code></h4>
+                    <code class="signature">{escape(signature)}</code>
+
+                    {
+                        f"<p>{escape(docstring)}</p>"
+                        if docstring
+                        else ""
+                    }
+
+                    {attributes_html}
+                    {methods_html}
+                </div>
+                """
+            )
+
+        if not blocks:
+            return ""
+
+        return f"""
+        <p class="small-label">Classes</p>
+        {"".join(blocks)}
+        """
+
+    @staticmethod
+    def _build_attributes_table(
+        attributes: Any,
+    ) -> str:
+        if not isinstance(attributes, list) or not attributes:
+            return ""
+
+        rows: list[str] = []
+
+        for attribute in attributes:
+            if not isinstance(attribute, dict):
+                continue
+
+            name = str(attribute.get("name") or "")
+            annotation = str(attribute.get("annotation") or "")
+            value = str(attribute.get("value") or "")
+
+            rows.append(
+                f"""
+                <tr>
+                    <td><code>{escape(name)}</code></td>
+                    <td>{escape(annotation or "-")}</td>
+                    <td><code>{escape(value or "-")}</code></td>
+                </tr>
+                """
+            )
+
+        if not rows:
+            return ""
+
+        return f"""
+        <p class="small-label">Attributes</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Default / Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {"".join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+
+    @staticmethod
+    def _build_module_routes_table(
+        routes: Any,
+    ) -> str:
+        if not isinstance(routes, list) or not routes:
+            return ""
+
+        rows: list[str] = []
+
+        for route in routes:
+            if not isinstance(route, dict):
+                continue
+
+            method = str(route.get("method") or "")
+            path = str(route.get("path") or "")
+            handler = str(
+                route.get("handler")
+                or route.get("function_name")
+                or ""
+            )
+
+            rows.append(
+                f"""
+                <tr>
+                    <td><code>{escape(method)}</code></td>
+                    <td><code>{escape(path)}</code></td>
+                    <td><code>{escape(handler)}</code></td>
+                </tr>
+                """
+            )
+
+        if not rows:
+            return ""
+
+        return f"""
+        <p class="small-label">Local routes</p>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Method</th>
+                        <th>Local path</th>
+                        <th>Handler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {"".join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+
+    @staticmethod
+    def _build_parameters_table(
+        arguments: Any,
+    ) -> str:
+        if not isinstance(arguments, list) or not arguments:
+            return (
+                '<p class="empty">'
+                "No parameters discovered."
+                "</p>"
+            )
+
+        rows: list[str] = []
+
+        for argument in arguments:
+            if not isinstance(argument, dict):
+                continue
+
+            name = str(argument.get("name") or "")
+            annotation = str(argument.get("annotation") or "")
+            default = argument.get("default")
+            required = argument.get("required")
+
+            if name in {"self", "cls"}:
+                continue
+
+            default_text = "-" if default is None else str(default)
+
+            required_text = (
+                "Yes"
+                if required is True
+                else "No"
+            )
+
+            rows.append(
+                f"""
+                <tr>
+                    <td><code>{escape(name)}</code></td>
+                    <td>{escape(annotation or "Any")}</td>
+                    <td>{escape(required_text)}</td>
+                    <td><code>{escape(default_text)}</code></td>
+                </tr>
+                """
+            )
+
+        if not rows:
+            return (
+                '<p class="empty">'
+                "No parameters discovered."
+                "</p>"
+            )
+
+        return f"""
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Type</th>
+                        <th>Required</th>
+                        <th>Default</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {"".join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+
+    @staticmethod
+    def _build_returns_block(
+        returns: str,
+        response_model: str,
+        status_code: str,
+    ) -> str:
+        rows: list[str] = []
+
+        if returns:
+            rows.append(
+                f"""
+                <tr>
+                    <td>Return annotation</td>
+                    <td><code>{escape(returns)}</code></td>
+                </tr>
+                """
+            )
+
+        if response_model:
+            rows.append(
+                f"""
+                <tr>
+                    <td>Response model</td>
+                    <td><code>{escape(response_model)}</code></td>
+                </tr>
+                """
+            )
+
+        if status_code:
+            rows.append(
+                f"""
+                <tr>
+                    <td>Status code</td>
+                    <td><code>{escape(status_code)}</code></td>
+                </tr>
+                """
+            )
+
+        if not rows:
+            return (
+                '<p class="empty">'
+                "No return annotation or response model discovered."
+                "</p>"
+            )
+
+        return f"""
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Field</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {"".join(rows)}
+                </tbody>
+            </table>
+        </div>
+        """
+
+    @staticmethod
+    def _build_optional_signature(
+        label: str,
+        signature: str,
+    ) -> str:
+        if not signature:
+            return ""
+
+        return f"""
+        <p class="small-label">{escape(label)}</p>
+        <code class="signature">{escape(signature)}</code>
+        """
+
+    @staticmethod
+    def _build_execution_flow(
+        execution_flow: Any,
+    ) -> str:
+        if not isinstance(execution_flow, list) or not execution_flow:
+            return (
+                '<p class="empty">'
+                "No execution flow available."
+                "</p>"
+            )
+
+        cards: list[str] = []
+
+        for index, item in enumerate(execution_flow, start=1):
+            if not isinstance(item, dict):
+                continue
+
+            step = item.get(
+                "step",
+                index,
+            )
+
+            title = str(
+                item.get(
+                    "title",
+                    f"Step {step}",
+                )
+            )
+
+            description = DocumentBuilder._clean_llm_text(
+                str(
+                    item.get(
+                        "description",
+                        "",
+                    )
+                )
+            )
+
+            related_modules = item.get(
+                "related_modules",
+                [],
+            )
+
+            cards.append(
+                f"""
+                <article class="flow-step">
+                    <div class="step-number">
+                        {escape(str(step))}
+                    </div>
+
+                    <div>
+                        <h3>{escape(title)}</h3>
+
+                        <p>{escape(description)}</p>
+
+                        {DocumentBuilder._build_pills(related_modules)}
+                    </div>
+                </article>
+                """
+            )
+
+        if not cards:
+            return (
+                '<p class="empty">'
+                "No execution flow available."
+                "</p>"
+            )
+
+        return (
+            '<div class="flow-list">'
+            + "\n".join(cards)
+            + "</div>"
+        )
+
+    @staticmethod
     def _build_dependencies(
         dependencies: Any,
     ) -> str:
-        if not isinstance(
-            dependencies,
-            list,
-        ) or not dependencies:
+        if not isinstance(dependencies, list) or not dependencies:
             return (
                 '<p class="empty">'
                 "No dependency information available."
@@ -990,10 +2035,7 @@ class DocumentBuilder:
         cards: list[str] = []
 
         for dependency in dependencies:
-            if not isinstance(
-                dependency,
-                dict,
-            ):
+            if not isinstance(dependency, dict):
                 continue
 
             source = str(
@@ -1010,47 +2052,75 @@ class DocumentBuilder:
                 )
             )
 
-            purpose = str(
+            imported_name = str(
                 dependency.get(
-                    "purpose",
+                    "imported_name",
                     "",
+                )
+                or ""
+            )
+
+            purpose = DocumentBuilder._clean_llm_text(
+                str(
+                    dependency.get(
+                        "purpose",
+                        "",
+                    )
                 )
             )
 
+            imported_html = ""
+
+            if imported_name:
+                imported_html = (
+                    f"<p>Imported: "
+                    f"<code>{escape(imported_name)}</code></p>"
+                )
+
             cards.append(
                 f"""
-                <article class="card">
+                <article class="mini-card">
                     <h3>
-                        {escape(source)}
-                        &rarr;
-                        {escape(target)}
+                        <code>{escape(source)}</code>
+                        →
+                        <code>{escape(target)}</code>
                     </h3>
 
                     <p>
                         {escape(purpose)}
                     </p>
+
+                    {imported_html}
                 </article>
                 """
             )
 
+        if not cards:
+            return (
+                '<p class="empty">'
+                "No dependency information available."
+                "</p>"
+            )
+
         return (
-            '<div class="card-grid">'
+            '<div class="dependency-grid">'
             + "\n".join(cards)
             + "</div>"
         )
 
     @staticmethod
-    def _build_risks(
+    def _build_troubleshooting(
         risks: Any,
     ) -> str:
-        if not isinstance(
-            risks,
-            list,
-        ) or not risks:
+        if not isinstance(risks, list) or not risks:
             return (
-                '<p class="empty">'
-                "No risks or gaps available."
-                "</p>"
+                """
+                <div class="callout warning">
+                    No troubleshooting notes were generated for this
+                    project. For production use, document authentication,
+                    error handling, retries, logging, and backup strategy.
+                </div>
+                """
             )
 
         cards: list[str] = []
@@ -1062,14 +2132,16 @@ class DocumentBuilder:
             title = str(
                 risk.get(
                     "title",
-                    "Untitled risk",
+                    "Untitled note",
                 )
             )
 
-            description = str(
-                risk.get(
-                    "description",
-                    "",
+            description = DocumentBuilder._clean_llm_text(
+                str(
+                    risk.get(
+                        "description",
+                        "",
+                    )
                 )
             )
 
@@ -1080,22 +2152,13 @@ class DocumentBuilder:
                 )
             ).lower()
 
-            if severity not in {
-                "high",
-                "medium",
-                "low",
-            }:
+            if severity not in {"high", "medium", "low"}:
                 severity = "low"
 
             cards.append(
                 f"""
-                <article class="card">
-                    <span
-                        class="
-                            severity
-                            severity-{escape(severity)}
-                        "
-                    >
+                <article class="mini-card">
+                    <span class="severity severity-{escape(severity)}">
                         {escape(severity)}
                     </span>
 
@@ -1108,72 +2171,39 @@ class DocumentBuilder:
                 """
             )
 
+        if not cards:
+            return (
+                '<p class="empty">'
+                "No troubleshooting notes available."
+                "</p>"
+            )
+
         return (
-            '<div class="card-grid">'
+            '<div class="risk-grid">'
             + "\n".join(cards)
             + "</div>"
         )
 
     @staticmethod
-    def _build_recommended_sections(
-        sections: Any,
+    def _build_meta_chip(
+        label: str,
+        value: str,
     ) -> str:
-        if not isinstance(
-            sections,
-            list,
-        ) or not sections:
-            return (
-                '<p class="empty">'
-                "No recommended sections available."
-                "</p>"
-            )
+        if not value:
+            value = "Not available"
 
-        cards: list[str] = []
-
-        for section in sections:
-            if not isinstance(section, dict):
-                continue
-
-            title = str(
-                section.get(
-                    "title",
-                    "Untitled section",
-                )
-            )
-
-            purpose = str(
-                section.get(
-                    "purpose",
-                    "",
-                )
-            )
-
-            cards.append(
-                f"""
-                <article class="card">
-                    <h3>{escape(title)}</h3>
-
-                    <p>
-                        {escape(purpose)}
-                    </p>
-                </article>
-                """
-            )
-
-        return (
-            '<div class="card-grid">'
-            + "\n".join(cards)
-            + "</div>"
-        )
+        return f"""
+        <span class="meta-chip">
+            {escape(label)}:
+            <strong>{escape(value)}</strong>
+        </span>
+        """
 
     @staticmethod
     def _build_pills(
         values: Any,
     ) -> str:
-        if not isinstance(
-            values,
-            list,
-        ) or not values:
+        if not isinstance(values, list) or not values:
             return (
                 '<p class="empty">'
                 "None listed."
@@ -1187,10 +2217,156 @@ class DocumentBuilder:
                 "</span>"
             )
             for value in values
+            if str(value).strip()
         )
+
+        if not pills:
+            return (
+                '<p class="empty">'
+                "None listed."
+                "</p>"
+            )
 
         return (
             '<div class="pill-list">'
             + pills
             + "</div>"
         )
+
+    @staticmethod
+    def _get_method_class(
+        method: str,
+    ) -> str:
+        method = method.lower()
+
+        if method == "get":
+            return "method-get"
+
+        if method == "post":
+            return "method-post"
+
+        if method == "put":
+            return "method-put"
+
+        if method == "patch":
+            return "method-patch"
+
+        if method == "delete":
+            return "method-delete"
+
+        return "method-post"
+
+    @staticmethod
+    def _build_endpoint_example_json(
+        path: str,
+    ) -> str:
+        normalized_path = path.strip()
+
+        if not normalized_path:
+            normalized_path = "/api/projects/example"
+
+        example_path = normalized_path.replace(
+            "{project_name}",
+            "AutoDocX",
+        )
+
+        if "scan" in normalized_path:
+            payload = """{
+    "project_path": "C:\\\\path\\\\to\\\\project"
+}"""
+        elif "documentation/sync" in normalized_path:
+            payload = """{
+    "project_path": "C:\\\\path\\\\to\\\\project"
+}"""
+        elif "compare" in normalized_path:
+            payload = """{
+    "base_scan_id": "previous_scan_id",
+    "target_scan_id": "latest_scan_id"
+}"""
+        elif "context" in normalized_path:
+            payload = """{
+    "scan_id": "scan_id",
+    "mode": "detailed"
+}"""
+        elif "understand" in normalized_path:
+            payload = """{
+    "scan_id": "scan_id"
+}"""
+        else:
+            payload = "{}"
+
+        return f"""import requests
+
+response = requests.post(
+    "http://127.0.0.1:8000{example_path}",
+    json={payload},
+    timeout=900,
+)
+
+response.raise_for_status()
+print(response.json())"""
+
+    @staticmethod
+    def _build_import_example(
+        module_name: str,
+        symbols: Any,
+    ) -> str:
+        safe_module = module_name.strip()
+
+        if not safe_module:
+            safe_module = "app.module"
+
+        if isinstance(symbols, list) and symbols:
+            first_symbol = str(symbols[0]).strip()
+
+            if "." in first_symbol:
+                first_symbol = first_symbol.split(".")[-1]
+
+            if first_symbol:
+                return (
+                    f"from {safe_module} import {first_symbol}\n\n"
+                    f"# Use {first_symbol} based on the module API."
+                )
+
+        return (
+            f"import {safe_module}\n\n"
+            f"# Inspect {safe_module} for available classes and functions."
+        )
+
+    @staticmethod
+    def _build_line_text(
+        line: str,
+    ) -> str:
+        if not line:
+            return ""
+
+        return f" · line {escape(line)}"
+
+    @staticmethod
+    def _clean_llm_text(
+        text: str,
+    ) -> str:
+        cleaned = text.strip()
+
+        replacements = {
+            "Confirmed:": "",
+            "Reasonable inferences:": "",
+            "Reasonable inference:": "",
+            "Confirmed": "",
+            "Reasonable inferences": "",
+        }
+
+        for old, new in replacements.items():
+            cleaned = cleaned.replace(old, new)
+
+        lines = []
+
+        for line in cleaned.splitlines():
+            stripped = line.strip()
+
+            if stripped.startswith("- "):
+                stripped = "• " + stripped[2:]
+
+            lines.append(stripped)
+
+        return "\n".join(lines).strip()

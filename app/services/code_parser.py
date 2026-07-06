@@ -6,18 +6,25 @@ from typing import Any
 
 class PythonCodeParser:
     """
-    Reads a Python file and extracts its code structure.
+    Reads a Python file and extracts developer-documentation-ready
+    structure from it.
 
     Extracted information:
     - imports
+    - module constants
     - functions
     - async functions
     - classes
+    - class attributes
     - class methods
+    - function/method signatures
+    - arguments with annotations/defaults
+    - return annotations
+    - docstrings
+    - decorators
     - FastAPI routes
-    - function content hashes
-    - method content hashes
-    - class content hashes
+    - source previews
+    - content hashes
     - syntax errors
     """
 
@@ -38,14 +45,14 @@ class PythonCodeParser:
         project_root: Path,
         relative_file_path: str,
     ) -> dict[str, Any]:
-        file_path = (
-            project_root / relative_file_path
-        )
+        file_path = project_root / relative_file_path
 
         parsed_result: dict[str, Any] = {
             "path": relative_file_path,
             "language": "python",
+            "module_docstring": None,
             "imports": [],
+            "constants": [],
             "functions": [],
             "async_functions": [],
             "classes": [],
@@ -55,18 +62,16 @@ class PythonCodeParser:
 
         try:
             source_code = file_path.read_text(
-                encoding="utf-8"
+                encoding="utf-8",
             )
 
         except UnicodeDecodeError:
             try:
                 source_code = file_path.read_text(
-                    encoding="utf-8-sig"
+                    encoding="utf-8-sig",
                 )
-            except (
-                OSError,
-                UnicodeDecodeError,
-            ) as error:
+
+            except (OSError, UnicodeDecodeError) as error:
                 parsed_result["syntax_error"] = {
                     "message": (
                         "Unable to read Python file: "
@@ -105,50 +110,75 @@ class PythonCodeParser:
 
             return parsed_result
 
+        source_lines = source_code.splitlines()
+
+        parsed_result["module_docstring"] = ast.get_docstring(
+            syntax_tree,
+        )
+
         for node in syntax_tree.body:
             if isinstance(node, ast.Import):
                 parsed_result["imports"].extend(
-                    self._extract_import(node)
+                    self._extract_import(node),
                 )
 
             elif isinstance(node, ast.ImportFrom):
                 parsed_result["imports"].extend(
-                    self._extract_import_from(node)
+                    self._extract_import_from(node),
                 )
 
-            elif isinstance(
-                node,
-                ast.AsyncFunctionDef,
-            ):
-                parsed_result[
-                    "async_functions"
-                ].append(
-                    self._extract_function(node)
+            elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+                constant = self._extract_constant(node)
+
+                if constant is not None:
+                    parsed_result["constants"].append(
+                        constant,
+                    )
+
+            elif isinstance(node, ast.AsyncFunctionDef):
+                function_data = self._extract_function(
+                    node=node,
+                    source_lines=source_lines,
+                    qualified_prefix=None,
+                )
+
+                parsed_result["async_functions"].append(
+                    function_data,
                 )
 
                 parsed_result["routes"].extend(
                     self._extract_fastapi_routes(
-                        node
+                        node=node,
+                        source_lines=source_lines,
                     )
                 )
 
-            elif isinstance(
-                node,
-                ast.FunctionDef,
-            ):
+            elif isinstance(node, ast.FunctionDef):
+                function_data = self._extract_function(
+                    node=node,
+                    source_lines=source_lines,
+                    qualified_prefix=None,
+                )
+
                 parsed_result["functions"].append(
-                    self._extract_function(node)
+                    function_data,
                 )
 
                 parsed_result["routes"].extend(
                     self._extract_fastapi_routes(
-                        node
+                        node=node,
+                        source_lines=source_lines,
                     )
                 )
 
             elif isinstance(node, ast.ClassDef):
+                class_data = self._extract_class(
+                    node=node,
+                    source_lines=source_lines,
+                )
+
                 parsed_result["classes"].append(
-                    self._extract_class(node)
+                    class_data,
                 )
 
         return parsed_result
@@ -166,10 +196,14 @@ class PythonCodeParser:
                     "module": imported_name.name,
                     "name": None,
                     "alias": imported_name.asname,
-                    "line": getattr(
-                        node,
-                        "lineno",
-                        None,
+                    "line": getattr(node, "lineno", None),
+                    "statement": (
+                        f"import {imported_name.name}"
+                        if imported_name.asname is None
+                        else (
+                            f"import {imported_name.name} "
+                            f"as {imported_name.asname}"
+                        )
                     ),
                 }
             )
@@ -185,10 +219,7 @@ class PythonCodeParser:
         module_name = node.module or ""
 
         if node.level:
-            module_name = (
-                ("." * node.level)
-                + module_name
-            )
+            module_name = ("." * node.level) + module_name
 
         for imported_name in node.names:
             imports.append(
@@ -197,213 +228,290 @@ class PythonCodeParser:
                     "module": module_name,
                     "name": imported_name.name,
                     "alias": imported_name.asname,
-                    "line": getattr(
-                        node,
-                        "lineno",
-                        None,
+                    "line": getattr(node, "lineno", None),
+                    "statement": (
+                        f"from {module_name} import "
+                        f"{imported_name.name}"
+                        if imported_name.asname is None
+                        else (
+                            f"from {module_name} import "
+                            f"{imported_name.name} "
+                            f"as {imported_name.asname}"
+                        )
                     ),
                 }
             )
 
         return imports
 
+    def _extract_constant(
+        self,
+        node: ast.Assign | ast.AnnAssign,
+    ) -> dict[str, Any] | None:
+        if isinstance(node, ast.Assign):
+            if not node.targets:
+                return None
+
+            target = node.targets[0]
+            annotation = None
+            value_node = node.value
+
+        else:
+            target = node.target
+            annotation = self._node_to_string(node.annotation)
+            value_node = node.value
+
+        name = self._node_to_string(target)
+
+        if not name:
+            return None
+
+        clean_name = name.strip()
+
+        if not clean_name.isupper():
+            return None
+
+        return {
+            "name": clean_name,
+            "annotation": annotation,
+            "value": self._node_to_string(value_node),
+            "line": getattr(node, "lineno", None),
+        }
+
     def _extract_function(
         self,
-        node: (
-            ast.FunctionDef
-            | ast.AsyncFunctionDef
-        ),
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        source_lines: list[str],
+        qualified_prefix: str | None,
     ) -> dict[str, Any]:
+        is_async = isinstance(node, ast.AsyncFunctionDef)
+
+        qualified_name = (
+            f"{qualified_prefix}.{node.name}"
+            if qualified_prefix
+            else node.name
+        )
+
+        arguments = self._extract_arguments(node.args)
+
+        signature = self._build_function_signature(
+            name=node.name,
+            arguments=arguments,
+            returns=self._node_to_string(node.returns),
+            is_async=is_async,
+        )
+
         return {
             "name": node.name,
-            "line": getattr(
-                node,
-                "lineno",
-                None,
-            ),
-            "end_line": getattr(
-                node,
-                "end_lineno",
-                None,
-            ),
-            "arguments": self._extract_arguments(
-                node.args
-            ),
-            "returns": self._node_to_string(
-                node.returns
-            ),
-            "docstring": ast.get_docstring(
-                node
-            ),
+            "qualified_name": qualified_name,
+            "line": getattr(node, "lineno", None),
+            "end_line": getattr(node, "end_lineno", None),
+            "is_async": is_async,
+            "signature": signature,
+            "arguments": arguments,
+            "returns": self._node_to_string(node.returns),
+            "docstring": ast.get_docstring(node),
             "decorators": [
                 decorator
                 for decorator in (
-                    self._node_to_string(
-                        decorator_node
-                    )
-                    for decorator_node
-                    in node.decorator_list
+                    self._node_to_string(decorator_node)
+                    for decorator_node in node.decorator_list
                 )
                 if decorator is not None
             ],
-            "content_hash": (
-                self._calculate_node_hash(node)
+            "source_preview": self._get_source_preview(
+                source_lines=source_lines,
+                node=node,
+                max_lines=18,
             ),
+            "content_hash": self._calculate_node_hash(node),
         }
 
     def _extract_class(
         self,
         node: ast.ClassDef,
+        source_lines: list[str],
     ) -> dict[str, Any]:
         methods: list[dict[str, Any]] = []
+        attributes: list[dict[str, Any]] = []
 
         for class_node in node.body:
             if isinstance(
                 class_node,
-                (
-                    ast.FunctionDef,
-                    ast.AsyncFunctionDef,
-                ),
+                (ast.FunctionDef, ast.AsyncFunctionDef),
             ):
-                method_data = (
-                    self._extract_function(
-                        class_node
-                    )
-                )
-
-                method_data["is_async"] = (
-                    isinstance(
-                        class_node,
-                        ast.AsyncFunctionDef,
-                    )
+                method_data = self._extract_function(
+                    node=class_node,
+                    source_lines=source_lines,
+                    qualified_prefix=node.name,
                 )
 
                 methods.append(method_data)
 
+            elif isinstance(
+                class_node,
+                (ast.Assign, ast.AnnAssign),
+            ):
+                attribute = self._extract_class_attribute(
+                    class_node,
+                )
+
+                if attribute is not None:
+                    attributes.append(attribute)
+
+        bases = [
+            base_name
+            for base_name in (
+                self._node_to_string(base)
+                for base in node.bases
+            )
+            if base_name is not None
+        ]
+
+        class_signature = self._build_class_signature(
+            class_name=node.name,
+            bases=bases,
+        )
+
         return {
             "name": node.name,
-            "line": getattr(
-                node,
-                "lineno",
-                None,
-            ),
-            "end_line": getattr(
-                node,
-                "end_lineno",
-                None,
-            ),
-            "bases": [
-                base_name
-                for base_name in (
-                    self._node_to_string(base)
-                    for base in node.bases
-                )
-                if base_name is not None
-            ],
-            "docstring": ast.get_docstring(
-                node
-            ),
+            "qualified_name": node.name,
+            "line": getattr(node, "lineno", None),
+            "end_line": getattr(node, "end_lineno", None),
+            "signature": class_signature,
+            "bases": bases,
+            "docstring": ast.get_docstring(node),
             "decorators": [
                 decorator
                 for decorator in (
-                    self._node_to_string(
-                        decorator_node
-                    )
-                    for decorator_node
-                    in node.decorator_list
+                    self._node_to_string(decorator_node)
+                    for decorator_node in node.decorator_list
                 )
                 if decorator is not None
             ],
-            "content_hash": (
-                self._calculate_node_hash(node)
-            ),
+            "attributes": attributes,
             "methods": methods,
+            "source_preview": self._get_source_preview(
+                source_lines=source_lines,
+                node=node,
+                max_lines=22,
+            ),
+            "content_hash": self._calculate_node_hash(node),
+        }
+
+    def _extract_class_attribute(
+        self,
+        node: ast.Assign | ast.AnnAssign,
+    ) -> dict[str, Any] | None:
+        if isinstance(node, ast.Assign):
+            if not node.targets:
+                return None
+
+            target = node.targets[0]
+            annotation = None
+            value_node = node.value
+
+        else:
+            target = node.target
+            annotation = self._node_to_string(node.annotation)
+            value_node = node.value
+
+        name = self._node_to_string(target)
+
+        if not name:
+            return None
+
+        return {
+            "name": name,
+            "annotation": annotation,
+            "value": self._node_to_string(value_node),
+            "line": getattr(node, "lineno", None),
         }
 
     def _extract_fastapi_routes(
         self,
-        node: (
-            ast.FunctionDef
-            | ast.AsyncFunctionDef
-        ),
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        source_lines: list[str],
     ) -> list[dict[str, Any]]:
         routes: list[dict[str, Any]] = []
 
+        function_data = self._extract_function(
+            node=node,
+            source_lines=source_lines,
+            qualified_prefix=None,
+        )
+
         for decorator in node.decorator_list:
-            if not isinstance(
-                decorator,
-                ast.Call,
-            ):
+            if not isinstance(decorator, ast.Call):
                 continue
 
-            if not isinstance(
-                decorator.func,
-                ast.Attribute,
-            ):
+            if not isinstance(decorator.func, ast.Attribute):
                 continue
 
-            method_name = (
-                decorator.func.attr.lower()
-            )
+            method_name = decorator.func.attr.lower()
 
-            if (
-                method_name
-                not in self.HTTP_METHODS
-            ):
+            if method_name not in self.HTTP_METHODS:
                 continue
 
             router_name = self._node_to_string(
-                decorator.func.value
+                decorator.func.value,
             )
 
             route_path = None
 
             if decorator.args:
-                route_path = (
-                    self._get_literal_value(
-                        decorator.args[0]
-                    )
+                route_path = self._get_literal_value(
+                    decorator.args[0],
                 )
 
-            if not isinstance(
-                route_path,
-                str,
-            ):
+            if not isinstance(route_path, str):
                 route_path = None
 
-            route_name = (
-                self._get_call_keyword_value(
-                    decorator,
-                    "name",
-                )
+            route_name = self._get_call_keyword_value(
+                decorator,
+                "name",
             )
 
-            response_model = (
-                self._get_call_keyword_string(
-                    decorator,
-                    "response_model",
-                )
+            summary = self._get_call_keyword_value(
+                decorator,
+                "summary",
             )
 
-            status_code = (
-                self._get_call_keyword_string(
-                    decorator,
-                    "status_code",
-                )
+            description = self._get_call_keyword_value(
+                decorator,
+                "description",
+            )
+
+            tags = self._get_call_keyword_value(
+                decorator,
+                "tags",
+            )
+
+            response_model = self._get_call_keyword_string(
+                decorator,
+                "response_model",
+            )
+
+            status_code = self._get_call_keyword_string(
+                decorator,
+                "status_code",
+            )
+
+            responses = self._get_call_keyword_string(
+                decorator,
+                "responses",
             )
 
             routes.append(
                 {
                     "function_name": node.name,
-                    "method": (
-                        method_name.upper()
-                    ),
+                    "handler": node.name,
+                    "handler_signature": function_data["signature"],
+                    "arguments": function_data["arguments"],
+                    "returns": function_data["returns"],
+                    "method": method_name.upper(),
                     "path": route_path,
-                    "line": getattr(
-                        node,
-                        "lineno",
-                        None,
-                    ),
+                    "line": getattr(node, "lineno", None),
                     "is_async": isinstance(
                         node,
                         ast.AsyncFunctionDef,
@@ -411,16 +519,27 @@ class PythonCodeParser:
                     "router_name": router_name,
                     "route_name": (
                         route_name
-                        if isinstance(
-                            route_name,
-                            str,
-                        )
+                        if isinstance(route_name, str)
                         else None
                     ),
-                    "response_model": (
-                        response_model
+                    "summary": (
+                        summary
+                        if isinstance(summary, str)
+                        else None
                     ),
+                    "description": (
+                        description
+                        if isinstance(description, str)
+                        else None
+                    ),
+                    "tags": tags if isinstance(tags, list) else [],
+                    "response_model": response_model,
                     "status_code": status_code,
+                    "responses": responses,
+                    "decorator": self._node_to_string(decorator),
+                    "docstring": ast.get_docstring(node),
+                    "source_preview": function_data["source_preview"],
+                    "content_hash": function_data["content_hash"],
                 }
             )
 
@@ -430,23 +549,21 @@ class PythonCodeParser:
         self,
         arguments: ast.arguments,
     ) -> list[dict[str, Any]]:
-        extracted_arguments: list[
-            dict[str, Any]
-        ] = []
+        extracted_arguments: list[dict[str, Any]] = []
 
         positional_arguments = [
             *arguments.posonlyargs,
             *arguments.args,
         ]
 
-        positional_defaults: list[
-            ast.expr | None
-        ] = [
-            None
-        ] * (
-            len(positional_arguments)
-            - len(arguments.defaults)
-        ) + list(arguments.defaults)
+        positional_defaults: list[ast.expr | None] = (
+            [None]
+            * (
+                len(positional_arguments)
+                - len(arguments.defaults)
+            )
+            + list(arguments.defaults)
+        )
 
         for argument, default_value in zip(
             positional_arguments,
@@ -456,36 +573,29 @@ class PythonCodeParser:
             extracted_arguments.append(
                 {
                     "name": argument.arg,
-                    "annotation": (
-                        self._node_to_string(
-                            argument.annotation
-                        )
+                    "kind": "positional",
+                    "annotation": self._node_to_string(
+                        argument.annotation,
                     ),
                     "default": (
-                        self._node_to_string(
-                            default_value
-                        )
-                        if default_value
-                        is not None
+                        self._node_to_string(default_value)
+                        if default_value is not None
                         else None
                     ),
+                    "required": default_value is None,
                 }
             )
 
         if arguments.vararg is not None:
             extracted_arguments.append(
                 {
-                    "name": (
-                        f"*{arguments.vararg.arg}"
-                    ),
-                    "annotation": (
-                        self._node_to_string(
-                            arguments
-                            .vararg
-                            .annotation
-                        )
+                    "name": f"*{arguments.vararg.arg}",
+                    "kind": "vararg",
+                    "annotation": self._node_to_string(
+                        arguments.vararg.annotation,
                     ),
                     "default": None,
+                    "required": False,
                 }
             )
 
@@ -496,44 +606,104 @@ class PythonCodeParser:
         ):
             extracted_arguments.append(
                 {
-                    "name": (
-                        keyword_argument.arg
-                    ),
-                    "annotation": (
-                        self._node_to_string(
-                            keyword_argument
-                            .annotation
-                        )
+                    "name": keyword_argument.arg,
+                    "kind": "keyword_only",
+                    "annotation": self._node_to_string(
+                        keyword_argument.annotation,
                     ),
                     "default": (
-                        self._node_to_string(
-                            default_value
-                        )
-                        if default_value
-                        is not None
+                        self._node_to_string(default_value)
+                        if default_value is not None
                         else None
                     ),
+                    "required": default_value is None,
                 }
             )
 
         if arguments.kwarg is not None:
             extracted_arguments.append(
                 {
-                    "name": (
-                        f"**{arguments.kwarg.arg}"
-                    ),
-                    "annotation": (
-                        self._node_to_string(
-                            arguments
-                            .kwarg
-                            .annotation
-                        )
+                    "name": f"**{arguments.kwarg.arg}",
+                    "kind": "kwarg",
+                    "annotation": self._node_to_string(
+                        arguments.kwarg.annotation,
                     ),
                     "default": None,
+                    "required": False,
                 }
             )
 
         return extracted_arguments
+
+    @staticmethod
+    def _build_function_signature(
+        name: str,
+        arguments: list[dict[str, Any]],
+        returns: str | None,
+        is_async: bool,
+    ) -> str:
+        rendered_arguments: list[str] = []
+
+        for argument in arguments:
+            argument_name = str(argument.get("name", ""))
+            annotation = argument.get("annotation")
+            default = argument.get("default")
+
+            rendered = argument_name
+
+            if annotation:
+                rendered = f"{rendered}: {annotation}"
+
+            if default is not None:
+                rendered = f"{rendered} = {default}"
+
+            rendered_arguments.append(rendered)
+
+        prefix = "async def" if is_async else "def"
+
+        signature = (
+            f"{prefix} {name}("
+            + ", ".join(rendered_arguments)
+            + ")"
+        )
+
+        if returns:
+            signature = f"{signature} -> {returns}"
+
+        return f"{signature}:"
+
+    @staticmethod
+    def _build_class_signature(
+        class_name: str,
+        bases: list[str],
+    ) -> str:
+        if bases:
+            return f"class {class_name}({', '.join(bases)}):"
+
+        return f"class {class_name}:"
+
+    @staticmethod
+    def _get_source_preview(
+        source_lines: list[str],
+        node: ast.AST,
+        max_lines: int,
+    ) -> str:
+        start_line = getattr(node, "lineno", None)
+        end_line = getattr(node, "end_lineno", None)
+
+        if start_line is None or end_line is None:
+            return ""
+
+        start_index = max(start_line - 1, 0)
+        end_index = min(end_line, len(source_lines))
+
+        selected_lines = source_lines[start_index:end_index]
+
+        if len(selected_lines) > max_lines:
+            selected_lines = selected_lines[:max_lines]
+            selected_lines.append("    ...")
+
+        return "\n".join(selected_lines)
 
     @staticmethod
     def _calculate_node_hash(
@@ -542,19 +712,7 @@ class PythonCodeParser:
         """
         Creates a stable SHA-256 hash from an AST node.
 
-        The hash changes when the actual Python structure
-        changes, including:
-
-        - function body
-        - method body
-        - arguments
-        - decorators
-        - return annotation
-        - class bases
-        - class methods
-
-        Formatting-only changes generally do not change
-        this hash.
+        Formatting-only changes generally do not change this hash.
         """
 
         normalized_node = ast.dump(
@@ -564,7 +722,7 @@ class PythonCodeParser:
         )
 
         return hashlib.sha256(
-            normalized_node.encode("utf-8")
+            normalized_node.encode("utf-8"),
         ).hexdigest()
 
     def _get_call_keyword_value(
@@ -576,9 +734,7 @@ class PythonCodeParser:
             if keyword.arg != keyword_name:
                 continue
 
-            return self._get_literal_value(
-                keyword.value
-            )
+            return self._get_literal_value(keyword.value)
 
         return None
 
@@ -591,26 +747,17 @@ class PythonCodeParser:
             if keyword.arg != keyword_name:
                 continue
 
-            literal_value = (
-                self._get_literal_value(
-                    keyword.value
-                )
+            literal_value = self._get_literal_value(
+                keyword.value,
             )
 
             if isinstance(
                 literal_value,
-                (
-                    str,
-                    int,
-                    float,
-                    bool,
-                ),
+                (str, int, float, bool),
             ):
                 return str(literal_value)
 
-            return self._node_to_string(
-                keyword.value
-            )
+            return self._node_to_string(keyword.value)
 
         return None
 
@@ -634,8 +781,5 @@ class PythonCodeParser:
         try:
             return ast.literal_eval(node)
 
-        except (
-            ValueError,
-            TypeError,
-        ):
+        except (ValueError, TypeError):
             return None

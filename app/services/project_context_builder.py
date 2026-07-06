@@ -11,11 +11,13 @@ class ProjectContextBuilder:
 
     detailed
         Keeps complete module, symbol, route, import, dependency,
-        and content-hash information.
+        source preview, signature, and content-hash information.
 
     llm
         Produces a smaller context intended for LLM documentation
-        generation.
+        generation while still preserving developer-documentation
+        fields such as signatures, arguments, return types, routes,
+        class methods, and docstrings.
     """
 
     SUPPORTED_MODES = {
@@ -66,15 +68,26 @@ class ProjectContextBuilder:
     }
 
     STANDARD_LIBRARY_MODULES = {
+        "abc",
         "ast",
+        "asyncio",
         "collections",
         "datetime",
+        "enum",
+        "functools",
         "hashlib",
+        "html",
+        "inspect",
+        "io",
         "json",
+        "logging",
         "os",
         "pathlib",
         "re",
+        "shutil",
+        "subprocess",
         "sys",
+        "time",
         "typing",
         "uuid",
     }
@@ -88,8 +101,7 @@ class ProjectContextBuilder:
 
         if normalized_mode not in self.SUPPORTED_MODES:
             raise ValueError(
-                "Unsupported context mode. "
-                "Use 'detailed' or 'llm'."
+                "Unsupported context mode. Use 'detailed' or 'llm'."
             )
 
         scan_result = stored_scan.get(
@@ -131,14 +143,36 @@ class ProjectContextBuilder:
             routes=project_analysis.get(
                 "routes",
                 [],
-            )
+            ),
+        )
+
+        api_reference = self._build_api_reference(
+            api_reference=project_analysis.get(
+                "api_reference",
+                [],
+            ),
+            fallback_routes=api_routes,
+        )
+
+        module_references = self._build_module_references(
+            project_analysis=project_analysis,
+            fallback_modules=modules,
+            mode=normalized_mode,
+        )
+
+        symbols = self._build_symbols(
+            symbols=project_analysis.get(
+                "symbols",
+                {},
+            ),
+            mode=normalized_mode,
         )
 
         dependencies = self._build_dependencies(
             dependencies=project_analysis.get(
                 "internal_dependencies",
                 [],
-            )
+            ),
         )
 
         important_files = self._build_important_files(
@@ -155,33 +189,18 @@ class ProjectContextBuilder:
         context = {
             "context_mode": normalized_mode,
             "project": {
-                "name": scan_result.get(
-                    "project_name"
-                ),
-                "path": scan_result.get(
-                    "project_path"
-                ),
-                "scan_id": stored_scan.get(
-                    "scan_id"
-                ),
-                "scan_created_at": stored_scan.get(
-                    "created_at"
-                ),
-                "total_files": scan_result.get(
-                    "total_files",
+                "name": scan_result.get("project_name"),
+                "path": scan_result.get("project_path"),
+                "scan_id": stored_scan.get("scan_id"),
+                "scan_created_at": stored_scan.get("created_at"),
+                "total_files": scan_result.get("total_files", 0),
+                "total_directories": scan_result.get(
+                    "total_directories",
                     0,
                 ),
-                "total_directories": (
-                    scan_result.get(
-                        "total_directories",
-                        0,
-                    )
-                ),
-                "total_size_bytes": (
-                    scan_result.get(
-                        "total_size_bytes",
-                        0,
-                    )
+                "total_size_bytes": scan_result.get(
+                    "total_size_bytes",
+                    0,
                 ),
                 "file_types": scan_result.get(
                     "file_types",
@@ -191,7 +210,10 @@ class ProjectContextBuilder:
             "statistics": context_statistics,
             "important_files": important_files,
             "modules": modules,
+            "module_references": module_references,
             "api_routes": api_routes,
+            "api_reference": api_reference,
+            "symbols": symbols,
             "internal_dependencies": dependencies,
         }
 
@@ -217,10 +239,7 @@ class ProjectContextBuilder:
             if isinstance(module, dict)
         }
 
-        dependency_lookup: dict[
-            str,
-            list[str],
-        ] = defaultdict(list)
+        dependency_lookup: dict[str, list[str]] = defaultdict(list)
 
         for dependency in project_analysis.get(
             "internal_dependencies",
@@ -229,17 +248,9 @@ class ProjectContextBuilder:
             if not isinstance(dependency, dict):
                 continue
 
-            source_file = dependency.get(
-                "source_file"
-            )
-
-            target_module = dependency.get(
-                "target_module"
-            )
-
-            imported_name = dependency.get(
-                "imported_name"
-            )
+            source_file = dependency.get("source_file")
+            target_module = dependency.get("target_module")
+            imported_name = dependency.get("imported_name")
 
             if not source_file or not target_module:
                 continue
@@ -247,17 +258,12 @@ class ProjectContextBuilder:
             dependency_name = target_module
 
             if imported_name:
-                dependency_name = (
-                    f"{target_module}.{imported_name}"
-                )
+                dependency_name = f"{target_module}.{imported_name}"
 
-            if (
-                dependency_name
-                not in dependency_lookup[source_file]
-            ):
-                dependency_lookup[
-                    source_file
-                ].append(dependency_name)
+            if dependency_name not in dependency_lookup[source_file]:
+                dependency_lookup[source_file].append(
+                    dependency_name,
+                )
 
         modules: list[dict[str, Any]] = []
 
@@ -273,79 +279,68 @@ class ProjectContextBuilder:
             functions = [
                 self._compact_function(
                     function=function,
-                    include_hash=(
-                        mode == "detailed"
-                    ),
+                    include_hash=(mode == "detailed"),
+                    include_source=(mode == "detailed"),
                 )
-                for function in parsed_file.get(
-                    "functions",
-                    [],
-                )
+                for function in parsed_file.get("functions", [])
                 if isinstance(function, dict)
             ]
 
             async_functions = [
                 self._compact_function(
                     function=function,
-                    include_hash=(
-                        mode == "detailed"
-                    ),
+                    include_hash=(mode == "detailed"),
+                    include_source=(mode == "detailed"),
                 )
-                for function in parsed_file.get(
-                    "async_functions",
-                    [],
-                )
+                for function in parsed_file.get("async_functions", [])
                 if isinstance(function, dict)
             ]
 
             classes = [
                 self._compact_class(
                     class_data=class_data,
-                    include_hash=(
-                        mode == "detailed"
-                    ),
-                    include_private_methods=(
-                        mode == "detailed"
-                    ),
+                    include_hash=(mode == "detailed"),
+                    include_source=(mode == "detailed"),
+                    # include_private_methods=(mode == "detailed"),
+                    include_private_methods=True,
                 )
-                for class_data in parsed_file.get(
-                    "classes",
-                    [],
-                )
+                for class_data in parsed_file.get("classes", [])
                 if isinstance(class_data, dict)
             ]
 
             routes = [
                 self._compact_local_route(
                     route=route,
+                    include_source=(mode == "detailed"),
                 )
-                for route in parsed_file.get(
-                    "routes",
-                    [],
-                )
+                for route in parsed_file.get("routes", [])
                 if isinstance(route, dict)
             ]
 
             imports = self._compact_imports(
-                imports=parsed_file.get(
-                    "imports",
-                    [],
-                ),
+                imports=parsed_file.get("imports", []),
                 mode=mode,
             )
 
+            constants = [
+                self._compact_constant(
+                    constant=constant,
+                )
+                for constant in parsed_file.get("constants", [])
+                if isinstance(constant, dict)
+            ]
+
             module_data = {
                 "file": file_path,
-                "module": module_lookup.get(
-                    file_path
+                "module": module_lookup.get(file_path),
+                "module_docstring": parsed_file.get(
+                    "module_docstring",
                 ),
-                "purpose_hint": (
-                    self._build_module_purpose_hint(
-                        file_path=file_path,
-                        functions=functions,
-                        classes=classes,
-                        routes=routes,
-                    )
+                "purpose_hint": self._build_module_purpose_hint(
+                    file_path=file_path,
+                    functions=functions,
+                    classes=classes,
+                    routes=routes,
                 ),
                 "imports": imports,
                 "internal_dependencies": sorted(
@@ -354,52 +349,61 @@ class ProjectContextBuilder:
                         [],
                     )
                 ),
+                "constants": constants,
                 "functions": functions,
-                "async_functions": (
-                    async_functions
-                ),
+                "async_functions": async_functions,
                 "classes": classes,
                 "routes": routes,
-                "syntax_error": parsed_file.get(
-                    "syntax_error"
-                ),
+                "syntax_error": parsed_file.get("syntax_error"),
             }
 
-            modules.append(module_data)
+            modules.append(
+                self._remove_empty_values(module_data),
+            )
 
         return sorted(
             modules,
-            key=lambda module: (
-                module.get("file") or ""
-            ),
+            key=lambda module: module.get("file") or "",
         )
+
+    @staticmethod
+    def _compact_constant(
+        constant: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            "name": constant.get("name"),
+            "annotation": constant.get("annotation"),
+            "value": constant.get("value"),
+            "line": constant.get("line"),
+        }
 
     @staticmethod
     def _compact_function(
         function: dict[str, Any],
         include_hash: bool,
+        include_source: bool,
     ) -> dict[str, Any]:
         function_data = {
             "name": function.get("name"),
-            "arguments": function.get(
-                "arguments",
-                [],
-            ),
-            "returns": function.get(
-                "returns"
-            ),
-            "docstring": function.get(
-                "docstring"
-            ),
-            "decorators": function.get(
-                "decorators",
-                [],
-            ),
+            "qualified_name": function.get("qualified_name"),
+            "signature": function.get("signature"),
+            "arguments": function.get("arguments", []),
+            "returns": function.get("returns"),
+            "docstring": function.get("docstring"),
+            "decorators": function.get("decorators", []),
+            "is_async": function.get("is_async", False),
+            "line": function.get("line"),
+            "end_line": function.get("end_line"),
         }
 
+        if include_source:
+            function_data["source_preview"] = function.get(
+                "source_preview",
+            )
+
         if include_hash:
-            function_data["content_hash"] = (
-                function.get("content_hash")
+            function_data["content_hash"] = function.get(
+                "content_hash",
             )
 
         return function_data
@@ -408,77 +412,52 @@ class ProjectContextBuilder:
         self,
         class_data: dict[str, Any],
         include_hash: bool,
+        include_source: bool,
         include_private_methods: bool,
     ) -> dict[str, Any]:
         methods: list[dict[str, Any]] = []
 
-        for method in class_data.get(
-            "methods",
-            [],
-        ):
+        for method in class_data.get("methods", []):
             if not isinstance(method, dict):
                 continue
 
-            method_name = method.get(
-                "name"
-            )
+            method_name = method.get("name")
 
             if (
                 not include_private_methods
-                and self._is_private_method(
-                    method_name
-                )
+                and self._is_private_method(method_name)
             ):
                 continue
 
-            method_data = {
-                "name": method_name,
-                "arguments": method.get(
-                    "arguments",
-                    [],
-                ),
-                "returns": method.get(
-                    "returns"
-                ),
-                "docstring": method.get(
-                    "docstring"
-                ),
-                "decorators": method.get(
-                    "decorators",
-                    [],
-                ),
-                "is_async": method.get(
-                    "is_async",
-                    False,
-                ),
-            }
-
-            if include_hash:
-                method_data["content_hash"] = (
-                    method.get("content_hash")
-                )
+            method_data = self._compact_function(
+                function=method,
+                include_hash=include_hash,
+                include_source=include_source,
+            )
 
             methods.append(method_data)
 
         compact_class = {
             "name": class_data.get("name"),
-            "bases": class_data.get(
-                "bases",
-                [],
-            ),
-            "docstring": class_data.get(
-                "docstring"
-            ),
-            "decorators": class_data.get(
-                "decorators",
-                [],
-            ),
+            "qualified_name": class_data.get("qualified_name"),
+            "signature": class_data.get("signature"),
+            "bases": class_data.get("bases", []),
+            "docstring": class_data.get("docstring"),
+            "decorators": class_data.get("decorators", []),
+            "attributes": class_data.get("attributes", []),
             "methods": methods,
+            "line": class_data.get("line"),
+            "end_line": class_data.get("end_line"),
         }
 
+        if include_source:
+            compact_class["source_preview"] = class_data.get(
+                "source_preview",
+            )
+
         if include_hash:
-            compact_class["content_hash"] = (
-                class_data.get("content_hash")
+            compact_class["content_hash"] = class_data.get(
+                "content_hash",
             )
 
         return compact_class
@@ -488,41 +467,28 @@ class ProjectContextBuilder:
         imports: list[dict[str, Any]],
         mode: str,
     ) -> list[dict[str, Any]]:
-        compact_imports: list[
-            dict[str, Any]
-        ] = []
+        compact_imports: list[dict[str, Any]] = []
 
         for imported_item in imports:
-            if not isinstance(
-                imported_item,
-                dict,
-            ):
+            if not isinstance(imported_item, dict):
                 continue
 
-            module_name = imported_item.get(
-                "module"
-            )
+            module_name = imported_item.get("module")
 
             if (
                 mode == "llm"
-                and self._is_standard_library_import(
-                    module_name
-                )
+                and self._is_standard_library_import(module_name)
             ):
                 continue
 
             compact_imports.append(
                 {
-                    "type": imported_item.get(
-                        "type"
-                    ),
+                    "type": imported_item.get("type"),
                     "module": module_name,
-                    "name": imported_item.get(
-                        "name"
-                    ),
-                    "alias": imported_item.get(
-                        "alias"
-                    ),
+                    "name": imported_item.get("name"),
+                    "alias": imported_item.get("alias"),
+                    "statement": imported_item.get("statement"),
+                    "line": imported_item.get("line"),
                 }
             )
 
@@ -531,35 +497,39 @@ class ProjectContextBuilder:
     @staticmethod
     def _compact_local_route(
         route: dict[str, Any],
+        include_source: bool,
     ) -> dict[str, Any]:
-        return {
+        route_data = {
             "method": route.get("method"),
             "path": route.get("path"),
-            "function_name": route.get(
-                "function_name"
-            ),
-            "router_name": route.get(
-                "router_name"
-            ),
-            "response_model": route.get(
-                "response_model"
-            ),
-            "status_code": route.get(
-                "status_code"
-            ),
-            "is_async": route.get(
-                "is_async",
-                False,
-            ),
+            "function_name": route.get("function_name"),
+            "handler": route.get("handler"),
+            "handler_signature": route.get("handler_signature"),
+            "arguments": route.get("arguments", []),
+            "returns": route.get("returns"),
+            "router_name": route.get("router_name"),
+            "response_model": route.get("response_model"),
+            "status_code": route.get("status_code"),
+            "summary": route.get("summary"),
+            "description": route.get("description"),
+            "tags": route.get("tags", []),
+            "docstring": route.get("docstring"),
+            "is_async": route.get("is_async", False),
+            "line": route.get("line"),
         }
+
+        if include_source:
+            route_data["source_preview"] = route.get(
+                "source_preview",
+            )
+
+        return route_data
 
     @staticmethod
     def _build_api_routes(
         routes: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        compact_routes: list[
-            dict[str, Any]
-        ] = []
+        compact_routes: list[dict[str, Any]] = []
 
         for route in routes:
             if not isinstance(route, dict):
@@ -567,35 +537,33 @@ class ProjectContextBuilder:
 
             compact_routes.append(
                 {
-                    "method": route.get(
-                        "method"
+                    "method": route.get("method"),
+                    "full_path": route.get("full_path"),
+                    "local_path": route.get("path"),
+                    "function_name": route.get("function_name"),
+                    "handler": route.get("handler")
+                    or route.get("function_name"),
+                    "handler_signature": route.get(
+                        "handler_signature",
                     ),
-                    "full_path": route.get(
-                        "full_path"
-                    ),
-                    "local_path": route.get(
-                        "path"
-                    ),
-                    "function_name": route.get(
-                        "function_name"
-                    ),
+                    "arguments": route.get("arguments", []),
+                    "returns": route.get("returns"),
                     "file": route.get("file"),
-                    "module": route.get(
-                        "module"
+                    "module": route.get("module"),
+                    "router_name": route.get("router_name"),
+                    "router_prefix": route.get("router_prefix"),
+                    "include_router_prefix": route.get(
+                        "include_router_prefix",
                     ),
-                    "router_name": route.get(
-                        "router_name"
-                    ),
-                    "response_model": route.get(
-                        "response_model"
-                    ),
-                    "status_code": route.get(
-                        "status_code"
-                    ),
-                    "is_async": route.get(
-                        "is_async",
-                        False,
-                    ),
+                    "response_model": route.get("response_model"),
+                    "status_code": route.get("status_code"),
+                    "summary": route.get("summary"),
+                    "description": route.get("description"),
+                    "tags": route.get("tags", []),
+                    "docstring": route.get("docstring"),
+                    "is_async": route.get("is_async", False),
+                    "line": route.get("line"),
+                    "source_preview": route.get("source_preview"),
                 }
             )
 
@@ -608,55 +576,280 @@ class ProjectContextBuilder:
         )
 
     @staticmethod
+    def _build_api_reference(
+        api_reference: list[dict[str, Any]],
+        fallback_routes: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        source_items = api_reference
+
+        if not isinstance(source_items, list) or not source_items:
+            source_items = fallback_routes
+
+        compact_reference: list[dict[str, Any]] = []
+
+        for route in source_items:
+            if not isinstance(route, dict):
+                continue
+
+            compact_reference.append(
+                {
+                    "method": route.get("method"),
+                    "path": route.get("path")
+                    or route.get("full_path"),
+                    "handler": route.get("handler")
+                    or route.get("function_name"),
+                    "handler_signature": route.get(
+                        "handler_signature",
+                    ),
+                    "arguments": route.get("arguments", []),
+                    "returns": route.get("returns"),
+                    "response_model": route.get("response_model"),
+                    "status_code": route.get("status_code"),
+                    "summary": route.get("summary"),
+                    "description": route.get("description"),
+                    "tags": route.get("tags", []),
+                    "docstring": route.get("docstring"),
+                    "file": route.get("file"),
+                    "module": route.get("module"),
+                    "line": route.get("line"),
+                    "source_preview": route.get("source_preview"),
+                }
+            )
+
+        return sorted(
+            compact_reference,
+            key=lambda route: (
+                route.get("path") or "",
+                route.get("method") or "",
+            ),
+        )
+
+    def _build_module_references(
+        self,
+        project_analysis: dict[str, Any],
+        fallback_modules: list[dict[str, Any]],
+        mode: str,
+    ) -> list[dict[str, Any]]:
+        references = project_analysis.get(
+            "module_references",
+            [],
+        )
+
+        if not isinstance(references, list) or not references:
+            return fallback_modules
+
+        compact_references: list[dict[str, Any]] = []
+
+        include_hash = mode == "detailed"
+        include_source = mode == "detailed"
+
+        for reference in references:
+            if not isinstance(reference, dict):
+                continue
+
+            functions = [
+                self._compact_function(
+                    function=function,
+                    include_hash=include_hash,
+                    include_source=include_source,
+                )
+                for function in reference.get("functions", [])
+                if isinstance(function, dict)
+            ]
+
+            async_functions = [
+                self._compact_function(
+                    function=function,
+                    include_hash=include_hash,
+                    include_source=include_source,
+                )
+                for function in reference.get("async_functions", [])
+                if isinstance(function, dict)
+            ]
+
+            classes = [
+                self._compact_class(
+                    class_data=class_data,
+                    include_hash=include_hash,
+                    include_source=include_source,
+                    # include_private_methods=(mode == "detailed"),
+                    include_private_methods=True,
+                )
+                for class_data in reference.get("classes", [])
+                if isinstance(class_data, dict)
+            ]
+
+            routes = [
+                self._compact_local_route(
+                    route=route,
+                    include_source=include_source,
+                )
+                for route in reference.get("routes", [])
+                if isinstance(route, dict)
+            ]
+
+            compact_reference = {
+                "module": reference.get("module"),
+                "file": reference.get("file"),
+                "module_docstring": reference.get(
+                    "module_docstring",
+                ),
+                "summary": reference.get("summary"),
+                "purpose_hint": reference.get("summary")
+                or self._build_module_purpose_hint(
+                    file_path=str(reference.get("file", "")),
+                    functions=functions,
+                    classes=classes,
+                    routes=routes,
+                ),
+                "public_symbols": reference.get(
+                    "public_symbols",
+                    [],
+                ),
+                "imports": self._compact_imports(
+                    imports=reference.get("imports", []),
+                    mode=mode,
+                ),
+                "internal_dependencies": reference.get(
+                    "internal_dependencies",
+                    [],
+                ),
+                "constants": reference.get("constants", []),
+                "functions": functions,
+                "async_functions": async_functions,
+                "classes": classes,
+                "routes": routes,
+                "syntax_error": reference.get("syntax_error"),
+            }
+
+            compact_references.append(
+                self._remove_empty_values(compact_reference),
+            )
+
+        return sorted(
+            compact_references,
+            key=lambda item: item.get("module") or "",
+        )
+
+    def _build_symbols(
+        self,
+        symbols: dict[str, Any],
+        mode: str,
+    ) -> dict[str, list[dict[str, Any]]]:
+        if not isinstance(symbols, dict):
+            return {}
+
+        include_hash = mode == "detailed"
+        include_source = mode == "detailed"
+
+        compact_symbols = {
+            "constants": [
+                self._compact_constant(constant)
+                for constant in symbols.get("constants", [])
+                if isinstance(constant, dict)
+            ],
+            "functions": [
+                self._compact_symbol_function(
+                    function=function,
+                    include_hash=include_hash,
+                    include_source=include_source,
+                )
+                for function in symbols.get("functions", [])
+                if isinstance(function, dict)
+            ],
+            "async_functions": [
+                self._compact_symbol_function(
+                    function=function,
+                    include_hash=include_hash,
+                    include_source=include_source,
+                )
+                for function in symbols.get("async_functions", [])
+                if isinstance(function, dict)
+            ],
+            "classes": [
+                self._compact_symbol_class(
+                    class_data=class_data,
+                    include_hash=include_hash,
+                    include_source=include_source,
+                )
+                for class_data in symbols.get("classes", [])
+                if isinstance(class_data, dict)
+            ],
+            "methods": [
+                self._compact_symbol_function(
+                    function=method,
+                    include_hash=include_hash,
+                    include_source=include_source,
+                )
+                for method in symbols.get("methods", [])
+                if isinstance(method, dict)
+            ],
+        }
+
+        return self._remove_empty_values(compact_symbols)
+
+    def _compact_symbol_function(
+        self,
+        function: dict[str, Any],
+        include_hash: bool,
+        include_source: bool,
+    ) -> dict[str, Any]:
+        function_data = self._compact_function(
+            function=function,
+            include_hash=include_hash,
+            include_source=include_source,
+        )
+
+        function_data["file"] = function.get("file")
+        function_data["module"] = function.get("module")
+        function_data["class_name"] = function.get("class_name")
+
+        return self._remove_empty_values(function_data)
+
+    def _compact_symbol_class(
+        self,
+        class_data: dict[str, Any],
+        include_hash: bool,
+        include_source: bool,
+    ) -> dict[str, Any]:
+        compact_class = self._compact_class(
+            class_data=class_data,
+            include_hash=include_hash,
+            include_source=include_source,
+            include_private_methods=True,
+        )
+
+        compact_class["file"] = class_data.get("file")
+        compact_class["module"] = class_data.get("module")
+
+        return self._remove_empty_values(compact_class)
+
+    @staticmethod
     def _build_dependencies(
         dependencies: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        compact_dependencies: list[
-            dict[str, Any]
-        ] = []
-
-        seen_dependencies: set[
-            tuple[Any, ...]
-        ] = set()
+        compact_dependencies: list[dict[str, Any]] = []
+        seen_dependencies: set[tuple[Any, ...]] = set()
 
         for dependency in dependencies:
             if not isinstance(dependency, dict):
                 continue
 
             compact_dependency = {
-                "source_file": dependency.get(
-                    "source_file"
-                ),
-                "source_module": dependency.get(
-                    "source_module"
-                ),
-                "target_file": dependency.get(
-                    "target_file"
-                ),
-                "target_module": dependency.get(
-                    "target_module"
-                ),
-                "imported_name": dependency.get(
-                    "imported_name"
-                ),
-                "alias": dependency.get(
-                    "alias"
-                ),
-                "import_type": dependency.get(
-                    "import_type"
-                ),
+                "source_file": dependency.get("source_file"),
+                "source_module": dependency.get("source_module"),
+                "target_file": dependency.get("target_file"),
+                "target_module": dependency.get("target_module"),
+                "imported_name": dependency.get("imported_name"),
+                "alias": dependency.get("alias"),
+                "import_type": dependency.get("import_type"),
+                "statement": dependency.get("statement"),
             }
 
             identity = (
-                compact_dependency[
-                    "source_module"
-                ],
-                compact_dependency[
-                    "target_module"
-                ],
-                compact_dependency[
-                    "imported_name"
-                ],
+                compact_dependency["source_module"],
+                compact_dependency["target_module"],
+                compact_dependency["imported_name"],
                 compact_dependency["alias"],
             )
 
@@ -666,24 +859,15 @@ class ProjectContextBuilder:
             seen_dependencies.add(identity)
 
             compact_dependencies.append(
-                compact_dependency
+                compact_dependency,
             )
 
         return sorted(
             compact_dependencies,
             key=lambda dependency: (
-                dependency.get(
-                    "source_module"
-                )
-                or "",
-                dependency.get(
-                    "target_module"
-                )
-                or "",
-                dependency.get(
-                    "imported_name"
-                )
-                or "",
+                dependency.get("source_module") or "",
+                dependency.get("target_module") or "",
+                dependency.get("imported_name") or "",
             ),
         )
 
@@ -691,105 +875,99 @@ class ProjectContextBuilder:
         self,
         context: dict[str, Any],
     ) -> dict[str, Any]:
-        optimized_modules: list[
-            dict[str, Any]
-        ] = []
+        optimized_modules: list[dict[str, Any]] = []
 
-        for module in context.get(
-            "modules",
-            [],
-        ):
+        for module in context.get("modules", []):
             if not isinstance(module, dict):
                 continue
 
-            if self._is_empty_package_module(
-                module=module,
-            ):
+            if self._is_empty_package_module(module=module):
                 continue
 
             optimized_module = {
                 "file": module.get("file"),
                 "module": module.get("module"),
-                "purpose_hint": module.get(
-                    "purpose_hint"
-                ),
-                "imports": module.get(
-                    "imports",
+                "module_docstring": module.get("module_docstring"),
+                "purpose_hint": module.get("purpose_hint"),
+                "internal_dependencies": module.get(
+                    "internal_dependencies",
                     [],
                 ),
-                "functions": module.get(
-                    "functions",
+                "constants": module.get("constants", []),
+                "functions": module.get("functions", []),
+                "async_functions": module.get(
+                    "async_functions",
                     [],
                 ),
-                "async_functions": (
-                    module.get(
-                        "async_functions",
-                        [],
-                    )
-                ),
-                "classes": module.get(
-                    "classes",
-                    [],
-                ),
-                "syntax_error": module.get(
-                    "syntax_error"
-                ),
+                "classes": module.get("classes", []),
+                "routes": module.get("routes", []),
+                "syntax_error": module.get("syntax_error"),
             }
 
             optimized_modules.append(
+                self._remove_empty_values(optimized_module),
+            )
+
+        optimized_module_references: list[dict[str, Any]] = []
+
+        for module in context.get("module_references", []):
+            if not isinstance(module, dict):
+                continue
+
+            if self._is_empty_package_module(module=module):
+                continue
+
+            optimized_module_references.append(
                 self._remove_empty_values(
-                    optimized_module
+                    {
+                        "module": module.get("module"),
+                        "file": module.get("file"),
+                        "summary": module.get("summary"),
+                        "module_docstring": module.get(
+                            "module_docstring",
+                        ),
+                        "purpose_hint": module.get("purpose_hint"),
+                        "public_symbols": module.get(
+                            "public_symbols",
+                            [],
+                        ),
+                        "constants": module.get("constants", []),
+                        "functions": module.get("functions", []),
+                        "async_functions": module.get(
+                            "async_functions",
+                            [],
+                        ),
+                        "classes": module.get("classes", []),
+                        "routes": module.get("routes", []),
+                    }
                 )
             )
 
         optimized_dependencies = [
             {
-                "source_module": dependency.get(
-                    "source_module"
-                ),
-                "target_module": dependency.get(
-                    "target_module"
-                ),
-                "imported_name": dependency.get(
-                    "imported_name"
-                ),
-                "alias": dependency.get(
-                    "alias"
-                ),
+                "source_module": dependency.get("source_module"),
+                "target_module": dependency.get("target_module"),
+                "imported_name": dependency.get("imported_name"),
+                "alias": dependency.get("alias"),
             }
-            for dependency in context.get(
-                "internal_dependencies",
-                [],
-            )
+            for dependency in context.get("internal_dependencies", [])
             if isinstance(dependency, dict)
         ]
 
         optimized_context = {
             "context_mode": "llm",
-            "project": context.get(
-                "project",
-                {},
-            ),
-            "statistics": context.get(
-                "statistics",
-                {},
-            ),
-            "important_files": context.get(
-                "important_files",
-                {},
-            ),
+            "project": context.get("project", {}),
+            "statistics": context.get("statistics", {}),
+            "important_files": context.get("important_files", {}),
+            "api_reference": context.get("api_reference", []),
+            "api_routes": context.get("api_routes", []),
+            "module_references": optimized_module_references,
             "modules": optimized_modules,
-            "api_routes": context.get(
-                "api_routes",
-                [],
-            ),
-            "internal_dependencies": (
-                optimized_dependencies
-            ),
+            "internal_dependencies": optimized_dependencies,
         }
 
         return self._remove_empty_values(
-            optimized_context
+            optimized_context,
         )
 
     def _build_important_files(
@@ -802,56 +980,26 @@ class ProjectContextBuilder:
         scripts: list[str] = []
 
         for file_path in files:
-            normalized_path = (
-                PurePosixPath(file_path)
-            )
+            normalized_path = PurePosixPath(file_path)
+            file_name = normalized_path.name.lower()
+            file_extension = normalized_path.suffix.lower()
 
-            file_name = (
-                normalized_path.name.lower()
-            )
-
-            file_extension = (
-                normalized_path.suffix.lower()
-            )
-
-            if (
-                file_name
-                in self.ENTRY_POINT_NAMES
-            ):
+            if file_name in self.ENTRY_POINT_NAMES:
                 entry_points.append(file_path)
 
-            if (
-                file_name
-                in self.CONFIG_FILE_NAMES
-            ):
-                configuration_files.append(
-                    file_path
-                )
+            if file_name in self.CONFIG_FILE_NAMES:
+                configuration_files.append(file_path)
 
-            if (
-                file_name
-                in self.DOCUMENTATION_FILE_NAMES
-            ):
-                documentation_files.append(
-                    file_path
-                )
+            if file_name in self.DOCUMENTATION_FILE_NAMES:
+                documentation_files.append(file_path)
 
-            if (
-                file_extension
-                in self.SCRIPT_EXTENSIONS
-            ):
+            if file_extension in self.SCRIPT_EXTENSIONS:
                 scripts.append(file_path)
 
         return {
-            "entry_points": sorted(
-                entry_points
-            ),
-            "configuration_files": sorted(
-                configuration_files
-            ),
-            "documentation_files": sorted(
-                documentation_files
-            ),
+            "entry_points": sorted(entry_points),
+            "configuration_files": sorted(configuration_files),
+            "documentation_files": sorted(documentation_files),
             "scripts": sorted(scripts),
         }
 
@@ -870,36 +1018,33 @@ class ProjectContextBuilder:
 
         return {
             "python_modules": len(modules),
-            "functions": int(
-                project_statistics.get(
-                    "functions",
-                    0,
-                )
-            ),
+            "functions": int(project_statistics.get("functions", 0)),
             "async_functions": int(
-                project_statistics.get(
-                    "async_functions",
-                    0,
-                )
+                project_statistics.get("async_functions", 0),
             ),
-            "classes": int(
-                project_statistics.get(
-                    "classes",
-                    0,
-                )
-            ),
-            "methods": int(
-                project_statistics.get(
-                    "methods",
-                    0,
-                )
-            ),
+            "classes": int(project_statistics.get("classes", 0)),
+            "methods": int(project_statistics.get("methods", 0)),
+            "constants": int(project_statistics.get("constants", 0)),
             "api_routes": len(api_routes),
-            "internal_dependencies": len(
-                dependencies
+            "internal_dependencies": len(dependencies),
+            "modules_with_syntax_errors": modules_with_syntax_errors,
+            "files_with_module_docstrings": int(
+                project_statistics.get(
+                    "files_with_module_docstrings",
+                    0,
+                )
             ),
-            "modules_with_syntax_errors": (
-                modules_with_syntax_errors
+            "documented_functions": int(
+                project_statistics.get(
+                    "documented_functions",
+                    0,
+                )
+            ),
+            "documented_classes": int(
+                project_statistics.get(
+                    "documented_classes",
+                    0,
+                )
             ),
         }
 
@@ -913,31 +1058,16 @@ class ProjectContextBuilder:
         path_lower = file_path.lower()
 
         if file_path.endswith("__init__.py"):
-            return (
-                "Python package initialization module."
-            )
+            return "Python package initialization module."
 
-        if (
-            PurePosixPath(file_path)
-            .name
-            .lower()
-            == "main.py"
-        ):
-            return (
-                "Application entry point and "
-                "FastAPI startup module."
-            )
+        if PurePosixPath(file_path).name.lower() == "main.py":
+            return "Application entry point and FastAPI startup module."
 
         if routes:
-            return (
-                "Defines API routes and request handlers."
-            )
+            return "Defines API routes and request handlers."
 
         if "/models/" in f"/{path_lower}":
-            return (
-                "Defines application data models "
-                "and validation schemas."
-            )
+            return "Defines application data models and validation schemas."
 
         if "/services/" in f"/{path_lower}":
             class_names = [
@@ -948,13 +1078,11 @@ class ProjectContextBuilder:
 
             if class_names:
                 return (
-                    "Provides application service logic "
-                    f"through {', '.join(class_names)}."
+                    "Provides application service logic through "
+                    f"{', '.join(class_names)}."
                 )
 
-            return (
-                "Provides application service logic."
-            )
+            return "Provides application service logic."
 
         if "/core/" in f"/{path_lower}":
             return (
@@ -975,23 +1103,12 @@ class ProjectContextBuilder:
         ]
 
         if class_names:
-            return (
-                "Defines classes: "
-                + ", ".join(class_names)
-                + "."
-            )
+            return "Defines classes: " + ", ".join(class_names) + "."
 
         if function_names:
-            return (
-                "Defines functions: "
-                + ", ".join(function_names)
-                + "."
-            )
+            return "Defines functions: " + ", ".join(function_names) + "."
 
-        return (
-            "Python module with no discovered "
-            "functions or classes."
-        )
+        return "Python module with no discovered functions or classes."
 
     @staticmethod
     def _is_private_method(
@@ -1017,14 +1134,9 @@ class ProjectContextBuilder:
         if not isinstance(module_name, str):
             return False
 
-        top_level_module = (
-            module_name.lstrip(".").split(".")[0]
-        )
+        top_level_module = module_name.lstrip(".").split(".")[0]
 
-        return (
-            top_level_module
-            in self.STANDARD_LIBRARY_MODULES
-        )
+        return top_level_module in self.STANDARD_LIBRARY_MODULES
 
     @staticmethod
     def _is_empty_package_module(
@@ -1044,6 +1156,7 @@ class ProjectContextBuilder:
                 module.get("async_functions"),
                 module.get("classes"),
                 module.get("imports"),
+                module.get("routes"),
                 module.get("syntax_error"),
             ]
         )
@@ -1056,11 +1169,7 @@ class ProjectContextBuilder:
             cleaned_dictionary = {}
 
             for key, item in value.items():
-                cleaned_item = (
-                    self._remove_empty_values(
-                        item
-                    )
-                )
+                cleaned_item = self._remove_empty_values(item)
 
                 if cleaned_item in (
                     None,
@@ -1070,9 +1179,7 @@ class ProjectContextBuilder:
                 ):
                     continue
 
-                cleaned_dictionary[
-                    key
-                ] = cleaned_item
+                cleaned_dictionary[key] = cleaned_item
 
             return cleaned_dictionary
 
@@ -1080,11 +1187,7 @@ class ProjectContextBuilder:
             cleaned_list = []
 
             for item in value:
-                cleaned_item = (
-                    self._remove_empty_values(
-                        item
-                    )
-                )
+                cleaned_item = self._remove_empty_values(item)
 
                 if cleaned_item in (
                     None,
@@ -1094,9 +1197,7 @@ class ProjectContextBuilder:
                 ):
                     continue
 
-                cleaned_list.append(
-                    cleaned_item
-                )
+                cleaned_list.append(cleaned_item)
 
             return cleaned_list
 
@@ -1113,8 +1214,7 @@ class ProjectContextBuilder:
 
         if not scan_result.get("project_name"):
             raise ValueError(
-                "Stored scan does not contain "
-                "a project name."
+                "Stored scan does not contain a project name."
             )
 
         if not isinstance(
@@ -1122,17 +1222,13 @@ class ProjectContextBuilder:
             list,
         ):
             raise ValueError(
-                "Stored scan does not contain "
-                "valid parsed Python files."
+                "Stored scan does not contain valid parsed Python files."
             )
 
         if not isinstance(
-            scan_result.get(
-                "project_analysis"
-            ),
+            scan_result.get("project_analysis"),
             dict,
         ):
             raise ValueError(
-                "Stored scan does not contain "
-                "valid project analysis."
+                "Stored scan does not contain valid project analysis."
             )
