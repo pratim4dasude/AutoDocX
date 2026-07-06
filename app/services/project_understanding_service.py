@@ -71,11 +71,11 @@ class ProjectUnderstandingService:
             )
         )
 
-        understanding = provider.generate_json(
-            system_prompt=(
-                PROJECT_UNDERSTANDING_SYSTEM_PROMPT
-            ),
-            user_prompt=user_prompt,
+        understanding = (
+            self._generate_understanding_with_retry(
+                provider=provider,
+                user_prompt=user_prompt,
+            )
         )
 
         self._validate_understanding(
@@ -100,6 +100,107 @@ class ProjectUnderstandingService:
             "model": provider.model,
             "understanding": understanding,
         }
+
+    def _generate_understanding_with_retry(
+        self,
+        provider: Any,
+        user_prompt: str,
+    ) -> dict[str, Any]:
+        """
+        Generate project understanding from the LLM.
+
+        The first attempt uses the normal prompt.
+        If the LLM returns malformed JSON or misses
+        required fields, retry once with stricter
+        JSON-only instructions.
+        """
+
+        try:
+            understanding = provider.generate_json(
+                system_prompt=(
+                    PROJECT_UNDERSTANDING_SYSTEM_PROMPT
+                ),
+                user_prompt=user_prompt,
+            )
+
+            self._validate_understanding(
+                understanding=understanding,
+            )
+
+            return understanding
+
+        except Exception as first_error:
+            print(
+                "[AutoDocX] First LLM understanding "
+                "generation attempt failed: "
+                f"{first_error}"
+            )
+
+            retry_system_prompt = (
+                PROJECT_UNDERSTANDING_SYSTEM_PROMPT
+                + "\n\n"
+                "IMPORTANT JSON OUTPUT RULES:\n"
+                "Return ONLY one valid JSON object.\n"
+                "Do not include markdown.\n"
+                "Do not wrap the response in ```json.\n"
+                "Do not include text before the JSON.\n"
+                "Do not include text after the JSON.\n"
+                "The response must start with { and end with }.\n"
+                "All required top-level fields must be present.\n"
+            )
+
+            retry_user_prompt = (
+                user_prompt
+                + "\n\n"
+                "Your previous response could not be "
+                "parsed or validated by the backend.\n"
+                "Generate the project understanding again.\n"
+                "Return ONLY valid JSON with these exact "
+                "top-level keys:\n"
+                "1. project_summary\n"
+                "2. architecture_overview\n"
+                "3. execution_flow\n"
+                "4. module_responsibilities\n"
+                "5. api_overview\n"
+                "6. key_dependencies\n"
+                "7. risks_and_gaps\n"
+                "8. recommended_document_sections\n\n"
+                "Field type requirements:\n"
+                "- project_summary must be a non-empty string\n"
+                "- architecture_overview must be a non-empty string\n"
+                "- execution_flow must be a list\n"
+                "- module_responsibilities must be a list\n"
+                "- api_overview must be a list\n"
+                "- key_dependencies must be a list\n"
+                "- risks_and_gaps must be a list\n"
+                "- recommended_document_sections must be a list\n"
+            )
+
+            try:
+                understanding = provider.generate_json(
+                    system_prompt=retry_system_prompt,
+                    user_prompt=retry_user_prompt,
+                )
+
+                self._validate_understanding(
+                    understanding=understanding,
+                )
+
+                return understanding
+
+            except Exception as retry_error:
+                print(
+                    "[AutoDocX] Second LLM understanding "
+                    "generation attempt failed: "
+                    f"{retry_error}"
+                )
+
+                raise RuntimeError(
+                    "The LLM returned malformed or incomplete "
+                    "JSON after retry. Please try again. If this "
+                    "keeps happening, reduce the project context "
+                    "size or improve the LLM JSON parser."
+                ) from retry_error
 
     def _validate_understanding(
         self,
