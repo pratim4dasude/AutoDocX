@@ -20,8 +20,8 @@ class DocumentBuilder:
     """
 
     def build_html(
-        self,
-        stored_understanding: dict[str, Any],
+            self,
+            stored_understanding: dict[str, Any],
     ) -> str:
         project_name = str(
             stored_understanding.get(
@@ -170,6 +170,7 @@ class DocumentBuilder:
         troubleshooting_html = self._build_troubleshooting(
             risks_and_gaps,
         )
+
 
         return f"""<!DOCTYPE html>
 <html lang="en">
@@ -417,6 +418,7 @@ class DocumentBuilder:
             background: rgba(251, 191, 36, 0.09);
             color: #fef3c7;
         }}
+
 
         .stats-grid {{
             display: grid;
@@ -959,6 +961,9 @@ class DocumentBuilder:
                     {statistics_html}
                 </section>
 
+
+
+
                 <section
                     id="architecture"
                     class="doc-section"
@@ -969,6 +974,9 @@ class DocumentBuilder:
                         {escape(architecture_overview)}
                     </div>
                 </section>
+
+
+
 
                 <section
                     id="api-reference"
@@ -1044,8 +1052,8 @@ class DocumentBuilder:
 
     @staticmethod
     def _build_left_navigation(
-        api_overview: Any,
-        module_responsibilities: Any,
+            api_overview: Any,
+            module_responsibilities: Any,
     ) -> str:
         api_links = ""
 
@@ -1076,8 +1084,8 @@ class DocumentBuilder:
             links: list[str] = []
 
             for index, module in enumerate(
-                module_responsibilities,
-                start=1,
+                    module_responsibilities,
+                    start=1,
             ):
                 if not isinstance(module, dict):
                     continue
@@ -1132,10 +1140,10 @@ class DocumentBuilder:
 
     @staticmethod
     def _build_right_toc(
-        api_overview: Any,
-        module_responsibilities: Any,
-        risks_and_gaps: Any,
-        statistics: Any,
+            api_overview: Any,
+            module_responsibilities: Any,
+            risks_and_gaps: Any,
+            statistics: Any,
     ) -> str:
         links = [
             ("overview", "Overview"),
@@ -1195,7 +1203,7 @@ class DocumentBuilder:
 
     @staticmethod
     def _build_quickstart(
-        project_name: str,
+            project_name: str,
     ) -> str:
         safe_project_name = escape(project_name)
 
@@ -1235,7 +1243,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_statistics(
-        statistics: Any,
+            statistics: Any,
     ) -> str:
         if not isinstance(statistics, dict) or not statistics:
             return (
@@ -1283,14 +1291,14 @@ print(response.json())</code></pre>
             )
 
         return (
-            '<div class="stats-grid">'
-            + "\n".join(cards)
-            + "</div>"
+                '<div class="stats-grid">'
+                + "\n".join(cards)
+                + "</div>"
         )
 
     @staticmethod
     def _build_api_reference(
-        api_overview: Any,
+            api_overview: Any,
     ) -> str:
         if not isinstance(api_overview, list) or not api_overview:
             return (
@@ -1375,11 +1383,11 @@ print(response.json())</code></pre>
                         <p><code>{escape(handler)}</code></p>
 
                         {
-                            DocumentBuilder._build_optional_signature(
-                                label="Handler signature",
-                                signature=handler_signature,
-                            )
-                        }
+                DocumentBuilder._build_optional_signature(
+                    label="Handler signature",
+                    signature=handler_signature,
+                )
+                }
 
                         <p class="small-label">Location</p>
                         <p>
@@ -1422,7 +1430,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_module_reference(
-        modules: Any,
+            modules: Any,
     ) -> str:
         if not isinstance(modules, list) or not modules:
             return (
@@ -1544,7 +1552,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_constants_table(
-        constants: Any,
+            constants: Any,
     ) -> str:
         if not isinstance(constants, list) or not constants:
             return ""
@@ -1592,8 +1600,8 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_function_blocks(
-        title: str,
-        functions: Any,
+            title: str,
+            functions: Any,
     ) -> str:
         if not isinstance(functions, list) or not functions:
             return ""
@@ -1611,6 +1619,13 @@ print(response.json())</code></pre>
             )
             returns = str(function.get("returns") or "")
 
+            if not docstring:
+                docstring = DocumentBuilder._build_function_purpose_sentence(
+                    name=name,
+                    signature=signature,
+                    returns=returns,
+                )
+
             parameters_html = DocumentBuilder._build_parameters_table(
                 function.get("arguments", []),
             )
@@ -1627,11 +1642,7 @@ print(response.json())</code></pre>
                     <h4><code>{escape(name)}</code></h4>
                     <code class="signature">{escape(signature)}</code>
 
-                    {
-                        f"<p>{escape(docstring)}</p>"
-                        if docstring
-                        else ""
-                    }
+                    <p>{escape(docstring)}</p>
 
                     <p class="small-label">Parameters</p>
                     {parameters_html}
@@ -1651,8 +1662,114 @@ print(response.json())</code></pre>
         """
 
     @staticmethod
+    def _build_function_purpose_sentence(
+            name: str,
+            signature: str,
+            returns: str,
+    ) -> str:
+        clean_name = name.strip()
+        readable_name = clean_name.strip("_").replace("_", " ")
+
+        if clean_name.startswith("_build_"):
+            subject = clean_name.replace("_build_", "").replace("_", " ")
+
+            return (
+                f"Builds the {subject} section or data structure used by "
+                f"the documentation generator. It returns "
+                f"{returns or 'a computed value'} for later rendering."
+            )
+
+        if clean_name.startswith("_extract_"):
+            subject = clean_name.replace("_extract_", "").replace("_", " ")
+
+            return (
+                f"Extracts {subject} information from parsed source-code "
+                f"metadata. This helper supports scanner, analyzer, or "
+                f"documentation reference generation."
+            )
+
+        if clean_name.startswith("_get_"):
+            subject = clean_name.replace("_get_", "").replace("_", " ")
+
+            return (
+                f"Retrieves {subject} from the provided input data and "
+                f"returns {returns or 'the resolved value'}."
+            )
+
+        if clean_name.startswith("_validate_"):
+            subject = clean_name.replace("_validate_", "").replace("_", " ")
+
+            return (
+                f"Validates {subject} before the workflow continues. "
+                f"This helps catch invalid input early and keeps downstream "
+                f"processing safe."
+            )
+
+        if clean_name.startswith("_compact_"):
+            subject = clean_name.replace("_compact_", "").replace("_", " ")
+
+            return (
+                f"Compacts {subject} metadata into a smaller structure "
+                f"suitable for context building or documentation rendering."
+            )
+
+        if clean_name.startswith("_normalize_"):
+            subject = clean_name.replace("_normalize_", "").replace("_", " ")
+
+            return (
+                f"Normalizes {subject} into a consistent representation "
+                f"used by the rest of the workflow."
+            )
+
+        if clean_name.startswith("_sanitize_"):
+            subject = clean_name.replace("_sanitize_", "").replace("_", " ")
+
+            return (
+                f"Sanitizes {subject} so it can be safely used in generated "
+                f"paths, file names, or rendered output."
+            )
+
+        if clean_name.startswith("_read_"):
+            subject = clean_name.replace("_read_", "").replace("_", " ")
+
+            return (
+                f"Reads {subject} from storage or input files and returns "
+                f"the parsed result for later processing."
+            )
+
+        if clean_name.startswith("_compare_"):
+            subject = clean_name.replace("_compare_", "").replace("_", " ")
+
+            return (
+                f"Compares {subject} between two project states and returns "
+                f"the detected changes."
+            )
+
+        if clean_name.startswith("_is_"):
+            subject = clean_name.replace("_is_", "").replace("_", " ")
+
+            return (
+                f"Checks whether the provided value matches the {subject} "
+                f"condition and returns a boolean result."
+            )
+
+        if clean_name.startswith("_should_"):
+            subject = clean_name.replace("_should_", "").replace("_", " ")
+
+            return (
+                f"Determines whether the workflow should {subject} for the "
+                f"provided input."
+            )
+
+        return (
+            f"Implements the {readable_name} operation for this module. "
+            f"It uses the provided parameters and returns "
+            f"{returns or 'a result'} used by the surrounding workflow."
+        )
+
+    @staticmethod
     def _build_class_blocks(
-        classes: Any,
+            classes: Any,
     ) -> str:
         if not isinstance(classes, list) or not classes:
             return ""
@@ -1685,10 +1802,10 @@ print(response.json())</code></pre>
                     <code class="signature">{escape(signature)}</code>
 
                     {
-                        f"<p>{escape(docstring)}</p>"
-                        if docstring
-                        else ""
-                    }
+                f"<p>{escape(docstring)}</p>"
+                if docstring
+                else ""
+                }
 
                     {attributes_html}
                     {methods_html}
@@ -1706,7 +1823,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_attributes_table(
-        attributes: Any,
+            attributes: Any,
     ) -> str:
         if not isinstance(attributes, list) or not attributes:
             return ""
@@ -1754,7 +1871,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_module_routes_table(
-        routes: Any,
+            routes: Any,
     ) -> str:
         if not isinstance(routes, list) or not routes:
             return ""
@@ -1806,7 +1923,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_parameters_table(
-        arguments: Any,
+            arguments: Any,
     ) -> str:
         if not isinstance(arguments, list) or not arguments:
             return (
@@ -1875,9 +1992,9 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_returns_block(
-        returns: str,
-        response_model: str,
-        status_code: str,
+            returns: str,
+            response_model: str,
+            status_code: str,
     ) -> str:
         rows: list[str] = []
 
@@ -1936,8 +2053,8 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_optional_signature(
-        label: str,
-        signature: str,
+            label: str,
+            signature: str,
     ) -> str:
         if not signature:
             return ""
@@ -1949,7 +2066,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_execution_flow(
-        execution_flow: Any,
+            execution_flow: Any,
     ) -> str:
         if not isinstance(execution_flow, list) or not execution_flow:
             return (
@@ -2016,14 +2133,14 @@ print(response.json())</code></pre>
             )
 
         return (
-            '<div class="flow-list">'
-            + "\n".join(cards)
-            + "</div>"
+                '<div class="flow-list">'
+                + "\n".join(cards)
+                + "</div>"
         )
 
     @staticmethod
     def _build_dependencies(
-        dependencies: Any,
+            dependencies: Any,
     ) -> str:
         if not isinstance(dependencies, list) or not dependencies:
             return (
@@ -2103,14 +2220,14 @@ print(response.json())</code></pre>
             )
 
         return (
-            '<div class="dependency-grid">'
-            + "\n".join(cards)
-            + "</div>"
+                '<div class="dependency-grid">'
+                + "\n".join(cards)
+                + "</div>"
         )
 
     @staticmethod
     def _build_troubleshooting(
-        risks: Any,
+            risks: Any,
     ) -> str:
         if not isinstance(risks, list) or not risks:
             return (
@@ -2179,15 +2296,15 @@ print(response.json())</code></pre>
             )
 
         return (
-            '<div class="risk-grid">'
-            + "\n".join(cards)
-            + "</div>"
+                '<div class="risk-grid">'
+                + "\n".join(cards)
+                + "</div>"
         )
 
     @staticmethod
     def _build_meta_chip(
-        label: str,
-        value: str,
+            label: str,
+            value: str,
     ) -> str:
         if not value:
             value = "Not available"
@@ -2201,7 +2318,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_pills(
-        values: Any,
+            values: Any,
     ) -> str:
         if not isinstance(values, list) or not values:
             return (
@@ -2228,14 +2345,14 @@ print(response.json())</code></pre>
             )
 
         return (
-            '<div class="pill-list">'
-            + pills
-            + "</div>"
+                '<div class="pill-list">'
+                + pills
+                + "</div>"
         )
 
     @staticmethod
     def _get_method_class(
-        method: str,
+            method: str,
     ) -> str:
         method = method.lower()
 
@@ -2258,7 +2375,7 @@ print(response.json())</code></pre>
 
     @staticmethod
     def _build_endpoint_example_json(
-        path: str,
+            path: str,
     ) -> str:
         normalized_path = path.strip()
 
@@ -2308,8 +2425,8 @@ print(response.json())"""
 
     @staticmethod
     def _build_import_example(
-        module_name: str,
-        symbols: Any,
+            module_name: str,
+            symbols: Any,
     ) -> str:
         safe_module = module_name.strip()
 
@@ -2335,7 +2452,7 @@ print(response.json())"""
 
     @staticmethod
     def _build_line_text(
-        line: str,
+            line: str,
     ) -> str:
         if not line:
             return ""
@@ -2344,7 +2461,7 @@ print(response.json())"""
 
     @staticmethod
     def _clean_llm_text(
-        text: str,
+            text: str,
     ) -> str:
         cleaned = text.strip()
 

@@ -1,0 +1,28 @@
+{
+  "document_id": "20260706_111354_56a6dd64",
+  "created_at": "2026-07-06T11:13:54.918236+00:00",
+  "project_name": "AutoDocX",
+  "scan_id": "20260706_111224_cef5ae13",
+  "understanding_id": "20260706_111354_67065f3a",
+  "document_type": "html",
+  "update_type": "version_update",
+  "previous_document_id": "20260706_105033_ba62706f",
+  "comparison_summary": {
+    "has_changes": true,
+    "total_changes": 12,
+    "added_files": 0,
+    "deleted_files": 0,
+    "modified_files": 1,
+    "added_symbols": 8,
+    "removed_symbols": 0,
+    "modified_symbols": 3,
+    "added_routes": 0,
+    "removed_routes": 0,
+    "modified_routes": 0,
+    "added_dependencies": 0,
+    "removed_dependencies": 0,
+    "modified_dependencies": 0
+  },
+  "document_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260706_111354_56a6dd64.html",
+  "metadata_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260706_111354_56a6dd64.json"
+}
