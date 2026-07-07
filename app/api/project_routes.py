@@ -308,7 +308,312 @@ def _build_runtime_context_from_blocks(
         "screenshots": screenshots,
     }
 
+def _has_runtime_context(
+    runtime_context: dict[str, Any] | None,
+) -> bool:
+    """
+    Check whether runtime context contains user/runtime
+    information worth carrying into documentation.
+    """
 
+    if not isinstance(runtime_context, dict):
+        return False
+
+    return bool(
+        runtime_context.get("additional_context")
+        or runtime_context.get("context_blocks")
+        or runtime_context.get("screenshots")
+    )
+
+
+def _get_runtime_context_from_document(
+    document_metadata: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """
+    Read runtime_context from a previous document metadata object.
+    """
+
+    if not isinstance(document_metadata, dict):
+        return {
+            "additional_context": None,
+            "context_blocks": [],
+            "screenshots": [],
+            "asset_batch_id": None,
+            "asset_directory": None,
+        }
+
+    runtime_context = document_metadata.get(
+        "runtime_context"
+    )
+
+    if not isinstance(runtime_context, dict):
+        return {
+            "additional_context": None,
+            "context_blocks": [],
+            "screenshots": [],
+            "asset_batch_id": None,
+            "asset_directory": None,
+        }
+
+    return runtime_context
+
+
+def _merge_runtime_contexts(
+    previous_runtime_context: dict[str, Any] | None,
+    new_runtime_context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """
+    Merge old runtime context with the newly submitted
+    runtime context.
+
+    This allows every new document version to carry
+    forward old screenshots/text and add new ones.
+    """
+
+    previous_context = (
+        previous_runtime_context
+        if isinstance(previous_runtime_context, dict)
+        else {}
+    )
+
+    current_context = (
+        new_runtime_context
+        if isinstance(new_runtime_context, dict)
+        else {}
+    )
+
+    merged_additional_context = (
+        _merge_additional_context(
+            previous_value=previous_context.get(
+                "additional_context"
+            ),
+            new_value=current_context.get(
+                "additional_context"
+            ),
+        )
+    )
+
+    merged_screenshots = (
+        _merge_screenshot_lists(
+            previous_screenshots=previous_context.get(
+                "screenshots",
+                [],
+            ),
+            new_screenshots=current_context.get(
+                "screenshots",
+                [],
+            ),
+        )
+    )
+
+    merged_context_blocks = (
+        _merge_context_blocks(
+            previous_blocks=previous_context.get(
+                "context_blocks",
+                [],
+            ),
+            new_blocks=current_context.get(
+                "context_blocks",
+                [],
+            ),
+        )
+    )
+
+    return {
+        "additional_context": merged_additional_context,
+        "context_blocks": merged_context_blocks,
+        "screenshots": merged_screenshots,
+        "runtime_understanding": None,
+        "asset_batch_id": (
+            current_context.get("asset_batch_id")
+            or previous_context.get("asset_batch_id")
+        ),
+        "asset_directory": (
+            current_context.get("asset_directory")
+            or previous_context.get("asset_directory")
+        ),
+    }
+
+
+def _merge_additional_context(
+    previous_value: Any,
+    new_value: Any,
+) -> str | None:
+    previous_text = str(
+        previous_value or ""
+    ).strip()
+
+    new_text = str(
+        new_value or ""
+    ).strip()
+
+    if not previous_text and not new_text:
+        return None
+
+    if previous_text and not new_text:
+        return previous_text
+
+    if new_text and not previous_text:
+        return new_text
+
+    if previous_text == new_text:
+        return previous_text
+
+    if new_text in previous_text:
+        return previous_text
+
+    if previous_text in new_text:
+        return new_text
+
+    return (
+        previous_text
+        + "\n\n"
+        + new_text
+    )
+
+
+def _merge_context_blocks(
+    previous_blocks: Any,
+    new_blocks: Any,
+) -> list[dict[str, Any]]:
+    merged_blocks: list[dict[str, Any]] = []
+    seen_signatures: set[str] = set()
+
+    for block in _safe_dict_list(previous_blocks):
+        signature = _context_block_signature(
+            block
+        )
+
+        if signature in seen_signatures:
+            continue
+
+        seen_signatures.add(signature)
+        merged_blocks.append(block)
+
+    for block in _safe_dict_list(new_blocks):
+        signature = _context_block_signature(
+            block
+        )
+
+        if signature in seen_signatures:
+            continue
+
+        seen_signatures.add(signature)
+        merged_blocks.append(block)
+
+    return merged_blocks
+
+
+def _merge_screenshot_lists(
+    previous_screenshots: Any,
+    new_screenshots: Any,
+) -> list[dict[str, Any]]:
+    merged_screenshots: list[dict[str, Any]] = []
+    seen_signatures: set[str] = set()
+
+    for screenshot in _safe_dict_list(
+        previous_screenshots
+    ):
+        signature = _screenshot_signature(
+            screenshot
+        )
+
+        if signature in seen_signatures:
+            continue
+
+        seen_signatures.add(signature)
+        merged_screenshots.append(screenshot)
+
+    for screenshot in _safe_dict_list(
+        new_screenshots
+    ):
+        signature = _screenshot_signature(
+            screenshot
+        )
+
+        if signature in seen_signatures:
+            continue
+
+        seen_signatures.add(signature)
+        merged_screenshots.append(screenshot)
+
+    return merged_screenshots
+
+
+def _safe_dict_list(
+    value: Any,
+) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        return []
+
+    return [
+        item
+        for item in value
+        if isinstance(item, dict)
+    ]
+
+
+def _context_block_signature(
+    block: dict[str, Any],
+) -> str:
+    title = str(
+        block.get("title", "")
+        or ""
+    ).strip().lower()
+
+    text = str(
+        block.get("text", "")
+        or ""
+    ).strip().lower()
+
+    screenshot = block.get(
+        "screenshot"
+    )
+
+    screenshot_key = ""
+
+    if isinstance(screenshot, dict):
+        screenshot_key = _screenshot_signature(
+            screenshot
+        )
+
+    return (
+        title
+        + "|"
+        + text
+        + "|"
+        + screenshot_key
+    )
+
+
+def _screenshot_signature(
+    screenshot: dict[str, Any],
+) -> str:
+    """
+    Build a stable signature for deduping screenshots.
+
+    asset_file/html_src is more reliable than screenshot_id
+    because each upload batch can reuse screenshot_001.
+    """
+
+    return "|".join(
+        [
+            str(
+                screenshot.get("asset_file", "")
+                or ""
+            ).strip(),
+            str(
+                screenshot.get("html_src", "")
+                or screenshot.get("relative_path", "")
+                or ""
+            ).strip(),
+            str(
+                screenshot.get("original_filename", "")
+                or screenshot.get("filename", "")
+                or ""
+            ).strip(),
+        ]
+    ).lower()
 
 
 def _analyze_runtime_context_with_llm(
@@ -1150,31 +1455,11 @@ def sync_project_documentation_with_context(
             )
         )
 
-        has_runtime_context = bool(
-            runtime_context.get(
-                "additional_context"
-            )
-            or runtime_context.get(
-                "context_blocks"
-            )
-            or runtime_context.get(
-                "screenshots"
+        has_new_runtime_context = (
+            _has_runtime_context(
+                runtime_context=runtime_context,
             )
         )
-
-        runtime_understanding = None
-
-        if has_runtime_context:
-            runtime_understanding = (
-                _analyze_runtime_context_with_llm(
-                    stored_scan=new_stored_scan,
-                    runtime_context=runtime_context,
-                )
-            )
-
-        runtime_context[
-            "runtime_understanding"
-        ] = runtime_understanding
 
 
 
@@ -1199,6 +1484,14 @@ def sync_project_documentation_with_context(
             ) = _generate_and_save_understanding(
                 stored_scan=new_stored_scan,
             )
+
+            if has_new_runtime_context:
+                runtime_context[
+                    "runtime_understanding"
+                ] = _analyze_runtime_context_with_llm(
+                    stored_scan=new_stored_scan,
+                    runtime_context=runtime_context,
+                )
 
             new_document = (
                 _generate_and_save_document(
@@ -1247,6 +1540,27 @@ def sync_project_documentation_with_context(
 
         latest_document = (
             existing_documents[0]
+        )
+
+        previous_runtime_context = (
+            _get_runtime_context_from_document(
+                document_metadata=latest_document,
+            )
+        )
+
+        merged_runtime_context = (
+            _merge_runtime_contexts(
+                previous_runtime_context=(
+                    previous_runtime_context
+                ),
+                new_runtime_context=runtime_context,
+            )
+        )
+
+        has_merged_runtime_context = (
+            _has_runtime_context(
+                runtime_context=merged_runtime_context,
+            )
         )
 
         previous_document_id = str(
@@ -1317,8 +1631,8 @@ def sync_project_documentation_with_context(
         )
 
         should_create_new_version = (
-            has_code_changes
-            or has_runtime_context
+                has_code_changes
+                or has_new_runtime_context
         )
 
         # ----------------------------------------------------
@@ -1367,6 +1681,15 @@ def sync_project_documentation_with_context(
             "version_update"
         )
 
+
+        if has_merged_runtime_context:
+            merged_runtime_context[
+                "runtime_understanding"
+            ] = _analyze_runtime_context_with_llm(
+                stored_scan=new_stored_scan,
+                runtime_context=merged_runtime_context,
+            )
+
         new_document = (
             _generate_and_save_document(
                 project_name=project_name,
@@ -1384,9 +1707,10 @@ def sync_project_documentation_with_context(
                 comparison_summary=(
                     comparison_summary
                 ),
-                runtime_context=runtime_context,
+                runtime_context=merged_runtime_context,
             )
         )
+
 
         new_document_id = str(
             new_document.get(
