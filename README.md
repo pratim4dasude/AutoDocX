@@ -1,10 +1,9 @@
 # AutoDocX
 
 AutoDocX is a local documentation automation tool for Python projects. It scans a codebase, understands the source structure, detects what changed, and generates clean versioned HTML documentation that stays close to the real implementation.
+> The idea is simple: developers should not need to manually rewrite documentation every time the code changes. AutoDocX turns the current project state into readable developer documentation and keeps a history of generated versions.
 
-The idea is simple: developers should not need to manually rewrite documentation every time the code changes. AutoDocX turns the current project state into readable developer documentation and keeps a history of generated versions.
-
-It is built as a local FastAPI + Streamlit system where the user provides a project path, triggers a documentation sync, and receives an updated HTML document for the project.
+> It is built as a local FastAPI + Streamlit system where the user provides a project path, triggers a documentation sync, and receives an updated HTML document for the project.
 
 ---
 
@@ -44,54 +43,87 @@ It is useful for:
 ## Architecture
 
 ```text
-                         +-----------------------------+
-                         |          DEVELOPER           |
-                         |  enters project path + sync  |
-                         +--------------+--------------+
-                                        |
-                                        v
+## Architecture
+
+```text
+                              +----------------------+
+                              |      Developer       |
+                              |  Project path + sync |
+                              +----------+-----------+
+                                         |
+                                         v
 +--------------------------------------------------------------------------------+
-|                                STREAMLIT UI                                    |
-|  project input  |  sync trigger  |  status display  |  generated docs access   |
-+---------------------------------------+----------------------------------------+
-                                        |
-                                        | REST request
-                                        v
-+--------------------------------------------------------------------------------+
-|                                FASTAPI BACKEND                                 |
-|  request validation  |  project scan API  |  documentation sync API           |
-+---------------------------------------+----------------------------------------+
-                                        |
-                                        v
-+--------------------------------------------------------------------------------+
-|                         DOCUMENTATION SYNC ENGINE                              |
+|                               Interface Layer                                  |
 |                                                                                |
-|   +-------------+      +--------------+      +-----------------------------+   |
-|   |   Scanner   | ---> |   Analyzer   | ---> |   Project Knowledge Builder |   |
-|   | files/meta  |      | AST/code map |      | summaries + function flows  |   |
-|   +------+------+      +------+-------+      +-------------+---------------+   |
-|          |                    |                            |                   |
-|          v                    v                            v                   |
-|   +-------------+      +--------------+      +-----------------------------+   |
-|   | State Store | ---> | Change Diff  | ---> |   Documentation Generator   |   |
-|   | old hashes  |      | add/mod/del  |      | HTML sections + summaries   |   |
-|   +------+------+      +------+-------+      +-------------+---------------+   |
-|          |                    |                            |                   |
-+----------+--------------------+----------------------------+-------------------+
-                                        |
-                                        v
+|   +------------------+        +------------------+        +------------------+ |
+|   |  Streamlit UI    | -----> |  API Client      | -----> |  Status Viewer   | |
+|   +------------------+        +------------------+        +------------------+ |
++----------------------------------------+---------------------------------------+
+                                         |
+                                         v
 +--------------------------------------------------------------------------------+
-|                              OUTPUT LAYER                                      |
-|  latest.html  |  versioned HTML docs  |  project_state.json  |  sync metadata   |
-+---------------------------------------+----------------------------------------+
-                                        |
-                                        v
+|                                  API Layer                                     |
+|                                                                                |
+|   +------------------+        +------------------+        +------------------+ |
+|   |  FastAPI App     | -----> |  Sync Endpoint   | -----> |  Error Handler   | |
+|   +------------------+        +------------------+        +------------------+ |
++----------------------------------------+---------------------------------------+
+                                         |
+                                         v
 +--------------------------------------------------------------------------------+
-|                              RESPONSE TO UI                                    |
-|  status  |  changed files  |  documentation path  |  version information       |
+|                              Sync Orchestration                                |
+|                                                                                |
+|   +------------------+        +------------------+        +------------------+ |
+|   | Path Validator   | -----> | Sync Controller  | -----> | Result Builder   | |
+|   +------------------+        +------------------+        +------------------+ |
++----------------------------------------+---------------------------------------+
+                                         |
+                                         v
++--------------------------------------------------------------------------------+
+|                              Code Intelligence                                 |
+|                                                                                |
+|   +------------------+        +------------------+        +------------------+ |
+|   | Project Scanner  | -----> | Python Analyzer  | -----> | Flow Extractor   | |
+|   +------------------+        +------------------+        +------------------+ |
+|            |                         |                          |              |
+|            v                         v                          v              |
+|   +------------------+        +------------------+        +------------------+ |
+|   | File Metadata    |        | Classes/Functions|        | Main Call Flow   | |
+|   +------------------+        +------------------+        +------------------+ |
++----------------------------------------+---------------------------------------+
+                                         |
+                                         v
++--------------------------------------------------------------------------------+
+|                              Change Intelligence                               |
+|                                                                                |
+|   +------------------+        +------------------+        +------------------+ |
+|   | Previous State   | -----> | Change Detector  | -----> | Changed File Set | |
+|   +------------------+        +------------------+        +------------------+ |
++----------------------------------------+---------------------------------------+
+                                         |
+                                         v
++--------------------------------------------------------------------------------+
+|                            Documentation Engine                                |
+|                                                                                |
+|   +------------------+        +------------------+        +----------------+   |
+|   | Project Summary  | -----> | Module Docs      | -----> | Function Docs  |   |
+|   +------------------+        +------------------+        +----------------+   |
+|                                                                  |             |
+|                                                                  v             |
+|                                                       +------------------+     |
+|                                                       | HTML Generator   |     |
+|                                                       +------------------+     |
++----------------------------------------+---------------------------------------+
+                                         |
+                                         v
++--------------------------------------------------------------------------------+
+|                              Output Layer                                      |
+|                                                                                |
+|   +------------------+        +------------------+        +------------------+ |
+|   | latest.html      |        | Versioned Docs   |        | project_state    | |
+|   +------------------+        +------------------+        +------------------+ |
 +--------------------------------------------------------------------------------+
 ```
-
 ---
 
 ## How it works
