@@ -188,6 +188,87 @@ class DocumentGenerationRequest(
         ),
     )
 
+class RuntimeScreenshotInfo(BaseModel):
+    screenshot_id: str
+    original_filename: str
+    filename: str
+    content_type: str | None = None
+    asset_file: str
+    relative_path: str
+    html_src: str
+    description: str | None = None
+
+class RuntimeToolInfo(BaseModel):
+    tool: str
+    purpose: str
+    evidence: str | None = None
+
+
+class RuntimeFlowStepInfo(BaseModel):
+    step: int
+    title: str
+    description: str
+    evidence: str | None = None
+
+
+class RuntimeScreenshotInsightInfo(BaseModel):
+    title: str
+    what_it_shows: str
+    why_it_matters: str
+
+
+class RuntimeRiskOrGapInfo(BaseModel):
+    title: str
+    description: str
+    severity: str = "low"
+
+
+class RuntimeUnderstandingInfo(BaseModel):
+    runtime_summary: str
+
+    tooling_stack: list[RuntimeToolInfo] = Field(
+        default_factory=list
+    )
+
+    runtime_flow: list[RuntimeFlowStepInfo] = Field(
+        default_factory=list
+    )
+
+    screenshot_insights: list[RuntimeScreenshotInsightInfo] = Field(
+        default_factory=list
+    )
+
+    operational_notes: list[str] = Field(
+        default_factory=list
+    )
+
+    risks_or_gaps: list[RuntimeRiskOrGapInfo] = Field(
+        default_factory=list
+    )
+
+
+class RuntimeContextBlockInfo(BaseModel):
+    title: str
+    text: str | None = None
+    screenshot: RuntimeScreenshotInfo | None = None
+
+class RuntimeContextInfo(BaseModel):
+    additional_context: str | None = None
+
+    context_blocks: list[RuntimeContextBlockInfo] = Field(
+        default_factory=list
+    )
+
+    screenshots: list[RuntimeScreenshotInfo] = Field(
+        default_factory=list
+    )
+
+    runtime_understanding: RuntimeUnderstandingInfo | None = None
+
+    asset_batch_id: str | None = None
+
+    asset_directory: str | None = None
+
 
 class DocumentStorageInfo(
     BaseModel
@@ -208,7 +289,7 @@ class DocumentStorageInfo(
     comparison_summary: (
         dict[str, Any] | None
     ) = None
-
+    runtime_context: RuntimeContextInfo | None = None
     document_file: str
     metadata_file: str
 
@@ -231,7 +312,7 @@ class DocumentSummaryResponse(
     document_type: str
 
     update_type: str = "initial"
-
+    runtime_context: RuntimeContextInfo | None = None
     previous_document_id: (
         str | None
     ) = None

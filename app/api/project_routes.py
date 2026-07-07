@@ -1,12 +1,17 @@
 from typing import Any
-
+import json
 from fastapi import (
     APIRouter,
+    File,
+    Form,
     HTTPException,
+    UploadFile,
     status,
 )
-from fastapi.responses import FileResponse
 
+from fastapi.responses import FileResponse
+import tempfile
+from pathlib import Path
 from app.core.config import (
     get_llm_api_key,
     get_llm_model,
@@ -57,7 +62,9 @@ from app.services.scan_storage import (
 from app.services.understanding_storage import (
     UnderstandingStorage,
 )
-
+from app.services.runtime_context_analyzer import (
+    RuntimeContextAnalyzer,
+)
 
 router = APIRouter(
     prefix="/api/projects",
@@ -80,11 +87,274 @@ understanding_storage = (
 
 document_builder = DocumentBuilder()
 document_storage = DocumentStorage()
+runtime_context_analyzer = RuntimeContextAnalyzer()
 
 
 # ============================================================
 # Helper functions
 # ============================================================
+
+def _parse_context_blocks_json(
+    context_blocks_json: str,
+) -> list[dict[str, Any]]:
+    """
+    Parse ordered runtime context blocks sent by
+    the Streamlit UI.
+
+    Expected JSON format:
+
+    [
+        {
+            "title": "Docker runtime",
+            "text": "This shows Docker containers.",
+            "screenshot_index": 0
+        },
+        {
+            "title": "Temporal workflow",
+            "text": "This shows Temporal execution.",
+            "screenshot_index": 1
+        }
+    ]
+    """
+
+    cleaned_json = (
+        context_blocks_json
+        or ""
+    ).strip()
+
+    if not cleaned_json:
+        return []
+
+    try:
+        parsed_data = json.loads(
+            cleaned_json
+        )
+
+    except json.JSONDecodeError as error:
+        raise ValueError(
+            "context_blocks_json must be valid JSON."
+        ) from error
+
+    if not isinstance(parsed_data, list):
+        raise ValueError(
+            "context_blocks_json must be a JSON list."
+        )
+
+    context_blocks: list[
+        dict[str, Any]
+    ] = []
+
+    for index, item in enumerate(
+        parsed_data,
+        start=1,
+    ):
+        if not isinstance(item, dict):
+            continue
+
+        title = str(
+            item.get(
+                "title",
+                f"Runtime context {index}",
+            )
+            or f"Runtime context {index}"
+        ).strip()
+
+        text = str(
+            item.get(
+                "text",
+                "",
+            )
+            or ""
+        ).strip()
+
+        screenshot_index = item.get(
+            "screenshot_index"
+        )
+
+        if screenshot_index is not None:
+            try:
+                screenshot_index = int(
+                    screenshot_index
+                )
+
+            except (
+                TypeError,
+                ValueError,
+            ):
+                screenshot_index = None
+
+        if (
+            not title
+            and not text
+            and screenshot_index is None
+        ):
+            continue
+
+        context_blocks.append(
+            {
+                "title": title,
+                "text": text,
+                "screenshot_index": (
+                    screenshot_index
+                ),
+            }
+        )
+
+    return context_blocks
+
+
+def _build_runtime_context_from_blocks(
+    additional_context: str,
+    context_blocks_json: str,
+    runtime_assets: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Build the final runtime context object used
+    by DocumentBuilder and DocumentStorage.
+
+    This connects each context block to the correct
+    uploaded/pasted screenshot using screenshot_index.
+    """
+
+    screenshots = runtime_assets.get(
+        "screenshots",
+        [],
+    )
+
+    if not isinstance(screenshots, list):
+        screenshots = []
+
+    parsed_blocks = (
+        _parse_context_blocks_json(
+            context_blocks_json=(
+                context_blocks_json
+            ),
+        )
+    )
+
+    context_blocks: list[
+        dict[str, Any]
+    ] = []
+
+    for index, block in enumerate(
+        parsed_blocks,
+        start=1,
+    ):
+        title = str(
+            block.get(
+                "title",
+                f"Runtime context {index}",
+            )
+            or f"Runtime context {index}"
+        ).strip()
+
+        text = str(
+            block.get(
+                "text",
+                "",
+            )
+            or ""
+        ).strip()
+
+        screenshot_index = block.get(
+            "screenshot_index"
+        )
+
+        screenshot = None
+
+        if isinstance(
+            screenshot_index,
+            int,
+        ):
+            if (
+                screenshot_index >= 0
+                and screenshot_index < len(screenshots)
+            ):
+                screenshot = screenshots[
+                    screenshot_index
+                ]
+
+        if (
+            not title
+            and not text
+            and screenshot is None
+        ):
+            continue
+
+        context_blocks.append(
+            {
+                "title": title,
+                "text": text,
+                "screenshot": screenshot,
+            }
+        )
+
+    return {
+        "additional_context": (
+            additional_context.strip()
+            or None
+        ),
+        "context_blocks": context_blocks,
+        "asset_batch_id": (
+            runtime_assets.get(
+                "asset_batch_id"
+            )
+        ),
+        "asset_directory": (
+            runtime_assets.get(
+                "asset_directory"
+            )
+        ),
+        "screenshots": screenshots,
+    }
+
+
+
+
+def _analyze_runtime_context_with_llm(
+    stored_scan: dict[str, Any],
+    runtime_context: dict[str, Any],
+) -> dict[str, Any] | None:
+    """
+    Analyze runtime/tooling context using the configured
+    vision-capable LLM.
+
+    This uses project scan context, user-written notes,
+    and screenshots together.
+    """
+
+    has_runtime_context = bool(
+        runtime_context.get(
+            "additional_context"
+        )
+        or runtime_context.get(
+            "context_blocks"
+        )
+        or runtime_context.get(
+            "screenshots"
+        )
+    )
+
+    if not has_runtime_context:
+        return None
+
+    provider_name = get_llm_provider()
+
+    api_key = get_llm_api_key(
+        provider_name=provider_name,
+    )
+
+    model_name = get_llm_model(
+        provider_name=provider_name,
+    )
+
+    return runtime_context_analyzer.analyze(
+        stored_scan=stored_scan,
+        runtime_context=runtime_context,
+        provider_name=provider_name,
+        api_key=api_key,
+        model=model_name,
+    )
 
 
 def _contains_non_empty_change(
@@ -274,6 +544,9 @@ def _generate_and_save_document(
     comparison_summary: (
         dict[str, Any] | None
     ) = None,
+    runtime_context: (
+        dict[str, Any] | None
+    ) = None,
 ) -> dict[str, Any]:
     """
     Build HTML from a stored understanding and
@@ -285,6 +558,7 @@ def _generate_and_save_document(
             stored_understanding=(
                 stored_understanding
             ),
+            runtime_context=runtime_context,
         )
     )
 
@@ -300,9 +574,97 @@ def _generate_and_save_document(
         comparison_summary=(
             comparison_summary
         ),
+        runtime_context=runtime_context,
     )
 
+def _save_uploaded_screenshots_to_temp(
+    screenshots: list[UploadFile] | None,
+) -> list[dict[str, Any]]:
+    """
+    Save FastAPI UploadFile screenshots to temporary
+    files so DocumentStorage can copy them into the
+    project asset directory.
+    """
 
+    saved_files: list[dict[str, Any]] = []
+    for screenshot in screenshots or []:
+        original_filename = (
+            screenshot.filename or ""
+        ).strip()
+
+        if not original_filename:
+            continue
+
+        suffix = Path(
+            original_filename
+        ).suffix.lower()
+
+        if suffix not in {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".webp",
+        }:
+            continue
+
+        try:
+            with tempfile.NamedTemporaryFile(
+                delete=False,
+                suffix=suffix,
+            ) as temp_file:
+                temp_path = Path(
+                    temp_file.name
+                )
+
+                while True:
+                    chunk = screenshot.file.read(
+                        1024 * 1024
+                    )
+
+                    if not chunk:
+                        break
+
+                    temp_file.write(chunk)
+
+            saved_files.append(
+                {
+                    "filename": original_filename,
+                    "content_type": (
+                        screenshot.content_type
+                    ),
+                    "file_path": temp_path,
+                }
+            )
+
+        finally:
+            screenshot.file.close()
+
+    return saved_files
+
+
+def _cleanup_temp_files(
+    temp_files: list[dict[str, Any]],
+) -> None:
+    """
+    Remove temporary upload files after they have
+    been copied into document storage.
+    """
+
+    for file_item in temp_files:
+        file_path = file_item.get(
+            "file_path"
+        )
+
+        if file_path is None:
+            continue
+
+        try:
+            Path(file_path).unlink(
+                missing_ok=True
+            )
+
+        except OSError:
+            pass
 
 # ============================================================
 # Complete documentation synchronization endpoint
@@ -654,6 +1016,450 @@ def sync_project_documentation(
 # Scan endpoints
 # ============================================================
 
+@router.post(
+    "/documentation/sync-with-context",
+    response_model=DocumentationSyncResponse,
+    status_code=status.HTTP_200_OK,
+    summary=(
+        "Create or update project documentation "
+        "with extra runtime context and screenshots"
+    ),
+)
+def sync_project_documentation_with_context(
+    project_path: str = Form(
+        ...,
+        min_length=1,
+        description=(
+            "Absolute path of the project whose "
+            "documentation should be created "
+            "or updated"
+        ),
+    ),
+    additional_context: str = Form(
+        default="",
+        description=(
+                "Optional general project context that is "
+                "not visible from source code."
+        ),
+    ),
+    context_blocks_json: str = Form(
+        default="[]",
+        description=(
+                "JSON list of ordered runtime context blocks. "
+                "Each block can contain title, text, and "
+                "screenshot_index."
+        ),
+    ),
+    screenshots: list[UploadFile] | None = File(
+        default=None,
+        description=(
+            "Optional screenshots from Docker, Temporal, "
+            "Swagger, Cortex, ServiceNow, dashboards, logs, "
+            "or other project tooling."
+        ),
+    ),
+) -> DocumentationSyncResponse:
+    """
+    Complete documentation workflow with external
+    runtime/tooling context.
+
+    This endpoint keeps the original code documentation
+    pipeline but also accepts human-written context and
+    screenshots. The extra context is added to the final
+    HTML documentation under Runtime and Tooling Context.
+    """
+
+    temp_files: list[dict[str, Any]] = []
+
+    try:
+        # ----------------------------------------------------
+        # Step 1: Scan the project
+        # ----------------------------------------------------
+
+        scan_result = (
+            project_scanner.scan_project(
+                project_path=project_path,
+            )
+        )
+
+        scan_storage_info = (
+            scan_storage.save_scan(
+                scan_result=scan_result,
+            )
+        )
+
+        project_name = str(
+            scan_result.get(
+                "project_name",
+                "",
+            )
+        ).strip()
+
+        new_scan_id = str(
+            scan_storage_info.get(
+                "scan_id",
+                "",
+            )
+        ).strip()
+
+        if not project_name:
+            raise RuntimeError(
+                "The project scan did not return "
+                "a project name."
+            )
+
+        if not new_scan_id:
+            raise RuntimeError(
+                "The project scan was saved "
+                "without a scan ID."
+            )
+
+        new_stored_scan = (
+            scan_storage.get_scan(
+                project_name=project_name,
+                scan_id=new_scan_id,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Step 2: Save uploaded screenshots
+        # ----------------------------------------------------
+
+        temp_files = (
+            _save_uploaded_screenshots_to_temp(
+                screenshots=screenshots,
+            )
+        )
+
+        runtime_assets = (
+            document_storage.prepare_runtime_assets(
+                project_name=project_name,
+                files=temp_files,
+            )
+        )
+
+        runtime_context = (
+            _build_runtime_context_from_blocks(
+                additional_context=(
+                    additional_context
+                ),
+                context_blocks_json=(
+                    context_blocks_json
+                ),
+                runtime_assets=runtime_assets,
+            )
+        )
+
+        has_runtime_context = bool(
+            runtime_context.get(
+                "additional_context"
+            )
+            or runtime_context.get(
+                "context_blocks"
+            )
+            or runtime_context.get(
+                "screenshots"
+            )
+        )
+
+        runtime_understanding = None
+
+        if has_runtime_context:
+            runtime_understanding = (
+                _analyze_runtime_context_with_llm(
+                    stored_scan=new_stored_scan,
+                    runtime_context=runtime_context,
+                )
+            )
+
+        runtime_context[
+            "runtime_understanding"
+        ] = runtime_understanding
+
+
+
+        # ----------------------------------------------------
+        # Step 3: Find existing documentation
+        # ----------------------------------------------------
+
+        existing_documents = (
+            document_storage.list_documents(
+                project_name=project_name,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Step 4: No previous document - create initial doc
+        # ----------------------------------------------------
+
+        if not existing_documents:
+            (
+                understanding_id,
+                stored_understanding,
+            ) = _generate_and_save_understanding(
+                stored_scan=new_stored_scan,
+            )
+
+            new_document = (
+                _generate_and_save_document(
+                    project_name=project_name,
+                    scan_id=new_scan_id,
+                    understanding_id=(
+                        understanding_id
+                    ),
+                    stored_understanding=(
+                        stored_understanding
+                    ),
+                    update_type="initial",
+                    runtime_context=runtime_context,
+                )
+            )
+
+            document_id = str(
+                new_document.get(
+                    "document_id",
+                    "",
+                )
+            )
+
+            return DocumentationSyncResponse(
+                action="created",
+                message=(
+                    "Initial project documentation "
+                    "was created successfully with "
+                    "runtime context."
+                ),
+                project_name=project_name,
+                scan_id=new_scan_id,
+                previous_document_id=None,
+                document_id=document_id,
+                understanding_id=(
+                    understanding_id
+                ),
+                has_changes=True,
+                comparison_summary={},
+                document=new_document,
+            )
+
+        # ----------------------------------------------------
+        # Step 5: Read latest document information
+        # ----------------------------------------------------
+
+        latest_document = (
+            existing_documents[0]
+        )
+
+        previous_document_id = str(
+            latest_document.get(
+                "document_id",
+                "",
+            )
+        ).strip()
+
+        old_scan_id = str(
+            latest_document.get(
+                "scan_id",
+                "",
+            )
+        ).strip()
+
+        previous_understanding_id = str(
+            latest_document.get(
+                "understanding_id",
+                "",
+            )
+        ).strip()
+
+        if not previous_document_id:
+            raise RuntimeError(
+                "The latest document does not "
+                "contain a document ID."
+            )
+
+        if not old_scan_id:
+            raise RuntimeError(
+                "The latest document does not "
+                "contain its original scan ID."
+            )
+
+        old_stored_scan = (
+            scan_storage.get_scan(
+                project_name=project_name,
+                scan_id=old_scan_id,
+            )
+        )
+
+        # ----------------------------------------------------
+        # Step 6: Compare old and new scans
+        # ----------------------------------------------------
+
+        comparison_result = (
+            scan_comparator.compare_scans(
+                old_stored_scan=old_stored_scan,
+                new_stored_scan=new_stored_scan,
+            )
+        )
+
+        comparison_summary = (
+            comparison_result.get(
+                "summary",
+                {},
+            )
+        )
+
+        has_code_changes = bool(
+            comparison_summary.get(
+                "has_changes",
+                comparison_contains_changes(
+                    comparison_result
+                ),
+            )
+        )
+
+        should_create_new_version = (
+            has_code_changes
+            or has_runtime_context
+        )
+
+        # ----------------------------------------------------
+        # Step 7: No changes and no context - return latest
+        # ----------------------------------------------------
+
+        if not should_create_new_version:
+            return DocumentationSyncResponse(
+                action="unchanged",
+                message=(
+                    "No project changes or runtime "
+                    "context updates were detected. "
+                    "The existing documentation is current."
+                ),
+                project_name=project_name,
+                scan_id=new_scan_id,
+                previous_document_id=(
+                    previous_document_id
+                ),
+                document_id=(
+                    previous_document_id
+                ),
+                understanding_id=(
+                    previous_understanding_id
+                    or None
+                ),
+                has_changes=False,
+                comparison_summary=(
+                    comparison_summary
+                ),
+                document=latest_document,
+            )
+
+        # ----------------------------------------------------
+        # Step 8: Create new documentation version
+        # ----------------------------------------------------
+
+        (
+            new_understanding_id,
+            stored_understanding,
+        ) = _generate_and_save_understanding(
+            stored_scan=new_stored_scan,
+        )
+
+        update_type = (
+            "version_update"
+        )
+
+        new_document = (
+            _generate_and_save_document(
+                project_name=project_name,
+                scan_id=new_scan_id,
+                understanding_id=(
+                    new_understanding_id
+                ),
+                stored_understanding=(
+                    stored_understanding
+                ),
+                update_type=update_type,
+                previous_document_id=(
+                    previous_document_id
+                ),
+                comparison_summary=(
+                    comparison_summary
+                ),
+                runtime_context=runtime_context,
+            )
+        )
+
+        new_document_id = str(
+            new_document.get(
+                "document_id",
+                "",
+            )
+        )
+
+        return DocumentationSyncResponse(
+            action="updated",
+            message=(
+                "A new documentation version was "
+                "created with the latest code state "
+                "and runtime context."
+            ),
+            project_name=project_name,
+            scan_id=new_scan_id,
+            previous_document_id=(
+                previous_document_id
+            ),
+            document_id=new_document_id,
+            understanding_id=(
+                new_understanding_id
+            ),
+            has_changes=True,
+            comparison_summary=(
+                comparison_summary
+            ),
+            document=new_document,
+        )
+
+    except ValueError as error:
+        error_message = str(error)
+
+        raise HTTPException(
+            status_code=_value_error_status(
+                error_message
+            ),
+            detail=error_message,
+        ) from error
+
+    except PermissionError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_403_FORBIDDEN
+            ),
+            detail=f"Permission denied: {error}",
+        ) from error
+
+    except RuntimeError as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_502_BAD_GATEWAY
+            ),
+            detail=str(error),
+        ) from error
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_500_INTERNAL_SERVER_ERROR
+            ),
+            detail=(
+                "Documentation synchronization "
+                "with runtime context failed: "
+                f"{error}"
+            ),
+        ) from error
+
+    finally:
+        _cleanup_temp_files(
+            temp_files=temp_files,
+        )
 
 @router.post(
     "/scan",

@@ -1,5 +1,6 @@
 import json
 import re
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -12,9 +13,17 @@ from app.core.config import (
 
 class DocumentStorage:
     """
-    Stores generated HTML documentation files
-    and their metadata.
+    Stores generated HTML documentation files,
+    document metadata, and optional runtime
+    context assets such as uploaded screenshots.
     """
+
+    ALLOWED_SCREENSHOT_EXTENSIONS = {
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+    }
 
     def __init__(
         self,
@@ -40,10 +49,20 @@ class DocumentStorage:
         html_content: str,
         previous_document_id: str | None = None,
         update_type: str = "initial",
-        comparison_summary: (
-            dict[str, Any] | None
-        ) = None,
+        comparison_summary: dict[str, Any] | None = None,
+        runtime_context: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        """
+        Save one generated HTML document and its
+        metadata.
+
+        runtime_context is optional and is used for
+        extra project information that is not visible
+        from code alone, such as Docker, Temporal,
+        Cortex, ServiceNow, screenshots, dashboards,
+        or deployment notes.
+        """
+
         if not project_name.strip():
             raise ValueError(
                 "Project name is required."
@@ -76,24 +95,14 @@ class DocumentStorage:
             timezone.utc
         )
 
-        document_id = (
-            created_at.strftime(
-                "%Y%m%d_%H%M%S"
-            )
-            + "_"
-            + uuid4().hex[:8]
+        document_id = self.create_document_id(
+            created_at=created_at,
         )
 
         project_directory = (
-            self.storage_path
-            / self._sanitize_name(
-                project_name
+            self.get_project_directory(
+                project_name=project_name,
             )
-        )
-
-        project_directory.mkdir(
-            parents=True,
-            exist_ok=True,
         )
 
         html_file = (
@@ -118,6 +127,12 @@ class DocumentStorage:
             )
         )
 
+        normalized_runtime_context = (
+            self._normalize_runtime_context(
+                runtime_context=runtime_context,
+            )
+        )
+
         metadata: dict[str, Any] = {
             "document_id": document_id,
             "created_at": (
@@ -135,6 +150,9 @@ class DocumentStorage:
             ),
             "comparison_summary": (
                 comparison_summary
+            ),
+            "runtime_context": (
+                normalized_runtime_context
             ),
             "document_file": str(
                 html_file
@@ -182,6 +200,228 @@ class DocumentStorage:
             ) from error
 
         return metadata
+
+    def prepare_runtime_assets(
+        self,
+        project_name: str,
+        files: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Save uploaded screenshot files under the
+        project document assets directory.
+
+        Expected file item format:
+
+        {
+            "filename": "docker.png",
+            "content_type": "image/png",
+            "file_path": Path("temporary_upload.png")
+        }
+
+        This method is intentionally framework-neutral.
+        FastAPI routes can first save UploadFile objects
+        to temporary files, then pass those paths here.
+        """
+
+        project_directory = (
+            self.get_project_directory(
+                project_name=project_name,
+            )
+        )
+
+        asset_batch_id = self.create_asset_batch_id()
+
+        asset_directory = (
+            project_directory
+            / "assets"
+            / asset_batch_id
+        )
+
+        asset_directory.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        screenshots: list[dict[str, Any]] = []
+
+        for index, file_item in enumerate(
+            files or [],
+            start=1,
+        ):
+            if not isinstance(file_item, dict):
+                continue
+
+            original_filename = str(
+                file_item.get(
+                    "filename",
+                    "",
+                )
+            ).strip()
+
+            content_type = str(
+                file_item.get(
+                    "content_type",
+                    "",
+                )
+            ).strip()
+
+            raw_file_path = file_item.get(
+                "file_path"
+            )
+
+            if not original_filename:
+                continue
+
+            if raw_file_path is None:
+                continue
+
+            source_file_path = Path(
+                raw_file_path
+            )
+
+            if not source_file_path.exists():
+                continue
+
+            extension = (
+                source_file_path.suffix.lower()
+                or Path(original_filename).suffix.lower()
+            )
+
+            if (
+                extension
+                not in self.ALLOWED_SCREENSHOT_EXTENSIONS
+            ):
+                continue
+
+            screenshot_filename = (
+                f"screenshot_{index:03d}"
+                f"{extension}"
+            )
+
+            saved_file = (
+                asset_directory
+                / screenshot_filename
+            )
+
+            try:
+                shutil.copyfile(
+                    source_file_path,
+                    saved_file,
+                )
+
+            except OSError as error:
+                raise RuntimeError(
+                    "Failed to save uploaded "
+                    "screenshot asset."
+                ) from error
+
+            relative_path = (
+                saved_file.relative_to(
+                    project_directory
+                )
+            )
+
+            screenshots.append(
+                {
+                    "screenshot_id": (
+                        f"screenshot_{index:03d}"
+                    ),
+                    "original_filename": (
+                        original_filename
+                    ),
+                    "filename": screenshot_filename,
+                    "content_type": (
+                        content_type or None
+                    ),
+                    "asset_file": str(saved_file),
+                    "relative_path": (
+                        relative_path.as_posix()
+                    ),
+                    "html_src": (
+                        relative_path.as_posix()
+                    ),
+                    "description": None,
+                }
+            )
+
+        return {
+            "asset_batch_id": asset_batch_id,
+            "asset_directory": str(
+                asset_directory
+            ),
+            "screenshots": screenshots,
+        }
+
+    def get_project_directory(
+        self,
+        project_name: str,
+    ) -> Path:
+        """
+        Return and create the storage directory for
+        one project.
+        """
+
+        if not project_name.strip():
+            raise ValueError(
+                "Project name is required."
+            )
+
+        project_directory = (
+            self.storage_path
+            / self._sanitize_name(
+                project_name
+            )
+        )
+
+        project_directory.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        return project_directory
+
+    def create_document_id(
+        self,
+        created_at: datetime | None = None,
+    ) -> str:
+        """
+        Create a stable document ID format used by
+        saved HTML and JSON metadata files.
+        """
+
+        if created_at is None:
+            created_at = datetime.now(
+                timezone.utc
+            )
+
+        return (
+            created_at.strftime(
+                "%Y%m%d_%H%M%S"
+            )
+            + "_"
+            + uuid4().hex[:8]
+        )
+
+    def create_asset_batch_id(
+        self,
+    ) -> str:
+        """
+        Create a unique ID for one screenshot upload
+        batch.
+        """
+
+        created_at = datetime.now(
+            timezone.utc
+        )
+
+        return (
+            "assets_"
+            + created_at.strftime(
+                "%Y%m%d_%H%M%S"
+            )
+            + "_"
+            + uuid4().hex[:8]
+        )
 
     def list_documents(
         self,
@@ -290,6 +530,151 @@ class DocumentStorage:
             )
 
         return file_path
+
+    @staticmethod
+    def _normalize_runtime_context(
+            runtime_context: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        """
+        Normalize optional runtime/tooling context
+        before writing it into document metadata.
+
+        Supports:
+
+        1. Raw user context:
+           additional_context
+           context_blocks
+           screenshots
+
+        2. LLM-analyzed runtime understanding:
+           runtime_understanding
+        """
+
+        if not isinstance(runtime_context, dict):
+            return {
+                "additional_context": None,
+                "context_blocks": [],
+                "screenshots": [],
+                "runtime_understanding": None,
+                "asset_batch_id": None,
+                "asset_directory": None,
+            }
+
+        additional_context = runtime_context.get(
+            "additional_context"
+        )
+
+        if additional_context is not None:
+            additional_context = str(
+                additional_context
+            ).strip() or None
+
+        screenshots = runtime_context.get(
+            "screenshots",
+            [],
+        )
+
+        if not isinstance(screenshots, list):
+            screenshots = []
+
+        valid_screenshots: list[
+            dict[str, Any]
+        ] = []
+
+        for item in screenshots:
+            if isinstance(item, dict):
+                valid_screenshots.append(
+                    item
+                )
+
+        context_blocks = runtime_context.get(
+            "context_blocks",
+            [],
+        )
+
+        if not isinstance(context_blocks, list):
+            context_blocks = []
+
+        valid_context_blocks: list[
+            dict[str, Any]
+        ] = []
+
+        for index, block in enumerate(
+                context_blocks,
+                start=1,
+        ):
+            if not isinstance(block, dict):
+                continue
+
+            title = str(
+                block.get(
+                    "title",
+                    f"Runtime context {index}",
+                )
+                or f"Runtime context {index}"
+            ).strip()
+
+            text = str(
+                block.get(
+                    "text",
+                    "",
+                )
+                or ""
+            ).strip()
+
+            screenshot = block.get(
+                "screenshot"
+            )
+
+            if not isinstance(screenshot, dict):
+                screenshot = None
+
+            if not title and not text and screenshot is None:
+                continue
+
+            valid_context_blocks.append(
+                {
+                    "title": title,
+                    "text": text,
+                    "screenshot": screenshot,
+                }
+            )
+
+        runtime_understanding = runtime_context.get(
+            "runtime_understanding"
+        )
+
+        if not isinstance(
+                runtime_understanding,
+                dict,
+        ):
+            runtime_understanding = None
+
+        return {
+            "additional_context": (
+                additional_context
+            ),
+            "context_blocks": (
+                valid_context_blocks
+            ),
+            "screenshots": (
+                valid_screenshots
+            ),
+            "runtime_understanding": (
+                runtime_understanding
+            ),
+            "asset_batch_id": (
+                runtime_context.get(
+                    "asset_batch_id"
+                )
+            ),
+            "asset_directory": (
+                runtime_context.get(
+                    "asset_directory"
+                )
+            ),
+        }
+
 
     @staticmethod
     def _read_metadata(

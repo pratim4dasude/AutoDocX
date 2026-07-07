@@ -1,3 +1,6 @@
+import base64
+import mimetypes
+from pathlib import Path
 from typing import Any
 
 from openai import OpenAI
@@ -71,3 +74,107 @@ class OpenAIProvider(BaseLLMProvider):
                 "API key, model name, account access, "
                 "quota, and internet connection."
             ) from error
+
+    def generate_json_with_images(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image_paths: list[str],
+    ) -> dict[str, Any]:
+        """
+        Send text plus screenshots to an OpenAI vision-capable
+        model and parse the JSON response.
+        """
+
+        try:
+            content: list[dict[str, Any]] = [
+                {
+                    "type": "input_text",
+                    "text": user_prompt,
+                }
+            ]
+
+            for image_path in image_paths:
+                image_url = self._image_path_to_data_url(
+                    image_path=image_path,
+                )
+
+                content.append(
+                    {
+                        "type": "input_image",
+                        "image_url": image_url,
+                    }
+                )
+
+            response = (
+                self.client.responses.create(
+                    model=self.model,
+                    instructions=system_prompt,
+                    input=[
+                        {
+                            "role": "user",
+                            "content": content,
+                        }
+                    ],
+                    max_output_tokens=8000,
+                )
+            )
+
+            response_text = (
+                response.output_text
+            )
+
+            return self.parse_json_response(
+                response_text=response_text,
+            )
+
+        except RuntimeError:
+            raise
+
+        except Exception as error:
+            raise RuntimeError(
+                "OpenAI vision request failed. Check "
+                "that the selected model supports image "
+                "input, and verify the API key, quota, "
+                "and internet connection."
+            ) from error
+
+    @staticmethod
+    def _image_path_to_data_url(
+        image_path: str,
+    ) -> str:
+        """
+        Convert an image file path to a base64 data URL.
+        """
+
+        file_path = Path(
+            image_path
+        )
+
+        if not file_path.exists():
+            raise RuntimeError(
+                "Screenshot file does not exist: "
+                f"{image_path}"
+            )
+
+        mime_type = (
+            mimetypes.guess_type(
+                file_path.name
+            )[0]
+            or "image/png"
+        )
+
+        image_bytes = (
+            file_path.read_bytes()
+        )
+
+        encoded_image = (
+            base64.b64encode(
+                image_bytes
+            ).decode("utf-8")
+        )
+
+        return (
+            f"data:{mime_type};base64,"
+            f"{encoded_image}"
+        )

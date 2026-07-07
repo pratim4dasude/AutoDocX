@@ -1,9 +1,15 @@
 from pathlib import PureWindowsPath
 from typing import Any
 from urllib.parse import quote
+import io
+import json
 
+from uuid import uuid4
 import requests
 import streamlit as st
+from streamlit_paste_button import (
+    paste_image_button as pbutton,
+)
 
 
 # ============================================================
@@ -19,6 +25,9 @@ DEFAULT_PROJECT_PATH = (
 
 SYNC_ENDPOINT = "/api/projects/documentation/sync"
 
+SYNC_WITH_CONTEXT_ENDPOINT = (
+    "/api/projects/documentation/sync-with-context"
+)
 REQUEST_TIMEOUT_SECONDS = 900
 HISTORY_TIMEOUT_SECONDS = 60
 
@@ -52,6 +61,24 @@ if "last_error" not in st.session_state:
 
 if "history_refresh_counter" not in st.session_state:
     st.session_state.history_refresh_counter = 0
+
+if "runtime_context_blocks" not in st.session_state:
+    st.session_state.runtime_context_blocks = [
+        {
+            "id": uuid4().hex[:8],
+            "title": "Docker runtime",
+            "text": "",
+            "image_bytes": None,
+            "image_name": None,
+        },
+        {
+            "id": uuid4().hex[:8],
+            "title": "Temporal workflow",
+            "text": "",
+            "image_bytes": None,
+            "image_name": None,
+        },
+    ]
 
 
 # ============================================================
@@ -280,6 +307,243 @@ def sync_documentation(
 
     return response_data
 
+def create_runtime_context_block(
+    title: str = "",
+) -> dict[str, Any]:
+    """
+    Create one empty runtime context block.
+    """
+
+    return {
+        "id": uuid4().hex[:8],
+        "title": title,
+        "text": "",
+        "image_bytes": None,
+        "image_name": None,
+    }
+
+
+def image_to_png_bytes(
+    image: Any,
+) -> bytes:
+    """
+    Convert a pasted PIL image into PNG bytes.
+    """
+
+    buffer = io.BytesIO()
+
+    image.save(
+        buffer,
+        format="PNG",
+    )
+
+    return buffer.getvalue()
+
+
+def context_blocks_have_content(
+    context_blocks: list[dict[str, Any]],
+) -> bool:
+    """
+    Check whether any runtime context block has
+    useful text or a pasted screenshot.
+    """
+
+    for block in context_blocks:
+        title = str(
+            block.get(
+                "title",
+                "",
+            )
+            or ""
+        ).strip()
+
+        text = str(
+            block.get(
+                "text",
+                "",
+            )
+            or ""
+        ).strip()
+
+        image_bytes = block.get(
+            "image_bytes"
+        )
+
+        if title or text or image_bytes:
+            return True
+
+    return False
+
+
+def build_context_blocks_payload(
+    context_blocks: list[dict[str, Any]],
+) -> tuple[
+    str,
+    list[tuple[str, tuple[str, bytes, str]]],
+]:
+    """
+    Build multipart form payload for ordered
+    context blocks.
+
+    The screenshots are sent as files. Each block
+    stores screenshot_index so the backend can
+    connect the correct image to the correct block.
+    """
+
+    payload_blocks: list[
+        dict[str, Any]
+    ] = []
+
+    files: list[
+        tuple[str, tuple[str, bytes, str]]
+    ] = []
+
+    for block_index, block in enumerate(
+        context_blocks,
+        start=1,
+    ):
+        title = str(
+            block.get(
+                "title",
+                "",
+            )
+            or ""
+        ).strip()
+
+        text = str(
+            block.get(
+                "text",
+                "",
+            )
+            or ""
+        ).strip()
+
+        image_bytes = block.get(
+            "image_bytes"
+        )
+
+        screenshot_index = None
+
+        if isinstance(
+            image_bytes,
+            bytes,
+        ) and image_bytes:
+            screenshot_index = len(files)
+
+            image_name = str(
+                block.get(
+                    "image_name",
+                    "",
+                )
+                or ""
+            ).strip()
+
+            if not image_name:
+                image_name = (
+                    f"context_block_"
+                    f"{block_index:03d}.png"
+                )
+
+            files.append(
+                (
+                    "screenshots",
+                    (
+                        image_name,
+                        image_bytes,
+                        "image/png",
+                    ),
+                )
+            )
+
+        if (
+            not title
+            and not text
+            and screenshot_index is None
+        ):
+            continue
+
+        payload_blocks.append(
+            {
+                "title": (
+                    title
+                    or f"Runtime context {block_index}"
+                ),
+                "text": text,
+                "screenshot_index": screenshot_index,
+            }
+        )
+
+    return (
+        json.dumps(
+            payload_blocks,
+            ensure_ascii=False,
+        ),
+        files,
+    )
+
+def sync_documentation_with_context(
+    api_url: str,
+    project_path: str,
+    context_blocks: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """
+    Call the AutoDocX documentation synchronization
+    endpoint that accepts ordered runtime/tooling
+    context blocks and pasted screenshots.
+    """
+
+    endpoint_url = (
+        f"{normalize_api_url(api_url)}"
+        f"{SYNC_WITH_CONTEXT_ENDPOINT}"
+    )
+
+    context_blocks_json, files = (
+        build_context_blocks_payload(
+            context_blocks=context_blocks,
+        )
+    )
+
+    response = requests.post(
+        endpoint_url,
+        data={
+            "project_path": project_path,
+            "additional_context": "",
+            "context_blocks_json": (
+                context_blocks_json
+            ),
+        },
+        files=files,
+        headers={
+            "accept": "application/json",
+        },
+        timeout=REQUEST_TIMEOUT_SECONDS,
+    )
+
+    response_data = parse_json_response(
+        response
+    )
+
+    if not response.ok:
+        detail = get_error_detail(
+            response_data=response_data,
+            default_message=(
+                "Documentation synchronization "
+                "with runtime context failed."
+            ),
+        )
+
+        raise RuntimeError(
+            f"Backend returned HTTP "
+            f"{response.status_code}: {detail}"
+        )
+
+    if not isinstance(response_data, dict):
+        raise RuntimeError(
+            "The backend returned an invalid "
+            "synchronization response."
+        )
+
+    return response_data
 
 def get_document_history(
     api_url: str,
@@ -1038,6 +1302,201 @@ with st.container(
         ),
     )
 
+with st.container(
+    border=True,
+):
+    st.subheader("Runtime and tooling context")
+
+    st.write(
+        "Create ordered documentation blocks. "
+        "Each block can have notes and one pasted "
+        "screenshot from Win + Shift + S."
+    )
+
+    st.caption(
+        "Use Win + Shift + S, copy the screenshot, "
+        "then click the paste button inside the "
+        "correct block."
+    )
+
+    action_columns = st.columns(
+        [1, 1, 3]
+    )
+
+    with action_columns[0]:
+        if st.button(
+            "➕ Add block",
+            use_container_width=True,
+        ):
+            st.session_state.runtime_context_blocks.append(
+                create_runtime_context_block(
+                    title=(
+                        "New runtime context"
+                    ),
+                )
+            )
+            st.rerun()
+
+    with action_columns[1]:
+        if st.button(
+            "🧹 Clear blocks",
+            use_container_width=True,
+        ):
+            st.session_state.runtime_context_blocks = [
+                create_runtime_context_block(
+                    title="Docker runtime",
+                ),
+                create_runtime_context_block(
+                    title="Temporal workflow",
+                ),
+            ]
+            st.rerun()
+
+    runtime_context_blocks = (
+        st.session_state.runtime_context_blocks
+    )
+
+    for index, block in enumerate(
+        runtime_context_blocks,
+        start=1,
+    ):
+        block_id = str(
+            block.get(
+                "id",
+                index,
+            )
+        )
+
+        with st.container(
+            border=True,
+        ):
+            header_columns = st.columns(
+                [5, 1]
+            )
+
+            with header_columns[0]:
+                st.markdown(
+                    f"### Context block {index}"
+                )
+
+            with header_columns[1]:
+                if len(runtime_context_blocks) > 1:
+                    if st.button(
+                        "Remove",
+                        key=(
+                            "remove_context_block_"
+                            f"{block_id}"
+                        ),
+                        use_container_width=True,
+                    ):
+                        runtime_context_blocks.pop(
+                            index - 1
+                        )
+                        st.rerun()
+
+            title_value = st.text_input(
+                "Block title",
+                value=str(
+                    block.get(
+                        "title",
+                        "",
+                    )
+                    or ""
+                ),
+                placeholder=(
+                    "Example: Docker runtime, "
+                    "Temporal workflow, Swagger API"
+                ),
+                key=(
+                    "context_block_title_"
+                    f"{block_id}"
+                ),
+            )
+
+            text_value = st.text_area(
+                "Block notes",
+                value=str(
+                    block.get(
+                        "text",
+                        "",
+                    )
+                    or ""
+                ),
+                placeholder=(
+                    "Explain what this screenshot shows "
+                    "and why it matters for the project."
+                ),
+                height=140,
+                key=(
+                    "context_block_text_"
+                    f"{block_id}"
+                ),
+            )
+
+            block["title"] = title_value
+            block["text"] = text_value
+
+            paste_result = pbutton(
+                label=(
+                    "📋 Paste screenshot "
+                    f"for block {index}"
+                ),
+                key=(
+                    "paste_context_block_"
+                    f"{block_id}"
+                ),
+                errors="raise",
+            )
+
+            if (
+                paste_result is not None
+                and paste_result.image_data is not None
+            ):
+                block["image_bytes"] = (
+                    image_to_png_bytes(
+                        paste_result.image_data
+                    )
+                )
+
+                block["image_name"] = (
+                    f"context_block_"
+                    f"{index:03d}.png"
+                )
+
+                st.success(
+                    "Screenshot pasted into this block."
+                )
+
+            image_bytes = block.get(
+                "image_bytes"
+            )
+
+            if isinstance(
+                image_bytes,
+                bytes,
+            ) and image_bytes:
+                st.image(
+                    image_bytes,
+                    caption=(
+                        block.get(
+                            "image_name",
+                            "Pasted screenshot",
+                        )
+                    ),
+                    use_container_width=True,
+                )
+
+                if st.button(
+                    "Remove screenshot",
+                    key=(
+                        "remove_context_image_"
+                        f"{block_id}"
+                    ),
+                ):
+                    block["image_bytes"] = None
+                    block["image_name"] = None
+                    st.rerun()
+
 cleaned_project_path = project_path.strip()
 
 inferred_project_name = (
@@ -1186,22 +1645,43 @@ if submitted:
 
         try:
             with st.spinner(
-                (
+                    (
                     "Scanning the project, comparing "
-                    "versions, calling the LLM when "
-                    "required, and generating "
-                    "documentation..."
-                ),
-                show_time=True,
+                    "versions, processing runtime context, "
+                    "calling the LLM when required, and "
+                    "generating documentation..."
+                    ),
+                    show_time=True,
             ):
-                sync_result = (
-                    sync_documentation(
-                        api_url=api_url,
-                        project_path=(
-                            cleaned_project_path
-                        ),
+                has_runtime_context = (
+                    context_blocks_have_content(
+                        st.session_state.runtime_context_blocks
                     )
                 )
+
+                if has_runtime_context:
+                    sync_result = (
+                        sync_documentation_with_context(
+                            api_url=api_url,
+                            project_path=(
+                                cleaned_project_path
+                            ),
+                            context_blocks=(
+                                st.session_state
+                                .runtime_context_blocks
+                            ),
+                        )
+                    )
+
+                else:
+                    sync_result = (
+                        sync_documentation(
+                            api_url=api_url,
+                            project_path=(
+                                cleaned_project_path
+                            ),
+                        )
+            )
 
             st.session_state.sync_result = (
                 sync_result

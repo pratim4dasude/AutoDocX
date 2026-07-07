@@ -1,0 +1,85 @@
+{
+  "document_id": "20260707_093239_dd29b33a",
+  "created_at": "2026-07-07T09:32:39.258644+00:00",
+  "project_name": "AutoDocX",
+  "scan_id": "20260707_093123_8ac96cb8",
+  "understanding_id": "20260707_093238_7b5b2b77",
+  "document_type": "html",
+  "update_type": "version_update",
+  "previous_document_id": "20260707_060146_b5e72927",
+  "comparison_summary": {
+    "has_changes": true,
+    "total_changes": 36,
+    "added_files": 1,
+    "deleted_files": 0,
+    "modified_files": 6,
+    "added_symbols": 19,
+    "removed_symbols": 0,
+    "modified_symbols": 9,
+    "added_routes": 1,
+    "removed_routes": 0,
+    "modified_routes": 0,
+    "added_dependencies": 0,
+    "removed_dependencies": 0,
+    "modified_dependencies": 0
+  },
+  "runtime_context": {
+    "additional_context": null,
+    "context_blocks": [
+      {
+        "title": "cli pipline work",
+        "text": "cli working to work for",
+        "screenshot": {
+          "screenshot_id": "screenshot_001",
+          "original_filename": "context_block_001.png",
+          "filename": "screenshot_001.png",
+          "content_type": "image/png",
+          "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260707_093124_8b0d8966\\screenshot_001.png",
+          "relative_path": "assets/assets_20260707_093124_8b0d8966/screenshot_001.png",
+          "html_src": "assets/assets_20260707_093124_8b0d8966/screenshot_001.png",
+          "description": null
+        }
+      },
+      {
+        "title": "Runtime context 2",
+        "text": "working on cli piplibe for steram lit",
+        "screenshot": {
+          "screenshot_id": "screenshot_002",
+          "original_filename": "context_block_002.png",
+          "filename": "screenshot_002.png",
+          "content_type": "image/png",
+          "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260707_093124_8b0d8966\\screenshot_002.png",
+          "relative_path": "assets/assets_20260707_093124_8b0d8966/screenshot_002.png",
+          "html_src": "assets/assets_20260707_093124_8b0d8966/screenshot_002.png",
+          "description": null
+        }
+      }
+    ],
+    "screenshots": [
+      {
+        "screenshot_id": "screenshot_001",
+        "original_filename": "context_block_001.png",
+        "filename": "screenshot_001.png",
+        "content_type": "image/png",
+        "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260707_093124_8b0d8966\\screenshot_001.png",
+        "relative_path": "assets/assets_20260707_093124_8b0d8966/screenshot_001.png",
+        "html_src": "assets/assets_20260707_093124_8b0d8966/screenshot_001.png",
+        "description": null
+      },
+      {
+        "screenshot_id": "screenshot_002",
+        "original_filename": "context_block_002.png",
+        "filename": "screenshot_002.png",
+        "content_type": "image/png",
+        "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260707_093124_8b0d8966\\screenshot_002.png",
+        "relative_path": "assets/assets_20260707_093124_8b0d8966/screenshot_002.png",
+        "html_src": "assets/assets_20260707_093124_8b0d8966/screenshot_002.png",
+        "description": null
+      }
+    ],
+    "asset_batch_id": "assets_20260707_093124_8b0d8966",
+    "asset_directory": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260707_093124_8b0d8966"
+  },
+  "document_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260707_093239_dd29b33a.html",
+  "metadata_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260707_093239_dd29b33a.json"
+}

@@ -46,6 +46,22 @@ class BaseLLMProvider(ABC):
         Sends a prompt to the provider and returns parsed JSON.
         """
 
+    @abstractmethod
+    def generate_json_with_images(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        image_paths: list[str],
+    ) -> dict[str, Any]:
+        """
+        Sends a text prompt plus image files to the provider
+        and returns parsed JSON.
+
+        This is used for runtime/tooling documentation where
+        AutoDocX must analyze user notes and screenshots together.
+        """
+
+
     @staticmethod
     def parse_json_response(
         response_text: str,
