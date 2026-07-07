@@ -1,0 +1,36 @@
+{
+  "document_id": "20260707_121811_90e8aff2",
+  "created_at": "2026-07-07T12:18:11.440581+00:00",
+  "project_name": "AutoDocX",
+  "scan_id": "20260707_121605_4f8bc8e7",
+  "understanding_id": "20260707_121811_5b0600b1",
+  "document_type": "html",
+  "update_type": "version_update",
+  "previous_document_id": "20260707_120427_ea3a4b1d",
+  "comparison_summary": {
+    "has_changes": true,
+    "total_changes": 4,
+    "added_files": 0,
+    "deleted_files": 0,
+    "modified_files": 2,
+    "added_symbols": 0,
+    "removed_symbols": 0,
+    "modified_symbols": 2,
+    "added_routes": 0,
+    "removed_routes": 0,
+    "modified_routes": 0,
+    "added_dependencies": 0,
+    "removed_dependencies": 0,
+    "modified_dependencies": 0
+  },
+  "runtime_context": {
+    "additional_context": null,
+    "context_blocks": [],
+    "screenshots": [],
+    "runtime_understanding": null,
+    "asset_batch_id": null,
+    "asset_directory": null
+  },
+  "document_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260707_121811_90e8aff2.html",
+  "metadata_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260707_121811_90e8aff2.json"
+}

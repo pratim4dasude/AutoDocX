@@ -66,14 +66,14 @@ if "runtime_context_blocks" not in st.session_state:
     st.session_state.runtime_context_blocks = [
         {
             "id": uuid4().hex[:8],
-            "title": "Docker runtime",
+            "title": "",
             "text": "",
             "image_bytes": None,
             "image_name": None,
         },
         {
             "id": uuid4().hex[:8],
-            "title": "Temporal workflow",
+            "title": "",
             "text": "",
             "image_bytes": None,
             "image_name": None,

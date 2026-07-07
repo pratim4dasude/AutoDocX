@@ -101,20 +101,10 @@ def _parse_context_blocks_json(
     Parse ordered runtime context blocks sent by
     the Streamlit UI.
 
-    Expected JSON format:
-
-    [
-        {
-            "title": "Docker runtime",
-            "text": "This shows Docker containers.",
-            "screenshot_index": 0
-        },
-        {
-            "title": "Temporal workflow",
-            "text": "This shows Temporal execution.",
-            "screenshot_index": 1
-        }
-    ]
+    Rule:
+    - If title, text, and screenshot_index are all empty,
+      ignore the block.
+    - If any one exists, keep the block.
     """
 
     cleaned_json = (
@@ -140,23 +130,18 @@ def _parse_context_blocks_json(
             "context_blocks_json must be a JSON list."
         )
 
-    context_blocks: list[
-        dict[str, Any]
-    ] = []
+    context_blocks: list[dict[str, Any]] = []
 
-    for index, item in enumerate(
-        parsed_data,
-        start=1,
-    ):
+    for item in parsed_data:
         if not isinstance(item, dict):
             continue
 
         title = str(
             item.get(
                 "title",
-                f"Runtime context {index}",
+                "",
             )
-            or f"Runtime context {index}"
+            or ""
         ).strip()
 
         text = str(
@@ -183,10 +168,16 @@ def _parse_context_blocks_json(
             ):
                 screenshot_index = None
 
-        if (
-            not title
-            and not text
-            and screenshot_index is None
+        has_title = bool(title)
+        has_text = bool(text)
+        has_screenshot = (
+            screenshot_index is not None
+        )
+
+        if not (
+            has_title
+            or has_text
+            or has_screenshot
         ):
             continue
 
@@ -243,9 +234,9 @@ def _build_runtime_context_from_blocks(
         title = str(
             block.get(
                 "title",
-                f"Runtime context {index}",
+                "",
             )
-            or f"Runtime context {index}"
+            or ""
         ).strip()
 
         text = str(
@@ -283,7 +274,10 @@ def _build_runtime_context_from_blocks(
 
         context_blocks.append(
             {
-                "title": title,
+                "title": (
+                        title
+                        or f"Runtime context {index}"
+                ),
                 "text": text,
                 "screenshot": screenshot,
             }
