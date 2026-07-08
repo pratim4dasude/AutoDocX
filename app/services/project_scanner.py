@@ -13,6 +13,8 @@ class ProjectScanner:
 
     The scanner:
     - ignores unnecessary folders and files
+    - ignores generated documentation/workspace output
+    - ignores large/binary files that should not go to LLM
     - lists project files
     - counts directories
     - counts file extensions
@@ -21,6 +23,8 @@ class ProjectScanner:
     - parses Python source files
     - analyzes project-level relationships
     """
+
+    MAX_SCANNED_FILE_SIZE_BYTES = 1_000_000
 
     IGNORED_DIRECTORIES = {
         ".git",
@@ -41,6 +45,7 @@ class ProjectScanner:
         ".tox",
         ".next",
         "workspace",
+        "assets",
     }
 
     IGNORED_FILES = {
@@ -57,6 +62,36 @@ class ProjectScanner:
         ".temp",
         ".swp",
         ".swo",
+
+        # Generated/exported docs
+        ".html",
+        ".htm",
+
+        # Images/screenshots
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".webp",
+        ".gif",
+        ".svg",
+        ".ico",
+
+        # Documents/archives/binaries
+        ".pdf",
+        ".docx",
+        ".pptx",
+        ".xlsx",
+        ".zip",
+        ".tar",
+        ".gz",
+        ".7z",
+        ".rar",
+        ".exe",
+        ".dll",
+        ".bin",
+        ".db",
+        ".sqlite",
+        ".sqlite3",
     }
 
     def __init__(self) -> None:
@@ -109,6 +144,13 @@ class ProjectScanner:
                 file_size = (
                     current_path.stat().st_size
                 )
+
+                if (
+                    file_size
+                    > self.MAX_SCANNED_FILE_SIZE_BYTES
+                ):
+                    ignored_items += 1
+                    continue
 
                 file_hash = self._calculate_file_hash(
                     file_path=current_path,
@@ -198,6 +240,27 @@ class ProjectScanner:
         for relative_file_path in files:
             if not relative_file_path.lower().endswith(
                 ".py"
+            ):
+                continue
+
+            absolute_file_path = (
+                root_path
+                / relative_file_path
+            )
+
+            try:
+                file_size = (
+                    absolute_file_path
+                    .stat()
+                    .st_size
+                )
+
+            except OSError:
+                continue
+
+            if (
+                file_size
+                > self.MAX_SCANNED_FILE_SIZE_BYTES
             ):
                 continue
 

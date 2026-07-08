@@ -352,6 +352,25 @@ def _get_runtime_context_from_document(
     return runtime_context
 
 
+def _recover_runtime_assets_for_document(
+    project_name: str,
+    document_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Repair missing screenshot asset files using
+    embedded base64 images from the previous HTML
+    document before runtime context is reused.
+    """
+
+    return (
+        document_storage
+        .recover_missing_runtime_assets_from_html(
+            project_name=project_name,
+            document_metadata=document_metadata,
+        )
+    )
+
+
 def _merge_runtime_contexts(
     previous_runtime_context: dict[str, Any] | None,
     new_runtime_context: dict[str, Any] | None,
@@ -1116,6 +1135,25 @@ def sync_project_documentation(
             existing_documents[0]
         )
 
+        latest_document = (
+            _recover_runtime_assets_for_document(
+                project_name=project_name,
+                document_metadata=latest_document,
+            )
+        )
+
+        previous_runtime_context = (
+            _get_runtime_context_from_document(
+                document_metadata=latest_document,
+            )
+        )
+
+        has_previous_runtime_context = (
+            _has_runtime_context(
+                runtime_context=previous_runtime_context,
+            )
+        )
+
         previous_document_id = str(
             latest_document.get(
                 "document_id",
@@ -1225,6 +1263,20 @@ def sync_project_documentation(
             stored_scan=new_stored_scan,
         )
 
+        runtime_context_for_new_document = None
+
+        if has_previous_runtime_context:
+            previous_runtime_context[
+                "runtime_understanding"
+            ] = _analyze_runtime_context_with_llm(
+                stored_scan=new_stored_scan,
+                runtime_context=previous_runtime_context,
+            )
+
+            runtime_context_for_new_document = (
+                previous_runtime_context
+            )
+
         new_document = (
             _generate_and_save_document(
                 project_name=project_name,
@@ -1241,6 +1293,9 @@ def sync_project_documentation(
                 ),
                 comparison_summary=(
                     comparison_summary
+                ),
+                runtime_context=(
+                    runtime_context_for_new_document
                 ),
             )
         )
@@ -1534,6 +1589,13 @@ def sync_project_documentation_with_context(
 
         latest_document = (
             existing_documents[0]
+        )
+
+        latest_document = (
+            _recover_runtime_assets_for_document(
+                project_name=project_name,
+                document_metadata=latest_document,
+            )
         )
 
         previous_runtime_context = (
@@ -2405,12 +2467,47 @@ def update_project_document(
     project_name: str,
     request: DocumentUpdateRequest,
 ) -> DocumentUpdateResponse:
+    """
+    Update an existing generated document using a new
+    saved scan.
+
+    Important:
+    - If the previous document contains runtime/tooling
+      context, it is carried into the new document.
+    - This prevents screenshots, notes, and runtime
+      understanding from disappearing during manual
+      document updates.
+    """
+
     try:
+        # ----------------------------------------------------
+        # Step 1: Read previous document metadata
+        # ----------------------------------------------------
+
         previous_document = (
             document_storage
             .get_document_metadata(
                 project_name=project_name,
                 document_id=request.document_id,
+            )
+        )
+
+        previous_document = (
+            _recover_runtime_assets_for_document(
+                project_name=project_name,
+                document_metadata=previous_document,
+            )
+        )
+
+        previous_runtime_context = (
+            _get_runtime_context_from_document(
+                document_metadata=previous_document,
+            )
+        )
+
+        has_previous_runtime_context = (
+            _has_runtime_context(
+                runtime_context=previous_runtime_context,
             )
         )
 
@@ -2421,18 +2518,22 @@ def update_project_document(
             )
         ).strip()
 
+        previous_understanding_id = str(
+            previous_document.get(
+                "understanding_id",
+                "",
+            )
+        ).strip()
+
         if not old_scan_id:
             raise ValueError(
                 "The existing document does not "
                 "contain an original scan ID."
             )
 
-        previous_understanding_id = str(
-            previous_document.get(
-                "understanding_id",
-                "",
-            )
-        )
+        # ----------------------------------------------------
+        # Step 2: Same scan - no update needed
+        # ----------------------------------------------------
 
         if old_scan_id == request.new_scan_id:
             return DocumentUpdateResponse(
@@ -2456,19 +2557,32 @@ def update_project_document(
                 comparison_summary={},
                 understanding_id=(
                     previous_understanding_id
+                    or None
                 ),
                 document=None,
             )
 
-        old_stored_scan = scan_storage.get_scan(
-            project_name=project_name,
-            scan_id=old_scan_id,
+        # ----------------------------------------------------
+        # Step 3: Load old and new scans
+        # ----------------------------------------------------
+
+        old_stored_scan = (
+            scan_storage.get_scan(
+                project_name=project_name,
+                scan_id=old_scan_id,
+            )
         )
 
-        new_stored_scan = scan_storage.get_scan(
-            project_name=project_name,
-            scan_id=request.new_scan_id,
+        new_stored_scan = (
+            scan_storage.get_scan(
+                project_name=project_name,
+                scan_id=request.new_scan_id,
+            )
         )
+
+        # ----------------------------------------------------
+        # Step 4: Compare scans
+        # ----------------------------------------------------
 
         comparison_result = (
             scan_comparator.compare_scans(
@@ -2514,84 +2628,63 @@ def update_project_document(
                 ),
                 understanding_id=(
                     previous_understanding_id
+                    or None
                 ),
                 document=None,
             )
 
-        provider_name = get_llm_provider()
+        # ----------------------------------------------------
+        # Step 5: Generate new project understanding
+        # ----------------------------------------------------
 
-        api_key = get_llm_api_key(
-            provider_name=provider_name,
+        (
+            new_understanding_id,
+            stored_understanding,
+        ) = _generate_and_save_understanding(
+            stored_scan=new_stored_scan,
         )
 
-        model_name = get_llm_model(
-            provider_name=provider_name,
-        )
+        # ----------------------------------------------------
+        # Step 6: Carry runtime context forward
+        # ----------------------------------------------------
 
-        understanding_result = (
-            project_understanding_service
-            .generate_understanding(
+        runtime_context_for_new_document = None
+
+        if has_previous_runtime_context:
+            previous_runtime_context[
+                "runtime_understanding"
+            ] = _analyze_runtime_context_with_llm(
                 stored_scan=new_stored_scan,
-                provider_name=provider_name,
-                api_key=api_key,
-                model=model_name,
-            )
-        )
-
-        understanding_storage_info = (
-            understanding_storage
-            .save_understanding(
-                understanding_result=(
-                    understanding_result
-                ),
-            )
-        )
-
-        new_understanding_id = str(
-            understanding_storage_info.get(
-                "understanding_id",
-                "",
-            )
-        ).strip()
-
-        if not new_understanding_id:
-            raise RuntimeError(
-                "The generated understanding "
-                "was saved without an ID."
+                runtime_context=previous_runtime_context,
             )
 
-        stored_understanding = (
-            understanding_storage
-            .get_understanding(
+            runtime_context_for_new_document = (
+                previous_runtime_context
+            )
+
+        # ----------------------------------------------------
+        # Step 7: Build and save new document version
+        # ----------------------------------------------------
+
+        new_document = (
+            _generate_and_save_document(
                 project_name=project_name,
+                scan_id=request.new_scan_id,
                 understanding_id=(
                     new_understanding_id
                 ),
-            )
-        )
-
-        html_content = (
-            document_builder.build_html(
                 stored_understanding=(
                     stored_understanding
                 ),
-            )
-        )
-
-        new_document = (
-            document_storage.save_document(
-                project_name=project_name,
-                understanding_id=(
-                    new_understanding_id
-                ),
-                scan_id=request.new_scan_id,
-                html_content=html_content,
+                update_type="version_update",
                 previous_document_id=(
                     request.document_id
                 ),
-                update_type="version_update",
                 comparison_summary=(
                     comparison_summary
+                ),
+                runtime_context=(
+                    runtime_context_for_new_document
                 ),
             )
         )
@@ -2646,7 +2739,10 @@ def update_project_document(
             status_code=(
                 status.HTTP_500_INTERNAL_SERVER_ERROR
             ),
-            detail="Document update failed.",
+            detail=(
+                "Document update failed: "
+                f"{error}"
+            ),
         ) from error
 
 

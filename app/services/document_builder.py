@@ -1,6 +1,8 @@
+import base64
+import mimetypes
 from html import escape
+from pathlib import Path
 from typing import Any
-
 
 class DocumentBuilder:
     """
@@ -1417,7 +1419,8 @@ print(response.json())</code></pre>
             method_class = DocumentBuilder._get_method_class(method)
 
             example_json = DocumentBuilder._build_endpoint_example_json(
-                path,
+                method=method,
+                path=path,
             )
 
             parameters_html = DocumentBuilder._build_parameters_table(
@@ -3070,6 +3073,129 @@ print(response.json())</code></pre>
         """
 
     @staticmethod
+    def _get_screenshot_image_src(
+            screenshot: dict[str, Any],
+    ) -> str:
+        """
+        Return an embeddable image source for a screenshot.
+
+        Preferred:
+        - data:image/...;base64,... from asset_file
+
+        Fallback:
+        - html_src / relative_path if the file cannot be read
+        """
+
+        asset_file = str(
+            screenshot.get(
+                "asset_file",
+                "",
+            )
+            or ""
+        ).strip()
+
+        content_type = str(
+            screenshot.get(
+                "content_type",
+                "",
+            )
+            or ""
+        ).strip()
+
+        if asset_file:
+            data_uri = DocumentBuilder._file_to_data_uri(
+                file_path=asset_file,
+                content_type=content_type,
+            )
+
+            if data_uri:
+                return data_uri
+
+        fallback_src = str(
+            screenshot.get(
+                "html_src",
+                "",
+            )
+            or screenshot.get(
+                "relative_path",
+                "",
+            )
+            or ""
+        ).strip()
+
+        return fallback_src
+
+    @staticmethod
+    def _file_to_data_uri(
+            file_path: str,
+            content_type: str | None = None,
+    ) -> str:
+        """
+        Convert an image file into a base64 data URI.
+        """
+
+        try:
+            path = Path(file_path)
+
+            if not path.exists() or not path.is_file():
+                return ""
+
+            resolved_content_type = (
+                content_type
+                or mimetypes.guess_type(
+                    path.name
+                )[0]
+                or DocumentBuilder._guess_image_content_type(
+                    path=path,
+                )
+            )
+
+            if not resolved_content_type.startswith(
+                    "image/"
+            ):
+                resolved_content_type = (
+                    DocumentBuilder
+                    ._guess_image_content_type(
+                        path=path,
+                    )
+                )
+
+            image_bytes = path.read_bytes()
+
+            encoded_image = base64.b64encode(
+                image_bytes
+            ).decode("ascii")
+
+            return (
+                f"data:{resolved_content_type};"
+                f"base64,{encoded_image}"
+            )
+
+        except OSError:
+            return ""
+
+    @staticmethod
+    def _guess_image_content_type(
+            path: Path,
+    ) -> str:
+        """
+        Guess image MIME type from file extension.
+        """
+
+        extension = path.suffix.lower()
+
+        if extension in {
+            ".jpg",
+            ".jpeg",
+        }:
+            return "image/jpeg"
+
+        if extension == ".webp":
+            return "image/webp"
+
+        return "image/png"
+
+    @staticmethod
     def _build_supporting_runtime_screenshots(
             runtime_context: dict[str, Any],
     ) -> str:
@@ -3124,19 +3250,18 @@ print(response.json())</code></pre>
                 screenshots,
                 start=1,
         ):
-            html_src = str(
-                screenshot.get(
-                    "html_src",
-                    "",
-                )
-                or screenshot.get(
-                    "relative_path",
-                    "",
-                )
-            ).strip()
 
-            if not html_src:
+            image_src = (
+                DocumentBuilder
+                ._get_screenshot_image_src(
+                    screenshot=screenshot,
+                )
+            )
+
+            if not image_src:
                 continue
+
+
 
             original_filename = str(
                 screenshot.get(
@@ -3149,7 +3274,7 @@ print(response.json())</code></pre>
                 f"""
                 <article class="screenshot-card">
                     <img
-                        src="{escape(html_src)}"
+                        src="{escape(image_src)}"
                         alt="{escape(original_filename)}"
                     >
 
@@ -3232,16 +3357,15 @@ print(response.json())</code></pre>
                 screenshot_html = ""
 
                 if isinstance(screenshot, dict):
-                    html_src = str(
-                        screenshot.get(
-                            "html_src",
-                            "",
+
+                    image_src = (
+                        DocumentBuilder
+                        ._get_screenshot_image_src(
+                            screenshot=screenshot,
                         )
-                        or screenshot.get(
-                            "relative_path",
-                            "",
-                        )
-                    ).strip()
+                    )
+
+
 
                     original_filename = str(
                         screenshot.get(
@@ -3250,11 +3374,11 @@ print(response.json())</code></pre>
                         )
                     )
 
-                    if html_src:
+                    if image_src:
                         screenshot_html = f"""
                         <article class="screenshot-card">
                             <img
-                                src="{escape(html_src)}"
+                                src="{escape(image_src)}"
                                 alt="{escape(original_filename)}"
                             >
 
@@ -3481,55 +3605,360 @@ print(response.json())</code></pre>
 
         return "method-post"
 
+#     @staticmethod
+#     def _build_endpoint_example_json(
+#             path: str,
+#     ) -> str:
+#         normalized_path = path.strip()
+#
+#         if not normalized_path:
+#             normalized_path = "/api/projects/example"
+#
+#         example_path = normalized_path.replace(
+#             "{project_name}",
+#             "AutoDocX",
+#         )
+#
+#         if "scan" in normalized_path:
+#             payload = """{
+#     "project_path": "C:\\\\path\\\\to\\\\project"
+# }"""
+#         elif "documentation/sync" in normalized_path:
+#             payload = """{
+#     "project_path": "C:\\\\path\\\\to\\\\project"
+# }"""
+#         elif "compare" in normalized_path:
+#             payload = """{
+#     "base_scan_id": "previous_scan_id",
+#     "target_scan_id": "latest_scan_id"
+# }"""
+#         elif "context" in normalized_path:
+#             payload = """{
+#     "scan_id": "scan_id",
+#     "mode": "detailed"
+# }"""
+#         elif "understand" in normalized_path:
+#             payload = """{
+#     "scan_id": "scan_id"
+# }"""
+#         else:
+#             payload = "{}"
+#
+#         return f"""import requests
+#
+# response = requests.post(
+#     "http://127.0.0.1:8000{example_path}",
+#     json={payload},
+#     timeout=900,
+# )
+#
+# response.raise_for_status()
+# print(response.json())"""
+
+    # ///////////////////////////////////////////
+    # @staticmethod
+    # def _build_endpoint_example_json(
+    #         method: str,
+    #         path: str,
+    # ) -> str:
+    #         normalized_method = (
+    #             method.strip().lower()
+    #             if isinstance(method, str)
+    #             else "post"
+    #         )
+    #
+    #         normalized_path = path.strip()
+    #
+    #         if not normalized_path:
+    #             normalized_path = "/api/projects/example"
+    #
+    #         example_path = normalized_path.replace(
+    #             "{project_name}",
+    #             "AutoDocX",
+    #         )
+    #
+    #         example_path = example_path.replace(
+    #             "{document_id}",
+    #             "document_id",
+    #         )
+    #
+    #         example_path = example_path.replace(
+    #             "{scan_id}",
+    #             "scan_id",
+    #         )
+    #
+    #         example_path = example_path.replace(
+    #             "{understanding_id}",
+    #             "understanding_id",
+    #         )
+    #
+    #         allowed_methods = {
+    #             "get",
+    #             "post",
+    #             "put",
+    #             "patch",
+    #             "delete",
+    #         }
+    #
+    #         if normalized_method not in allowed_methods:
+    #             normalized_method = "post"
+    #
+    #         if normalized_method == "get":
+    #             return f"""import requests
+    #
+    # response = requests.get(
+    #     "http://127.0.0.1:8000{example_path}",
+    #     timeout=900,
+    # )
+    #
+    # response.raise_for_status()
+    # print(response.json())"""
+    #
+    #         if normalized_method == "delete":
+    #             return f"""import requests
+    #
+    # response = requests.delete(
+    #     "http://127.0.0.1:8000{example_path}",
+    #     timeout=900,
+    # )
+    #
+    # response.raise_for_status()
+    # print(response.json())"""
+    #
+    #         if "documentation/sync-with-context" in normalized_path:
+    #             return f"""import requests
+    #
+    # data = {{
+    #     "project_path": r"C:\\path\\to\\project",
+    #     "additional_context": "",
+    #     "context_blocks_json": "[]",
+    # }}
+    #
+    # files = []
+    #
+    # response = requests.post(
+    #     "http://127.0.0.1:8000{example_path}",
+    #     data=data,
+    #     files=files,
+    #     timeout=900,
+    # )
+    #
+    # response.raise_for_status()
+    # print(response.json())"""
+    #
+    #         payload = DocumentBuilder._build_example_payload(
+    #             path=normalized_path,
+    #         )
+    #
+    #         return f"""import requests
+    #
+    # response = requests.{normalized_method}(
+    #     "http://127.0.0.1:8000{example_path}",
+    #     json={payload},
+    #     timeout=900,
+    # )
+    #
+    # response.raise_for_status()
+    # print(response.json())"""
+    #
+    # @staticmethod
+    # def _build_example_payload(
+    #         path: str,
+    # ) -> str:
+    #     normalized_path = path.strip()
+    #
+    #     if "documentation/sync" in normalized_path:
+    #         return """{
+    #     "project_path": "C:\\\\path\\\\to\\\\project"
+    # }"""
+    #
+    #     if normalized_path.endswith("/scan"):
+    #         return """{
+    #     "project_path": "C:\\\\path\\\\to\\\\project"
+    # }"""
+    #
+    #     if "compare" in normalized_path:
+    #         return """{
+    #     "old_scan_id": "previous_scan_id",
+    #     "new_scan_id": "latest_scan_id"
+    # }"""
+    #
+    #     if normalized_path.endswith("/context"):
+    #         return """{
+    #     "scan_id": "scan_id",
+    #     "mode": "detailed"
+    # }"""
+    #
+    #     if normalized_path.endswith("/understand"):
+    #         return """{
+    #     "scan_id": "scan_id"
+    # }"""
+    #
+    #     if normalized_path.endswith("/documents/update"):
+    #         return """{
+    #     "document_id": "document_id",
+    #     "new_scan_id": "latest_scan_id"
+    # }"""
+    #
+    #     if normalized_path.endswith("/documents"):
+    #         return """{
+    #     "understanding_id": "understanding_id"
+    # }"""
+    #
+    #     return "{}"
+
+    # ///////////////////////////////////////////////////////
+
     @staticmethod
     def _build_endpoint_example_json(
+            method: str,
             path: str,
     ) -> str:
-        normalized_path = path.strip()
+            normalized_method = (
+                method.strip().lower()
+                if isinstance(method, str)
+                else "post"
+            )
 
-        if not normalized_path:
-            normalized_path = "/api/projects/example"
+            normalized_path = path.strip()
 
-        example_path = normalized_path.replace(
-            "{project_name}",
-            "AutoDocX",
-        )
+            if not normalized_path:
+                normalized_path = "/api/projects/example"
 
-        if "scan" in normalized_path:
-            payload = """{
-    "project_path": "C:\\\\path\\\\to\\\\project"
-}"""
-        elif "documentation/sync" in normalized_path:
-            payload = """{
-    "project_path": "C:\\\\path\\\\to\\\\project"
-}"""
-        elif "compare" in normalized_path:
-            payload = """{
-    "base_scan_id": "previous_scan_id",
-    "target_scan_id": "latest_scan_id"
-}"""
-        elif "context" in normalized_path:
-            payload = """{
-    "scan_id": "scan_id",
-    "mode": "detailed"
-}"""
-        elif "understand" in normalized_path:
-            payload = """{
-    "scan_id": "scan_id"
-}"""
-        else:
-            payload = "{}"
+            example_path = normalized_path.replace(
+                "{project_name}",
+                "AutoDocX",
+            )
 
-        return f"""import requests
+            example_path = example_path.replace(
+                "{document_id}",
+                "document_id",
+            )
 
-response = requests.post(
-    "http://127.0.0.1:8000{example_path}",
-    json={payload},
-    timeout=900,
-)
+            example_path = example_path.replace(
+                "{scan_id}",
+                "scan_id",
+            )
 
-response.raise_for_status()
-print(response.json())"""
+            example_path = example_path.replace(
+                "{understanding_id}",
+                "understanding_id",
+            )
+
+            allowed_methods = {
+                "get",
+                "post",
+                "put",
+                "patch",
+                "delete",
+            }
+
+            if normalized_method not in allowed_methods:
+                normalized_method = "post"
+
+            if normalized_method == "get":
+                return f"""import requests
+
+    response = requests.get(
+        "http://127.0.0.1:8000{example_path}",
+        timeout=900,
+    )
+
+    response.raise_for_status()
+    print(response.json())"""
+
+            if normalized_method == "delete":
+                return f"""import requests
+
+    response = requests.delete(
+        "http://127.0.0.1:8000{example_path}",
+        timeout=900,
+    )
+
+    response.raise_for_status()
+    print(response.json())"""
+
+            if "documentation/sync-with-context" in normalized_path:
+                return f"""import requests
+
+    data = {{
+        "project_path": r"C:\\path\\to\\project",
+        "additional_context": "",
+        "context_blocks_json": "[]",
+    }}
+
+    files = []
+
+    response = requests.post(
+        "http://127.0.0.1:8000{example_path}",
+        data=data,
+        files=files,
+        timeout=900,
+    )
+
+    response.raise_for_status()
+    print(response.json())"""
+
+            payload = DocumentBuilder._build_example_payload(
+                path=normalized_path,
+            )
+
+            return f"""import requests
+
+    response = requests.{normalized_method}(
+        "http://127.0.0.1:8000{example_path}",
+        json={payload},
+        timeout=900,
+    )
+
+    response.raise_for_status()
+    print(response.json())"""
+
+    @staticmethod
+    def _build_example_payload(
+            path: str,
+    ) -> str:
+            normalized_path = path.strip()
+
+            if "documentation/sync" in normalized_path:
+                return """{
+        "project_path": "C:\\\\path\\\\to\\\\project"
+    }"""
+
+            if normalized_path.endswith("/scan"):
+                return """{
+        "project_path": "C:\\\\path\\\\to\\\\project"
+    }"""
+
+            if "compare" in normalized_path:
+                return """{
+        "old_scan_id": "previous_scan_id",
+        "new_scan_id": "latest_scan_id"
+    }"""
+
+            if normalized_path.endswith("/context"):
+                return """{
+        "scan_id": "scan_id",
+        "mode": "detailed"
+    }"""
+
+            if normalized_path.endswith("/understand"):
+                return """{
+        "scan_id": "scan_id"
+    }"""
+
+            if normalized_path.endswith("/documents/update"):
+                return """{
+        "document_id": "document_id",
+        "new_scan_id": "latest_scan_id"
+    }"""
+
+            if normalized_path.endswith("/documents"):
+                return """{
+        "understanding_id": "understanding_id"
+    }"""
+
+            return "{}"
 
     @staticmethod
     def _build_import_example(

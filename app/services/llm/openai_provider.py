@@ -59,7 +59,13 @@ class OpenAIProvider(BaseLLMProvider):
 
             response_text = (
                 response.output_text
-            )
+                or ""
+            ).strip()
+
+            if not response_text:
+                raise RuntimeError(
+                    "OpenAI returned an empty response."
+                )
 
             return self.parse_json_response(
                 response_text=response_text,
@@ -69,10 +75,14 @@ class OpenAIProvider(BaseLLMProvider):
             raise
 
         except Exception as error:
+            error_type = type(error).__name__
+            error_message = str(error)
+
             raise RuntimeError(
-                "OpenAI request failed. Check the "
-                "API key, model name, account access, "
-                "quota, and internet connection."
+                "OpenAI request failed. "
+                f"Model: {self.model}. "
+                f"Error type: {error_type}. "
+                f"Error message: {error_message}"
             ) from error
 
     def generate_json_with_images(
@@ -122,7 +132,13 @@ class OpenAIProvider(BaseLLMProvider):
 
             response_text = (
                 response.output_text
-            )
+                or ""
+            ).strip()
+
+            if not response_text:
+                raise RuntimeError(
+                    "OpenAI vision returned an empty response."
+                )
 
             return self.parse_json_response(
                 response_text=response_text,
@@ -132,11 +148,14 @@ class OpenAIProvider(BaseLLMProvider):
             raise
 
         except Exception as error:
+            error_type = type(error).__name__
+            error_message = str(error)
+
             raise RuntimeError(
-                "OpenAI vision request failed. Check "
-                "that the selected model supports image "
-                "input, and verify the API key, quota, "
-                "and internet connection."
+                "OpenAI vision request failed. "
+                f"Model: {self.model}. "
+                f"Error type: {error_type}. "
+                f"Error message: {error_message}"
             ) from error
 
     @staticmethod

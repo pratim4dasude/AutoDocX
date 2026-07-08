@@ -1,0 +1,1503 @@
+{
+  "understanding_id": "20260708_075907_8d96eb89",
+  "created_at": "2026-07-08T07:59:07.891559+00:00",
+  "project_name": "AutoDocX",
+  "scan_id": "20260708_075759_6e97e1e8",
+  "provider": "openai",
+  "model": "gpt-5-mini",
+  "understanding": {
+    "project_summary": "This project provides a developer-documentation engine (AutoDocX) that scans a local Python codebase, extracts structural metadata, generates an LLM-assisted narrative understanding, and produces standalone HTML developer documentation. It exposes a FastAPI HTTP API for scanning projects, generating and listing scans, producing LLM understandings, comparing scans, and creating or updating HTML documentation; a Streamlit UI client is included to call those APIs.",
+    "architecture_overview": "The application is organized into clear layers: a FastAPI entry layer (app/main.py and app.api.project_routes) that exposes HTTP endpoints; service layers under app.services that implement scanning, parsing, analysis, LLM integration, comparison, runtime context analysis, and document building; storage layers (app.services.scan_storage, app.services.understanding_storage, app.services.document_storage) that persist scans, understanding JSON, and generated HTML plus runtime assets; and a small UI client (ui/streamlit_app). Configuration and workspace paths are centralized in app.core.config. Runtime moves from request -> ProjectScanner (uses PythonCodeParser and ProjectAnalyzer) to produce a scan -> ScanStorage saves the scan -> ProjectUnderstandingService (uses ProjectContextBuilder and LLM provider factory) generates narrative understanding -> UnderstandingStorage saves it -> DocumentBuilder renders HTML -> DocumentStorage saves HTML and any runtime assets. Additional flows support scan comparison, LLM runtime context analysis (vision-capable providers), and recovery of embedded assets from existing HTML files.",
+    "execution_flow": [
+      {
+        "step": 1,
+        "title": "Start application and health check",
+        "description": "Start the FastAPI app (app/main.py). The root (/) and /health endpoints return basic health/status responses used by the UI and orchestration.",
+        "related_modules": [
+          "app.main"
+        ]
+      },
+      {
+        "step": 2,
+        "title": "Scan a local project",
+        "description": "Client calls POST /api/projects/scan with a ProjectScanRequest. ProjectScanner validates the path, enumerates files, parses Python files via PythonCodeParser, analyzes project structure with ProjectAnalyzer, and returns a ProjectScanResponse. ScanStorage persists the stored scan under the configured workspace path.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.project_scanner",
+          "app.services.code_parser",
+          "app.services.project_analyzer",
+          "app.services.scan_storage",
+          "app.models.project"
+        ]
+      },
+      {
+        "step": 3,
+        "title": "Generate structured project understanding (LLM)",
+        "description": "Client calls POST /api/projects/{project_name}/understand. The endpoint loads a stored scan, builds an LLM-ready project context using ProjectContextBuilder, selects and constructs an LLM provider via LLMProviderFactory (OpenAIProvider or AnthropicProvider), sends prompts using provider.generate_json, parses the JSON response, merges deterministic parser/analyzer reference data, validates required fields, and saves the result with UnderstandingStorage.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.project_understanding_service",
+          "app.services.project_context_builder",
+          "app.services.llm.factory",
+          "app.services.llm.openai_provider",
+          "app.services.llm.anthropic_provider",
+          "app.services.understanding_storage"
+        ]
+      },
+      {
+        "step": 4,
+        "title": "Build HTML documentation",
+        "description": "Client calls POST /api/projects/{project_name}/documents to generate HTML. The handler retrieves a stored understanding, DocumentBuilder.build_html renders a professional standalone HTML page (with navigation, API reference cards, signatures, etc.), and DocumentStorage.save_document writes the HTML and JSON metadata to the documents workspace. DocumentStorage.prepare_runtime_assets handles uploaded screenshots when provided.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.document_builder",
+          "app.services.document_storage",
+          "app.services.understanding_storage"
+        ]
+      },
+      {
+        "step": 5,
+        "title": "Sync complete documentation (all-in-one)",
+        "description": "POST /api/projects/documentation/sync triggers the full pipeline: scan_project -> save scan -> locate latest document -> create initial documentation or compare scans and create new version when changes exist -> return current document metadata. This endpoint centralizes the scan->understand->document workflow.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.project_scanner",
+          "app.services.scan_storage",
+          "app.services.document_storage",
+          "app.services.scan_comparator",
+          "app.services.project_understanding_service",
+          "app.services.understanding_storage"
+        ]
+      },
+      {
+        "step": 6,
+        "title": "Sync with runtime context and screenshots",
+        "description": "POST /api/projects/documentation/sync-with-context accepts form fields and uploaded screenshots. Uploaded images are staged and handed to DocumentStorage.prepare_runtime_assets; a RuntimeContextAnalyzer can call a vision-capable LLM provider to analyze screenshots with code context. Returned runtime insights are merged into the final documentation.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.document_storage",
+          "app.services.runtime_context_analyzer",
+          "app.services.project_context_builder",
+          "app.services.llm.factory"
+        ]
+      },
+      {
+        "step": 7,
+        "title": "Compare scans and list artifacts",
+        "description": "The API supports comparing saved scans (POST /api/projects/{project_name}/compare) using ScanComparator.compare_scans, listing scans (/scans) and documents (/documents), and retrieving specific stored scan/understanding/document files and their metadata.",
+        "related_modules": [
+          "app.api.project_routes",
+          "app.services.scan_comparator",
+          "app.services.scan_storage",
+          "app.services.understanding_storage",
+          "app.services.document_storage"
+        ]
+      }
+    ],
+    "module_responsibilities": [],
+    "api_overview": [
+      {
+        "method": "GET",
+        "path": "/",
+        "handler": "root",
+        "handler_signature": "def root() -> dict[str, str]:",
+        "arguments": [],
+        "returns": "dict[str, str]",
+        "response_model": null,
+        "status_code": null,
+        "purpose": "API endpoint discovered from FastAPI route decorators.",
+        "summary": null,
+        "description": null,
+        "tags": [],
+        "file": "app/main.py",
+        "module": "app.main",
+        "line": 19,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/documentation/sync",
+        "handler": "sync_project_documentation",
+        "handler_signature": "def sync_project_documentation(request: DocumentationSyncRequest) -> DocumentationSyncResponse:",
+        "arguments": [],
+        "returns": "DocumentationSyncResponse",
+        "response_model": "DocumentationSyncResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Create or update project documentation using one request",
+        "summary": "Create or update project documentation using one request",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 1001,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/documentation/sync-with-context",
+        "handler": "sync_project_documentation_with_context",
+        "handler_signature": "def sync_project_documentation_with_context(project_path: str = Form(..., min_length=1, description='Absolute path of the project whose documentation should be created or updated'), additional_context: str = Form(default='', description='Optional general project context that is not visible from source code.'), context_blocks_json: str = Form(default='[]', description='JSON list of ordered runtime context blocks. Each block can contain title, text, and screenshot_index.'), screenshots: list[UploadFile] | None = File(default=None, description='Optional screenshots from Docker, Temporal, Swagger, Cortex, ServiceNow, dashboards, logs, or other project tooling.')) -> DocumentationSyncResponse:",
+        "arguments": [],
+        "returns": "DocumentationSyncResponse",
+        "response_model": "DocumentationSyncResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Create or update project documentation with extra runtime context and screenshots",
+        "summary": "Create or update project documentation with extra runtime context and screenshots",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 1382,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/scan",
+        "handler": "scan_project",
+        "handler_signature": "def scan_project(request: ProjectScanRequest) -> ProjectScanResponse:",
+        "arguments": [],
+        "returns": "ProjectScanResponse",
+        "response_model": "ProjectScanResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Scan, analyze, and save a local project",
+        "summary": "Scan, analyze, and save a local project",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 1852,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/compare",
+        "handler": "compare_project_scans",
+        "handler_signature": "def compare_project_scans(project_name: str, request: ScanComparisonRequest) -> ScanComparisonResponse:",
+        "arguments": [],
+        "returns": "ScanComparisonResponse",
+        "response_model": "ScanComparisonResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Compare two saved project scans",
+        "summary": "Compare two saved project scans",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2013,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/context",
+        "handler": "build_project_context",
+        "handler_signature": "def build_project_context(project_name: str, request: ProjectContextRequest) -> ProjectContextResponse:",
+        "arguments": [],
+        "returns": "ProjectContextResponse",
+        "response_model": "ProjectContextResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Build compact LLM-ready project context",
+        "summary": "Build compact LLM-ready project context",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2088,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/documents",
+        "handler": "list_project_documents",
+        "handler_signature": "def list_project_documents(project_name: str) -> list[DocumentSummaryResponse]:",
+        "arguments": [],
+        "returns": "list[DocumentSummaryResponse]",
+        "response_model": "list[DocumentSummaryResponse]",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "List generated project documents",
+        "summary": "List generated project documents",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2763,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/documents",
+        "handler": "generate_project_document",
+        "handler_signature": "def generate_project_document(project_name: str, request: DocumentGenerationRequest) -> DocumentGenerationResponse:",
+        "arguments": [],
+        "returns": "DocumentGenerationResponse",
+        "response_model": "DocumentGenerationResponse",
+        "status_code": "status.HTTP_201_CREATED",
+        "purpose": "Generate and save HTML project documentation",
+        "summary": "Generate and save HTML project documentation",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2371,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/documents/latest",
+        "handler": "get_latest_project_document",
+        "handler_signature": "def get_latest_project_document(project_name: str) -> DocumentSummaryResponse:",
+        "arguments": [],
+        "returns": "DocumentSummaryResponse",
+        "response_model": "DocumentSummaryResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Get the latest generated project document metadata",
+        "summary": "Get the latest generated project document metadata",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2798,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/documents/update",
+        "handler": "update_project_document",
+        "handler_signature": "def update_project_document(project_name: str, request: DocumentUpdateRequest) -> DocumentUpdateResponse:",
+        "arguments": [],
+        "returns": "DocumentUpdateResponse",
+        "response_model": "DocumentUpdateResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Compare a new scan and create an updated documentation version",
+        "summary": "Compare a new scan and create an updated documentation version",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2466,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/documents/{document_id}/html",
+        "handler": "get_project_document_html",
+        "handler_signature": "def get_project_document_html(project_name: str, document_id: str) -> FileResponse:",
+        "arguments": [],
+        "returns": "FileResponse",
+        "response_model": null,
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Open or download generated HTML documentation",
+        "summary": "Open or download generated HTML documentation",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2840,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/scans",
+        "handler": "list_project_scans",
+        "handler_signature": "def list_project_scans(project_name: str) -> list[ScanSummaryResponse]:",
+        "arguments": [],
+        "returns": "list[ScanSummaryResponse]",
+        "response_model": "list[ScanSummaryResponse]",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "List all saved project scans",
+        "summary": "List all saved project scans",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 1910,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/scans/latest",
+        "handler": "get_latest_project_scan",
+        "handler_signature": "def get_latest_project_scan(project_name: str) -> StoredScanResponse:",
+        "arguments": [],
+        "returns": "StoredScanResponse",
+        "response_model": "StoredScanResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Get the latest saved project scan",
+        "summary": "Get the latest saved project scan",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 1938,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/scans/{scan_id}",
+        "handler": "get_project_scan",
+        "handler_signature": "def get_project_scan(project_name: str, scan_id: str) -> StoredScanResponse:",
+        "arguments": [],
+        "returns": "StoredScanResponse",
+        "response_model": "StoredScanResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Get one saved project scan",
+        "summary": "Get one saved project scan",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 1973,
+        "source_preview": null
+      },
+      {
+        "method": "POST",
+        "path": "/api/projects/{project_name}/understand",
+        "handler": "understand_project",
+        "handler_signature": "def understand_project(project_name: str, request: ProjectUnderstandingRequest) -> ProjectUnderstandingResponse:",
+        "arguments": [],
+        "returns": "ProjectUnderstandingResponse",
+        "response_model": "ProjectUnderstandingResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Generate and save structured project understanding using the configured LLM",
+        "summary": "Generate and save structured project understanding using the configured LLM",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2153,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/understandings",
+        "handler": "list_project_understandings",
+        "handler_signature": "def list_project_understandings(project_name: str) -> list[UnderstandingSummaryResponse]:",
+        "arguments": [],
+        "returns": "list[UnderstandingSummaryResponse]",
+        "response_model": "list[UnderstandingSummaryResponse]",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "List saved project understandings",
+        "summary": "List saved project understandings",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2245,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/understandings/latest",
+        "handler": "get_latest_project_understanding",
+        "handler_signature": "def get_latest_project_understanding(project_name: str) -> StoredUnderstandingResponse:",
+        "arguments": [],
+        "returns": "StoredUnderstandingResponse",
+        "response_model": "StoredUnderstandingResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Get the latest saved project understanding",
+        "summary": "Get the latest saved project understanding",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2282,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/api/projects/{project_name}/understandings/{understanding_id}",
+        "handler": "get_project_understanding",
+        "handler_signature": "def get_project_understanding(project_name: str, understanding_id: str) -> StoredUnderstandingResponse:",
+        "arguments": [],
+        "returns": "StoredUnderstandingResponse",
+        "response_model": "StoredUnderstandingResponse",
+        "status_code": "status.HTTP_200_OK",
+        "purpose": "Get one saved project understanding",
+        "summary": "Get one saved project understanding",
+        "description": null,
+        "tags": [],
+        "file": "app/api/project_routes.py",
+        "module": "app.api.project_routes",
+        "line": 2323,
+        "source_preview": null
+      },
+      {
+        "method": "GET",
+        "path": "/health",
+        "handler": "health_check",
+        "handler_signature": "def health_check() -> dict[str, str]:",
+        "arguments": [],
+        "returns": "dict[str, str]",
+        "response_model": null,
+        "status_code": null,
+        "purpose": "API endpoint discovered from FastAPI route decorators.",
+        "summary": null,
+        "description": null,
+        "tags": [],
+        "file": "app/main.py",
+        "module": "app.main",
+        "line": 29,
+        "source_preview": null
+      }
+    ],
+    "key_dependencies": [
+      {
+        "source": "app.api.project_routes",
+        "target": "app.core.config",
+        "imported_name": "get_llm_api_key",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `get_llm_api_key` from `app.core.config`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.core.config",
+        "imported_name": "get_llm_model",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `get_llm_model` from `app.core.config`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.core.config",
+        "imported_name": "get_llm_provider",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `get_llm_provider` from `app.core.config`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "DocumentGenerationRequest",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentGenerationRequest` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "DocumentGenerationResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentGenerationResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "DocumentSummaryResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentSummaryResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "DocumentUpdateRequest",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentUpdateRequest` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "DocumentUpdateResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentUpdateResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "DocumentationSyncRequest",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentationSyncRequest` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "DocumentationSyncResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentationSyncResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ProjectContextRequest",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectContextRequest` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ProjectContextResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectContextResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ProjectScanRequest",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectScanRequest` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ProjectScanResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectScanResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ProjectUnderstandingRequest",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectUnderstandingRequest` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ProjectUnderstandingResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectUnderstandingResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ScanComparisonRequest",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ScanComparisonRequest` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ScanComparisonResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ScanComparisonResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "ScanSummaryResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ScanSummaryResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "StoredScanResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `StoredScanResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "StoredUnderstandingResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `StoredUnderstandingResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.models.project",
+        "imported_name": "UnderstandingSummaryResponse",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `UnderstandingSummaryResponse` from `app.models.project`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.document_builder",
+        "imported_name": "DocumentBuilder",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentBuilder` from `app.services.document_builder`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.document_storage",
+        "imported_name": "DocumentStorage",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `DocumentStorage` from `app.services.document_storage`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.project_context_builder",
+        "imported_name": "ProjectContextBuilder",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectContextBuilder` from `app.services.project_context_builder`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.project_scanner",
+        "imported_name": "ProjectScanner",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectScanner` from `app.services.project_scanner`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.project_understanding_service",
+        "imported_name": "ProjectUnderstandingService",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ProjectUnderstandingService` from `app.services.project_understanding_service`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.runtime_context_analyzer",
+        "imported_name": "RuntimeContextAnalyzer",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `RuntimeContextAnalyzer` from `app.services.runtime_context_analyzer`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.scan_comparator",
+        "imported_name": "ScanComparator",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ScanComparator` from `app.services.scan_comparator`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.scan_storage",
+        "imported_name": "ScanStorage",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `ScanStorage` from `app.services.scan_storage`."
+      },
+      {
+        "source": "app.api.project_routes",
+        "target": "app.services.understanding_storage",
+        "imported_name": "UnderstandingStorage",
+        "alias": null,
+        "purpose": "`app.api.project_routes` imports `UnderstandingStorage` from `app.services.understanding_storage`."
+      },
+      {
+        "source": "app.main",
+        "target": "app.api.project_routes",
+        "imported_name": "router",
+        "alias": null,
+        "purpose": "`app.main` imports `router` from `app.api.project_routes`."
+      },
+      {
+        "source": "app.services.document_storage",
+        "target": "app.core.config",
+        "imported_name": "DOCUMENTS_PATH",
+        "alias": null,
+        "purpose": "`app.services.document_storage` imports `DOCUMENTS_PATH` from `app.core.config`."
+      },
+      {
+        "source": "app.services.llm.anthropic_provider",
+        "target": "app.services.llm.base",
+        "imported_name": "BaseLLMProvider",
+        "alias": null,
+        "purpose": "`app.services.llm.anthropic_provider` imports `BaseLLMProvider` from `app.services.llm.base`."
+      },
+      {
+        "source": "app.services.llm.factory",
+        "target": "app.services.llm.anthropic_provider",
+        "imported_name": "AnthropicProvider",
+        "alias": null,
+        "purpose": "`app.services.llm.factory` imports `AnthropicProvider` from `app.services.llm.anthropic_provider`."
+      },
+      {
+        "source": "app.services.llm.factory",
+        "target": "app.services.llm.base",
+        "imported_name": "BaseLLMProvider",
+        "alias": null,
+        "purpose": "`app.services.llm.factory` imports `BaseLLMProvider` from `app.services.llm.base`."
+      },
+      {
+        "source": "app.services.llm.factory",
+        "target": "app.services.llm.openai_provider",
+        "imported_name": "OpenAIProvider",
+        "alias": null,
+        "purpose": "`app.services.llm.factory` imports `OpenAIProvider` from `app.services.llm.openai_provider`."
+      },
+      {
+        "source": "app.services.llm.openai_provider",
+        "target": "app.services.llm.base",
+        "imported_name": "BaseLLMProvider",
+        "alias": null,
+        "purpose": "`app.services.llm.openai_provider` imports `BaseLLMProvider` from `app.services.llm.base`."
+      },
+      {
+        "source": "app.services.project_scanner",
+        "target": "app.services.code_parser",
+        "imported_name": "PythonCodeParser",
+        "alias": null,
+        "purpose": "`app.services.project_scanner` imports `PythonCodeParser` from `app.services.code_parser`."
+      },
+      {
+        "source": "app.services.project_scanner",
+        "target": "app.services.project_analyzer",
+        "imported_name": "ProjectAnalyzer",
+        "alias": null,
+        "purpose": "`app.services.project_scanner` imports `ProjectAnalyzer` from `app.services.project_analyzer`."
+      },
+      {
+        "source": "app.services.project_understanding_service",
+        "target": "app.services.llm.factory",
+        "imported_name": "LLMProviderFactory",
+        "alias": null,
+        "purpose": "`app.services.project_understanding_service` imports `LLMProviderFactory` from `app.services.llm.factory`."
+      },
+      {
+        "source": "app.services.project_understanding_service",
+        "target": "app.services.llm.prompts",
+        "imported_name": "PROJECT_UNDERSTANDING_SYSTEM_PROMPT",
+        "alias": null,
+        "purpose": "`app.services.project_understanding_service` imports `PROJECT_UNDERSTANDING_SYSTEM_PROMPT` from `app.services.llm.prompts`."
+      },
+      {
+        "source": "app.services.project_understanding_service",
+        "target": "app.services.llm.prompts",
+        "imported_name": "build_project_understanding_prompt",
+        "alias": null,
+        "purpose": "`app.services.project_understanding_service` imports `build_project_understanding_prompt` from `app.services.llm.prompts`."
+      },
+      {
+        "source": "app.services.project_understanding_service",
+        "target": "app.services.project_context_builder",
+        "imported_name": "ProjectContextBuilder",
+        "alias": null,
+        "purpose": "`app.services.project_understanding_service` imports `ProjectContextBuilder` from `app.services.project_context_builder`."
+      },
+      {
+        "source": "app.services.runtime_context_analyzer",
+        "target": "app.services.llm.factory",
+        "imported_name": "LLMProviderFactory",
+        "alias": null,
+        "purpose": "`app.services.runtime_context_analyzer` imports `LLMProviderFactory` from `app.services.llm.factory`."
+      },
+      {
+        "source": "app.services.runtime_context_analyzer",
+        "target": "app.services.project_context_builder",
+        "imported_name": "ProjectContextBuilder",
+        "alias": null,
+        "purpose": "`app.services.runtime_context_analyzer` imports `ProjectContextBuilder` from `app.services.project_context_builder`."
+      },
+      {
+        "source": "app.services.understanding_storage",
+        "target": "app.core.config",
+        "imported_name": "UNDERSTANDINGS_PATH",
+        "alias": null,
+        "purpose": "`app.services.understanding_storage` imports `UNDERSTANDINGS_PATH` from `app.core.config`."
+      }
+    ],
+    "risks_and_gaps": [
+      {
+        "title": "No authentication or access controls on API endpoints",
+        "description": "The API surface (project_routes) exposes scan, LLM calls, and document download endpoints without documented authentication or authorization controls in the scanned code. This may expose project source and LLM keys if deployed publicly.",
+        "severity": "high"
+      },
+      {
+        "title": "Secrets and credential management",
+        "description": "LLM API keys and provider selection are read from environment variables via app.core.config but there is no documented secret management, rotation, or vault integration in the scanned code.",
+        "severity": "high"
+      },
+      {
+        "title": "Observability and monitoring",
+        "description": "There are no explicit logging, metrics, or tracing integrations visible in the codebase scan that would support production observability, error monitoring, or performance metrics for long-running LLM calls.",
+        "severity": "medium"
+      },
+      {
+        "title": "Upload and file size handling",
+        "description": "While ProjectScanner sets ignored extensions and size limits for scanning, the API paths accepting uploaded screenshots do not show explicit rate limiting or comprehensive validation beyond allowed extensions; large uploads and resource exhaustion are possible.",
+        "severity": "medium"
+      },
+      {
+        "title": "Testing and CI coverage not exposed",
+        "description": "The scan does not include test modules or CI configuration; unit/integration tests and repeatable CI/CD scripts are not present in the provided files.",
+        "severity": "medium"
+      },
+      {
+        "title": "Deployment and runtime documentation missing",
+        "description": "There are start/stop scripts and a requirements.txt, but no container manifests, process manager config, or deployment guidance for production (TLS, reverse proxy, scalability, or persistent storage configuration).",
+        "severity": "medium"
+      },
+      {
+        "title": "Potential LLM response validation and retry behavior",
+        "description": "LLM provider implementations parse and validate JSON responses and ProjectUnderstandingService references retry helpers, but global retry/backoff strategies for transient failures and timeouts across all LLM and network calls are not documented as configurable.",
+        "severity": "low"
+      }
+    ],
+    "recommended_document_sections": [
+      {
+        "title": "Quickstart: Running AutoDocX locally",
+        "purpose": "Describe prerequisites, environment variables (.env), workspace layout, and how to start the service using provided start scripts or a recommended Python/uvicorn command."
+      },
+      {
+        "title": "API Reference and Example Requests",
+        "purpose": "Document each HTTP endpoint with request/response schemas, example curl/requests bodies, and sample responses for scan, understand, document generation, comparison and retrieval flows."
+      },
+      {
+        "title": "Workspace and Storage Layout",
+        "purpose": "Explain SCANS_PATH, UNDERSTANDINGS_PATH, DOCUMENTS_PATH, how files are named and where attachments/screenshots are stored and recovered."
+      },
+      {
+        "title": "LLM Configuration and Providers",
+        "purpose": "Document supported LLM providers, environment variables required for providers, model selection, and guidance on using vision-capable models for runtime screenshot analysis."
+      },
+      {
+        "title": "Runtime/Tooling Context Workflow",
+        "purpose": "Explain the sync-with-context flow, how to prepare context blocks and screenshots, how DocumentStorage.prepare_runtime_assets works, and how runtime insights are merged into documentation."
+      },
+      {
+        "title": "Security and Secrets Guide",
+        "purpose": "Provide instructions for securing the API (authentication), storing LLM API keys securely, and recommended network/security posture for production deployments."
+      },
+      {
+        "title": "Observability and Production Hardening",
+        "purpose": "Recommendations and examples for adding logging, metrics, tracing, timeouts, retries, request size limits, and deployment patterns (containers, reverse proxy, TLS)."
+      },
+      {
+        "title": "Testing and CI Recommendations",
+        "purpose": "Describe suggested unit and integration tests around parsing, scanning, LLM integration (mocked), storage, and end-to-end sync flows and provide a sample CI pipeline."
+      },
+      {
+        "title": "Extending Providers and Customization",
+        "purpose": "Guidance for adding new LLM providers, customizing prompts, adjusting ProjectContextBuilder modes, and adapting DocumentBuilder templates."
+      }
+    ],
+    "developer_reference": {
+      "statistics": {
+        "python_modules": 27,
+        "functions": 62,
+        "async_functions": 0,
+        "classes": 45,
+        "methods": 213,
+        "constants": 14,
+        "api_routes": 19,
+        "internal_dependencies": 47,
+        "modules_with_syntax_errors": 0,
+        "files_with_module_docstrings": 0,
+        "documented_functions": 78,
+        "documented_classes": 15
+      },
+      "api_reference": [
+        {
+          "method": "GET",
+          "path": "/",
+          "handler": "root",
+          "handler_signature": "def root() -> dict[str, str]:",
+          "returns": "dict[str, str]",
+          "called_functions_preview": [
+            "app.get('/', tags=['Health'])"
+          ],
+          "file": "app/main.py",
+          "module": "app.main",
+          "line": 19
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/documentation/sync",
+          "handler": "sync_project_documentation",
+          "handler_signature": "def sync_project_documentation(request: DocumentationSyncRequest) -> DocumentationSyncResponse:",
+          "returns": "DocumentationSyncResponse",
+          "response_model": "DocumentationSyncResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Create or update project documentation using one request",
+          "docstring": "Complete documentation workflow.\n\nThe endpoint:\n\n1. Scans and saves the project.\n2. Finds the latest document.\n3. Creates initial documentation when no\n   document exists.\n4. Compares scans when a document exists.\n5. Creates a new version when changes exist.\n6. Returns the existing document when there\n   are no changes.",
+          "called_functions_preview": [
+            "router.post('/documentation/sync', response_model=DocumentationSyncResponse, status_code=status.HTTP_200_OK, summary='Create or update project documentation using one request')",
+            "project_scanner.scan_project(project_path=request.project_path)",
+            "scan_storage.save_scan(scan_result=scan_result)",
+            "str.strip(...)",
+            "scan_storage.get_scan(project_name=project_name, scan_id=new_scan_id)",
+            "document_storage.list_documents(project_name=project_name)",
+            "_recover_runtime_assets_for_document(project_name=project_name, document_metadata=latest_document)",
+            "_get_runtime_context_from_document(document_metadata=latest_document)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 1001
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/documentation/sync-with-context",
+          "handler": "sync_project_documentation_with_context",
+          "handler_signature": "def sync_project_documentation_with_context(project_path: str = Form(..., min_length=1, description='Absolute path of the project whose documentation should be created or updated'), additional_context: str = Form(default='', description='Optional general project context that is not visible from source code.'), context_blocks_json: str = Form(default='[]', description='JSON list of ordered runtime context blocks. Each block can contain title, text, and screenshot_index.'), screenshots: list[UploadFile] | None = File(default=None, description='Optional screenshots from Docker, Temporal, Swagger, Cortex, ServiceNow, dashboards, logs, or other project tooling.')) -> DocumentationSyncResponse:",
+          "returns": "DocumentationSyncResponse",
+          "response_model": "DocumentationSyncResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Create or update project documentation with extra runtime context and screenshots",
+          "docstring": "Complete documentation workflow with external\nruntime/tooling context.\n\nThis endpoint keeps the original code documentation\npipeline but also accepts human-written context and\nscreenshots. The extra context is added to the final\nHTML documentation under Runtime and Tooling Context.",
+          "called_functions_preview": [
+            "router.post('/documentation/sync-with-context', response_model=DocumentationSyncResponse, status_code=status.HTTP_200_OK, summary='Create or update project documentation with extra runtime context and screenshots')",
+            "Form(..., min_length=1, description='Absolute path of the project whose documentation should be created or updated')",
+            "Form(default='', description='Optional general project context that is not visible from source code.')",
+            "Form(default='[]', description='JSON list of ordered runtime context blocks. Each block can contain title, text, and screenshot_index.')",
+            "File(default=None, description='Optional screenshots from Docker, Temporal, Swagger, Cortex, ServiceNow, dashboards, logs, or other project tooling.')",
+            "project_scanner.scan_project(project_path=project_path)",
+            "scan_storage.save_scan(scan_result=scan_result)",
+            "str.strip(...)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 1382
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/scan",
+          "handler": "scan_project",
+          "handler_signature": "def scan_project(request: ProjectScanRequest) -> ProjectScanResponse:",
+          "returns": "ProjectScanResponse",
+          "response_model": "ProjectScanResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Scan, analyze, and save a local project",
+          "called_functions_preview": [
+            "router.post('/scan', response_model=ProjectScanResponse, status_code=status.HTTP_200_OK, summary='Scan, analyze, and save a local project')",
+            "project_scanner.scan_project(project_path=request.project_path)",
+            "scan_storage.save_scan(scan_result=scan_result)",
+            "ProjectScanResponse(...)",
+            "HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f'Permission denied: {error}')",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Project scan failed: {error}')"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 1852
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/{project_name}/compare",
+          "handler": "compare_project_scans",
+          "handler_signature": "def compare_project_scans(project_name: str, request: ScanComparisonRequest) -> ScanComparisonResponse:",
+          "returns": "ScanComparisonResponse",
+          "response_model": "ScanComparisonResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Compare two saved project scans",
+          "called_functions_preview": [
+            "router.post('/{project_name}/compare', response_model=ScanComparisonResponse, status_code=status.HTTP_200_OK, summary='Compare two saved project scans')",
+            "scan_storage.get_scan(project_name=project_name, scan_id=request.old_scan_id)",
+            "scan_storage.get_scan(project_name=project_name, scan_id=request.new_scan_id)",
+            "scan_comparator.compare_scans(old_stored_scan=old_stored_scan, new_stored_scan=new_stored_scan)",
+            "ScanComparisonResponse(...)",
+            "ValueError('Old scan ID and new scan ID must be different.')",
+            "str(error)",
+            "HTTPException(status_code=_value_error_status(error_message), detail=error_message)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2013
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/{project_name}/context",
+          "handler": "build_project_context",
+          "handler_signature": "def build_project_context(project_name: str, request: ProjectContextRequest) -> ProjectContextResponse:",
+          "returns": "ProjectContextResponse",
+          "response_model": "ProjectContextResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Build compact LLM-ready project context",
+          "called_functions_preview": [
+            "router.post('/{project_name}/context', response_model=ProjectContextResponse, status_code=status.HTTP_200_OK, summary='Build compact LLM-ready project context')",
+            "scan_storage.get_scan(project_name=project_name, scan_id=request.scan_id)",
+            "project_context_builder.build_context(stored_scan=stored_scan, mode=request.mode)",
+            "ProjectContextResponse(...)",
+            "str(error)",
+            "HTTPException(status_code=_value_error_status(error_message), detail=error_message)",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f'Project context generation failed: {error}')"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2088
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/documents",
+          "handler": "list_project_documents",
+          "handler_signature": "def list_project_documents(project_name: str) -> list[DocumentSummaryResponse]:",
+          "returns": "list[DocumentSummaryResponse]",
+          "response_model": "list[DocumentSummaryResponse]",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "List generated project documents",
+          "called_functions_preview": [
+            "router.get('/{project_name}/documents', response_model=list[DocumentSummaryResponse], status_code=status.HTTP_200_OK, summary='List generated project documents')",
+            "document_storage.list_documents(project_name=project_name)",
+            "DocumentSummaryResponse(...)",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2763
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/{project_name}/documents",
+          "handler": "generate_project_document",
+          "handler_signature": "def generate_project_document(project_name: str, request: DocumentGenerationRequest) -> DocumentGenerationResponse:",
+          "returns": "DocumentGenerationResponse",
+          "response_model": "DocumentGenerationResponse",
+          "status_code": "status.HTTP_201_CREATED",
+          "summary": "Generate and save HTML project documentation",
+          "called_functions_preview": [
+            "router.post('/{project_name}/documents', response_model=DocumentGenerationResponse, status_code=status.HTTP_201_CREATED, summary='Generate and save HTML project documentation')",
+            "understanding_storage.get_understanding(project_name=project_name, understanding_id=request.understanding_id)",
+            "document_builder.build_html(stored_understanding=stored_understanding)",
+            "str(stored_understanding.get('scan_id', ''))",
+            "document_storage.save_document(project_name=project_name, understanding_id=request.understanding_id, scan_id=scan_id, html_content=html_content, update_type='initial')",
+            "DocumentGenerationResponse(message='HTML documentation generated successfully.', document=document_info)",
+            "stored_understanding.get('scan_id', '')",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2371
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/documents/latest",
+          "handler": "get_latest_project_document",
+          "handler_signature": "def get_latest_project_document(project_name: str) -> DocumentSummaryResponse:",
+          "returns": "DocumentSummaryResponse",
+          "response_model": "DocumentSummaryResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Get the latest generated project document metadata",
+          "called_functions_preview": [
+            "router.get('/{project_name}/documents/latest', response_model=DocumentSummaryResponse, status_code=status.HTTP_200_OK, summary='Get the latest generated project document metadata')",
+            "document_storage.get_latest_document_metadata(project_name=project_name)",
+            "DocumentSummaryResponse(...)",
+            "HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2798
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/{project_name}/documents/update",
+          "handler": "update_project_document",
+          "handler_signature": "def update_project_document(project_name: str, request: DocumentUpdateRequest) -> DocumentUpdateResponse:",
+          "returns": "DocumentUpdateResponse",
+          "response_model": "DocumentUpdateResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Compare a new scan and create an updated documentation version",
+          "docstring": "Update an existing generated document using a new\nsaved scan.\n\nImportant:\n- If the previous document contains runtime/tooling\n  context, it is carried into the new document.\n- This prevents screenshots, notes, and runtime\n  understanding from disappearing during manual\n  document updates.",
+          "called_functions_preview": [
+            "router.post('/{project_name}/documents/update', response_model=DocumentUpdateResponse, status_code=status.HTTP_200_OK, summary='Compare a new scan and create an updated documentation version')",
+            "document_storage.get_document_metadata(project_name=project_name, document_id=request.document_id)",
+            "_recover_runtime_assets_for_document(project_name=project_name, document_metadata=previous_document)",
+            "_get_runtime_context_from_document(document_metadata=previous_document)",
+            "_has_runtime_context(runtime_context=previous_runtime_context)",
+            "str.strip(...)",
+            "scan_storage.get_scan(project_name=project_name, scan_id=old_scan_id)",
+            "scan_storage.get_scan(project_name=project_name, scan_id=request.new_scan_id)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2466
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/documents/{document_id}/html",
+          "handler": "get_project_document_html",
+          "handler_signature": "def get_project_document_html(project_name: str, document_id: str) -> FileResponse:",
+          "returns": "FileResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Open or download generated HTML documentation",
+          "called_functions_preview": [
+            "router.get('/{project_name}/documents/{document_id}/html', response_class=FileResponse, status_code=status.HTTP_200_OK, summary='Open or download generated HTML documentation')",
+            "document_storage.get_document_file(project_name=project_name, document_id=document_id)",
+            "FileResponse(path=document_file, media_type='text/html', filename=document_file.name)",
+            "HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2840
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/scans",
+          "handler": "list_project_scans",
+          "handler_signature": "def list_project_scans(project_name: str) -> list[ScanSummaryResponse]:",
+          "returns": "list[ScanSummaryResponse]",
+          "response_model": "list[ScanSummaryResponse]",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "List all saved project scans",
+          "called_functions_preview": [
+            "router.get('/{project_name}/scans', response_model=list[ScanSummaryResponse], status_code=status.HTTP_200_OK, summary='List all saved project scans')",
+            "scan_storage.list_scans(project_name=project_name)",
+            "ScanSummaryResponse(...)",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 1910
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/scans/latest",
+          "handler": "get_latest_project_scan",
+          "handler_signature": "def get_latest_project_scan(project_name: str) -> StoredScanResponse:",
+          "returns": "StoredScanResponse",
+          "response_model": "StoredScanResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Get the latest saved project scan",
+          "called_functions_preview": [
+            "router.get('/{project_name}/scans/latest', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get the latest saved project scan')",
+            "scan_storage.get_latest_scan(project_name=project_name)",
+            "StoredScanResponse(...)",
+            "HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 1938
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/scans/{scan_id}",
+          "handler": "get_project_scan",
+          "handler_signature": "def get_project_scan(project_name: str, scan_id: str) -> StoredScanResponse:",
+          "returns": "StoredScanResponse",
+          "response_model": "StoredScanResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Get one saved project scan",
+          "called_functions_preview": [
+            "router.get('/{project_name}/scans/{scan_id}', response_model=StoredScanResponse, status_code=status.HTTP_200_OK, summary='Get one saved project scan')",
+            "scan_storage.get_scan(project_name=project_name, scan_id=scan_id)",
+            "StoredScanResponse(...)",
+            "HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 1973
+        },
+        {
+          "method": "POST",
+          "path": "/api/projects/{project_name}/understand",
+          "handler": "understand_project",
+          "handler_signature": "def understand_project(project_name: str, request: ProjectUnderstandingRequest) -> ProjectUnderstandingResponse:",
+          "returns": "ProjectUnderstandingResponse",
+          "response_model": "ProjectUnderstandingResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Generate and save structured project understanding using the configured LLM",
+          "called_functions_preview": [
+            "router.post('/{project_name}/understand', response_model=ProjectUnderstandingResponse, status_code=status.HTTP_200_OK, summary='Generate and save structured project understanding using the configured LLM')",
+            "scan_storage.get_scan(project_name=project_name, scan_id=request.scan_id)",
+            "get_llm_provider(...)",
+            "get_llm_api_key(provider_name=provider_name)",
+            "get_llm_model(provider_name=provider_name)",
+            "project_understanding_service.generate_understanding(stored_scan=stored_scan, provider_name=provider_name, api_key=api_key, model=model_name)",
+            "understanding_storage.save_understanding(understanding_result=understanding_result)",
+            "ProjectUnderstandingResponse(...)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2153
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/understandings",
+          "handler": "list_project_understandings",
+          "handler_signature": "def list_project_understandings(project_name: str) -> list[UnderstandingSummaryResponse]:",
+          "returns": "list[UnderstandingSummaryResponse]",
+          "response_model": "list[UnderstandingSummaryResponse]",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "List saved project understandings",
+          "called_functions_preview": [
+            "router.get('/{project_name}/understandings', response_model=list[UnderstandingSummaryResponse], status_code=status.HTTP_200_OK, summary='List saved project understandings')",
+            "understanding_storage.list_understandings(project_name=project_name)",
+            "UnderstandingSummaryResponse(...)",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2245
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/understandings/latest",
+          "handler": "get_latest_project_understanding",
+          "handler_signature": "def get_latest_project_understanding(project_name: str) -> StoredUnderstandingResponse:",
+          "returns": "StoredUnderstandingResponse",
+          "response_model": "StoredUnderstandingResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Get the latest saved project understanding",
+          "called_functions_preview": [
+            "router.get('/{project_name}/understandings/latest', response_model=StoredUnderstandingResponse, status_code=status.HTTP_200_OK, summary='Get the latest saved project understanding')",
+            "understanding_storage.get_latest_understanding(project_name=project_name)",
+            "StoredUnderstandingResponse(...)",
+            "HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2282
+        },
+        {
+          "method": "GET",
+          "path": "/api/projects/{project_name}/understandings/{understanding_id}",
+          "handler": "get_project_understanding",
+          "handler_signature": "def get_project_understanding(project_name: str, understanding_id: str) -> StoredUnderstandingResponse:",
+          "returns": "StoredUnderstandingResponse",
+          "response_model": "StoredUnderstandingResponse",
+          "status_code": "status.HTTP_200_OK",
+          "summary": "Get one saved project understanding",
+          "called_functions_preview": [
+            "router.get('/{project_name}/understandings/{understanding_id}', response_model=StoredUnderstandingResponse, status_code=status.HTTP_200_OK, summary='Get one saved project understanding')",
+            "understanding_storage.get_understanding(project_name=project_name, understanding_id=understanding_id)",
+            "StoredUnderstandingResponse(...)",
+            "HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(error))",
+            "HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(error))",
+            "str(error)"
+          ],
+          "file": "app/api/project_routes.py",
+          "module": "app.api.project_routes",
+          "line": 2323
+        },
+        {
+          "method": "GET",
+          "path": "/health",
+          "handler": "health_check",
+          "handler_signature": "def health_check() -> dict[str, str]:",
+          "returns": "dict[str, str]",
+          "called_functions_preview": [
+            "app.get('/health', tags=['Health'])"
+          ],
+          "file": "app/main.py",
+          "module": "app.main",
+          "line": 29
+        }
+      ],
+      "module_references": [],
+      "internal_dependencies": [
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.core.config",
+          "imported_name": "get_llm_api_key"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.core.config",
+          "imported_name": "get_llm_model"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.core.config",
+          "imported_name": "get_llm_provider"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "DocumentGenerationRequest"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "DocumentGenerationResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "DocumentSummaryResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "DocumentUpdateRequest"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "DocumentUpdateResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "DocumentationSyncRequest"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "DocumentationSyncResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ProjectContextRequest"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ProjectContextResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ProjectScanRequest"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ProjectScanResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ProjectUnderstandingRequest"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ProjectUnderstandingResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ScanComparisonRequest"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ScanComparisonResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "ScanSummaryResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "StoredScanResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "StoredUnderstandingResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.models.project",
+          "imported_name": "UnderstandingSummaryResponse"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.document_builder",
+          "imported_name": "DocumentBuilder"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.document_storage",
+          "imported_name": "DocumentStorage"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.project_context_builder",
+          "imported_name": "ProjectContextBuilder"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.project_scanner",
+          "imported_name": "ProjectScanner"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.project_understanding_service",
+          "imported_name": "ProjectUnderstandingService"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.runtime_context_analyzer",
+          "imported_name": "RuntimeContextAnalyzer"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.scan_comparator",
+          "imported_name": "ScanComparator"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.scan_storage",
+          "imported_name": "ScanStorage"
+        },
+        {
+          "source_module": "app.api.project_routes",
+          "target_module": "app.services.understanding_storage",
+          "imported_name": "UnderstandingStorage"
+        },
+        {
+          "source_module": "app.main",
+          "target_module": "app.api.project_routes",
+          "imported_name": "router"
+        },
+        {
+          "source_module": "app.services.document_storage",
+          "target_module": "app.core.config",
+          "imported_name": "DOCUMENTS_PATH"
+        },
+        {
+          "source_module": "app.services.llm.anthropic_provider",
+          "target_module": "app.services.llm.base",
+          "imported_name": "BaseLLMProvider"
+        },
+        {
+          "source_module": "app.services.llm.factory",
+          "target_module": "app.services.llm.anthropic_provider",
+          "imported_name": "AnthropicProvider"
+        },
+        {
+          "source_module": "app.services.llm.factory",
+          "target_module": "app.services.llm.base",
+          "imported_name": "BaseLLMProvider"
+        },
+        {
+          "source_module": "app.services.llm.factory",
+          "target_module": "app.services.llm.openai_provider",
+          "imported_name": "OpenAIProvider"
+        },
+        {
+          "source_module": "app.services.llm.openai_provider",
+          "target_module": "app.services.llm.base",
+          "imported_name": "BaseLLMProvider"
+        },
+        {
+          "source_module": "app.services.project_scanner",
+          "target_module": "app.services.code_parser",
+          "imported_name": "PythonCodeParser"
+        },
+        {
+          "source_module": "app.services.project_scanner",
+          "target_module": "app.services.project_analyzer",
+          "imported_name": "ProjectAnalyzer"
+        },
+        {
+          "source_module": "app.services.project_understanding_service",
+          "target_module": "app.services.llm.factory",
+          "imported_name": "LLMProviderFactory"
+        },
+        {
+          "source_module": "app.services.project_understanding_service",
+          "target_module": "app.services.llm.prompts",
+          "imported_name": "PROJECT_UNDERSTANDING_SYSTEM_PROMPT"
+        },
+        {
+          "source_module": "app.services.project_understanding_service",
+          "target_module": "app.services.llm.prompts",
+          "imported_name": "build_project_understanding_prompt"
+        },
+        {
+          "source_module": "app.services.project_understanding_service",
+          "target_module": "app.services.project_context_builder",
+          "imported_name": "ProjectContextBuilder"
+        },
+        {
+          "source_module": "app.services.runtime_context_analyzer",
+          "target_module": "app.services.llm.factory",
+          "imported_name": "LLMProviderFactory"
+        },
+        {
+          "source_module": "app.services.runtime_context_analyzer",
+          "target_module": "app.services.project_context_builder",
+          "imported_name": "ProjectContextBuilder"
+        },
+        {
+          "source_module": "app.services.understanding_storage",
+          "target_module": "app.core.config",
+          "imported_name": "UNDERSTANDINGS_PATH"
+        }
+      ]
+    }
+  }
+}

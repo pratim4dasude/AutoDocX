@@ -1,0 +1,36 @@
+{
+  "document_id": "20260708_081646_6b5fc6c6",
+  "created_at": "2026-07-08T08:16:46.988029+00:00",
+  "project_name": "Wardrobe_Recommendation_Engine-main",
+  "scan_id": "20260708_081531_a55ee53e",
+  "understanding_id": "20260708_081646_006c05f0",
+  "document_type": "html",
+  "update_type": "version_update",
+  "previous_document_id": "20260706_122744_7d11294f",
+  "comparison_summary": {
+    "has_changes": true,
+    "total_changes": 109,
+    "added_files": 0,
+    "deleted_files": 109,
+    "modified_files": 0,
+    "added_symbols": 0,
+    "removed_symbols": 0,
+    "modified_symbols": 0,
+    "added_routes": 0,
+    "removed_routes": 0,
+    "modified_routes": 0,
+    "added_dependencies": 0,
+    "removed_dependencies": 0,
+    "modified_dependencies": 0
+  },
+  "runtime_context": {
+    "additional_context": null,
+    "context_blocks": [],
+    "screenshots": [],
+    "runtime_understanding": null,
+    "asset_batch_id": null,
+    "asset_directory": null
+  },
+  "document_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\Wardrobe_Recommendation_Engine-main\\20260708_081646_6b5fc6c6.html",
+  "metadata_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\Wardrobe_Recommendation_Engine-main\\20260708_081646_6b5fc6c6.json"
+}

@@ -895,95 +895,160 @@ class ProjectContextBuilder:
         self,
         context: dict[str, Any],
     ) -> dict[str, Any]:
-        optimized_modules: list[dict[str, Any]] = []
+        """
+        Build LLM context without duplicate top-level data.
 
-        for module in context.get("modules", []):
+        Goal:
+        - Keep full module reference details so the generated
+          documentation can still show modules, classes,
+          functions, methods, signatures, arguments, return
+          types, docstrings, decorators, and called functions.
+        - Remove duplicate sections that contain the same
+          information and make the LLM prompt too large.
+        - Keep api_reference instead of api_routes because
+          api_reference is the cleaner final documentation source.
+        - Keep module_references instead of modules because
+          module_references is the cleaner final documentation
+          source for the Python Module Reference section.
+        - Remove symbols from LLM context because symbols
+          repeats functions, classes, methods, and constants
+          already present in module_references.
+        """
+
+        optimized_module_references: list[
+            dict[str, Any]
+        ] = []
+
+        for module in context.get(
+            "module_references",
+            [],
+        ):
             if not isinstance(module, dict):
                 continue
 
-            if self._is_empty_package_module(module=module):
-                continue
-
-            optimized_module = {
-                "file": module.get("file"),
-                "module": module.get("module"),
-                "module_docstring": module.get("module_docstring"),
-                "purpose_hint": module.get("purpose_hint"),
-                "internal_dependencies": module.get(
-                    "internal_dependencies",
-                    [],
-                ),
-                "constants": module.get("constants", []),
-                "functions": module.get("functions", []),
-                "async_functions": module.get(
-                    "async_functions",
-                    [],
-                ),
-                "classes": module.get("classes", []),
-                "routes": module.get("routes", []),
-                "syntax_error": module.get("syntax_error"),
-            }
-
-            optimized_modules.append(
-                self._remove_empty_values(optimized_module),
-            )
-
-        optimized_module_references: list[dict[str, Any]] = []
-
-        for module in context.get("module_references", []):
-            if not isinstance(module, dict):
-                continue
-
-            if self._is_empty_package_module(module=module):
+            if self._is_empty_package_module(
+                module=module,
+            ):
                 continue
 
             optimized_module_references.append(
                 self._remove_empty_values(
-                    {
-                        "module": module.get("module"),
-                        "file": module.get("file"),
-                        "summary": module.get("summary"),
-                        "module_docstring": module.get(
-                            "module_docstring",
-                        ),
-                        "purpose_hint": module.get("purpose_hint"),
-                        "public_symbols": module.get(
-                            "public_symbols",
-                            [],
-                        ),
-                        "constants": module.get("constants", []),
-                        "functions": module.get("functions", []),
-                        "async_functions": module.get(
-                            "async_functions",
-                            [],
-                        ),
-                        "classes": module.get("classes", []),
-                        "routes": module.get("routes", []),
-                    }
+                    module
                 )
             )
 
+        if not optimized_module_references:
+            for module in context.get(
+                "modules",
+                [],
+            ):
+                if not isinstance(module, dict):
+                    continue
+
+                if self._is_empty_package_module(
+                    module=module,
+                ):
+                    continue
+
+                optimized_module_references.append(
+                    self._remove_empty_values(
+                        module
+                    )
+                )
+
+        optimized_api_reference = []
+
+        for route in context.get(
+            "api_reference",
+            [],
+        ):
+            if not isinstance(route, dict):
+                continue
+
+            cleaned_route = dict(route)
+
+            # api_reference and api_routes can both carry
+            # source_preview. Source previews are useful in
+            # detailed/debug context, but too expensive for LLM
+            # project-level documentation generation.
+            cleaned_route.pop(
+                "source_preview",
+                None,
+            )
+
+            optimized_api_reference.append(
+                self._remove_empty_values(
+                    cleaned_route
+                )
+            )
+
+        if not optimized_api_reference:
+            for route in context.get(
+                "api_routes",
+                [],
+            ):
+                if not isinstance(route, dict):
+                    continue
+
+                cleaned_route = dict(route)
+                cleaned_route.pop(
+                    "source_preview",
+                    None,
+                )
+
+                optimized_api_reference.append(
+                    self._remove_empty_values(
+                        cleaned_route
+                    )
+                )
+
         optimized_dependencies = [
             {
-                "source_module": dependency.get("source_module"),
-                "target_module": dependency.get("target_module"),
-                "imported_name": dependency.get("imported_name"),
+                "source_module": dependency.get(
+                    "source_module"
+                ),
+                "target_module": dependency.get(
+                    "target_module"
+                ),
+                "imported_name": dependency.get(
+                    "imported_name"
+                ),
                 "alias": dependency.get("alias"),
             }
-            for dependency in context.get("internal_dependencies", [])
+            for dependency in context.get(
+                "internal_dependencies",
+                [],
+            )
             if isinstance(dependency, dict)
         ]
 
         optimized_context = {
             "context_mode": "llm",
-            "project": context.get("project", {}),
-            "statistics": context.get("statistics", {}),
-            "important_files": context.get("important_files", {}),
-            "api_reference": context.get("api_reference", []),
-            "api_routes": context.get("api_routes", []),
-            "module_references": optimized_module_references,
-            "modules": optimized_modules,
-            "internal_dependencies": optimized_dependencies,
+            "project": context.get(
+                "project",
+                {},
+            ),
+            "statistics": context.get(
+                "statistics",
+                {},
+            ),
+            "important_files": context.get(
+                "important_files",
+                {},
+            ),
+
+            # One API source only.
+            "api_reference": optimized_api_reference,
+
+            # One module source only, but keep full details.
+            "module_references": (
+                optimized_module_references
+            ),
+
+            # Internal dependency graph without noisy fields.
+            "internal_dependencies": (
+                optimized_dependencies
+            ),
         }
 
         return self._remove_empty_values(
