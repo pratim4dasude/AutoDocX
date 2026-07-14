@@ -1,18 +1,18 @@
 {
-  "understanding_id": "20260708_080949_c5714944",
-  "created_at": "2026-07-08T08:09:49.122692+00:00",
+  "understanding_id": "20260714_114814_09bc553e",
+  "created_at": "2026-07-14T11:48:14.709228+00:00",
   "project_name": "AutoDocX",
-  "scan_id": "20260708_080844_17f5780e",
+  "scan_id": "20260714_114711_ebbcb0d9",
   "provider": "openai",
   "model": "gpt-5-mini",
   "understanding": {
-    "project_summary": "This project provides an automated developer-documentation engine (AutoDocX). It scans a local codebase, parses Python source files to extract symbols and FastAPI routes, analyzes module-level structure and dependencies, generates LLM-ready context, asks a configured LLM for a narrative understanding, merges that narrative with machine-extracted reference data, and builds standalone HTML documentation with optional runtime/tooling context (screenshots and notes).\n\nThe application is exposed as a FastAPI service with endpoints to scan projects, compare saved scans, generate or update HTML documentation, and run LLM-based analyses of both code and runtime context. Storage components persist scans, LLM understandings, and generated documents under a workspace directory configured in app.core.config.",
-    "architecture_overview": "The application follows a modular pipeline with clear layers: scanning/parsing, analysis, LLM orchestration, document generation, and storage + HTTP API. The scanner layer (app.services.project_scanner and app.services.code_parser) enumerates files, computes hashes, and extracts AST-level metadata. The analyzer layer (app.services.project_analyzer and app.services.project_context_builder) builds cross-file relationships, API reference, module references and compact context for the LLM. The LLM layer (app.services.llm.* and app.services.project_understanding_service / app.services.runtime_context_analyzer) picks a provider via a factory, prepares prompts (app.services.llm.prompts), and generates structured JSON understanding (with optional image inputs). The document layer (app.services.document_builder and app.services.document_storage) renders standalone HTML and persists assets. The FastAPI layer (app.api.project_routes and app.main) exposes endpoints that orchestrate the pipeline and call storage services (scan_storage, understanding_storage, document_storage). Configuration and workspace paths are provided by app.core.config.",
+    "project_summary": "This project provides an automated developer-documentation engine (AutoDocX). It scans a local codebase, parses and analyzes Python source to extract modules, routes, and symbols, uses a configurable LLM to generate narrative understanding and runtime context analysis (including screenshots), and produces standalone HTML documentation versions stored on disk.\n\nThe application exposes a FastAPI HTTP API to run scans, generate LLM understandings, compare scans, manage saved scans/understandings/documents, and to create or update documentation in one request. A Streamlit UI is included to call the API and upload runtime context and screenshots for richer documentation generation.",
+    "architecture_overview": "AutoDocX is organized into clear layers: an HTTP API layer (app.api.project_routes and app.main) that accepts requests and orchestrates work; service layer components (app.services.*) that implement core logic such as scanning (ProjectScanner), parsing (PythonCodeParser), static analysis (ProjectAnalyzer), LLM interaction and prompt handling (app.services.llm.* and ProjectUnderstandingService / RuntimeContextAnalyzer), document generation (DocumentBuilder) and persistence (ScanStorage, UnderstandingStorage, DocumentStorage). The UI layer (ui.streamlit_app) is a client that calls API endpoints and uploads runtime context assets. Code and data flow: the API handlers call ProjectScanner to produce a scan, ScanStorage to persist it, ProjectContextBuilder and ProjectUnderstandingService to create LLM-ready context and request narrative understanding, then DocumentBuilder + DocumentStorage to produce and save the final HTML. Runtime context (user notes + screenshots) is optionally processed by RuntimeContextAnalyzer and merged into the document metadata.",
     "execution_flow": [
       {
         "step": 1,
         "title": "Scan project files",
-        "description": "ProjectScanner walks the provided project_path, applies ignore rules, computes file hashes, and parses Python files using PythonCodeParser to extract imports, functions, classes, constants, decorators, and FastAPI routes.",
+        "description": "ProjectScanner traverses the provided project_path, filters ignored files, computes file hashes, and uses PythonCodeParser to parse Python files into structured parsed_files.",
         "related_modules": [
           "app.services.project_scanner",
           "app.services.code_parser"
@@ -20,50 +20,50 @@
       },
       {
         "step": 2,
-        "title": "Build project analysis and context",
-        "description": "ProjectAnalyzer aggregates parsed files into module maps, internal dependency lists, routes, and statistics. ProjectContextBuilder converts the analysis into a compact or detailed context used for LLM requests or downstream documentation generation.",
+        "title": "Analyze project structure",
+        "description": "ProjectAnalyzer builds module maps, internal dependencies, routes, symbols and project statistics from parsed_files to produce project_analysis and api_reference artifacts.",
         "related_modules": [
-          "app.services.project_analyzer",
-          "app.services.project_context_builder"
+          "app.services.project_analyzer"
         ]
       },
       {
         "step": 3,
-        "title": "Generate LLM understanding",
-        "description": "ProjectUnderstandingService (or RuntimeContextAnalyzer for screenshots) selects an LLM provider via LLMProviderFactory, prepares the prompt using prompts builders, calls the provider, retries once on malformed responses, and validates required fields in the returned JSON.",
+        "title": "Persist scan and optional comparison",
+        "description": "ScanStorage saves the stored scan JSON to workspace/scans and can retrieve previous scans for comparison; ScanComparator compares scans to detect documentation-relevant changes.",
         "related_modules": [
-          "app.services.project_understanding_service",
-          "app.services.runtime_context_analyzer",
-          "app.services.llm.factory",
-          "app.services.llm.prompts"
+          "app.services.scan_storage",
+          "app.services.scan_comparator"
         ]
       },
       {
         "step": 4,
-        "title": "Merge developer reference data",
-        "description": "LLM-produced narrative is merged with deterministic parser/analyzer output (API reference, module responsibilities, dependencies) to ensure signatures, routes, and symbols come from code rather than LLM inference.",
+        "title": "Generate LLM understanding",
+        "description": "ProjectUnderstandingService builds an LLM prompt from a compact project_context (ProjectContextBuilder), uses LLMProviderFactory to select a provider (OpenAI/Anthropic), calls the provider to generate JSON understanding, validates required fields, and merges reliable code-derived developer reference data.",
         "related_modules": [
           "app.services.project_understanding_service",
-          "app.services.project_context_builder"
+          "app.services.project_context_builder",
+          "app.services.llm.factory",
+          "app.services.llm.base",
+          "app.services.llm.openai_provider",
+          "app.services.llm.anthropic_provider"
         ]
       },
       {
         "step": 5,
-        "title": "Build and save HTML documentation",
-        "description": "DocumentBuilder renders a standalone professional HTML document from the merged understanding and runtime context. DocumentStorage saves HTML, metadata, and optional runtime assets (screenshots) under the configured workspace/documents path.",
+        "title": "Optionally analyze runtime context",
+        "description": "If user-provided context or screenshots exist, RuntimeContextAnalyzer builds a multimodal prompt (compact project + context + images), calls the vision-capable LLM provider to produce runtime_understanding, and returns structured runtime documentation pieces to include in the final document.",
         "related_modules": [
-          "app.services.document_builder",
-          "app.services.document_storage"
+          "app.services.runtime_context_analyzer",
+          "app.services.llm.factory"
         ]
       },
       {
         "step": 6,
-        "title": "Expose results and history via API/UI",
-        "description": "FastAPI routes orchestrate requests (scan, understand, generate, sync, compare) and return structured Pydantic responses. The Streamlit UI (ui.streamlit_app) calls these endpoints to present results, allow uploads of runtime context blocks and screenshots, and open generated HTML documents.",
+        "title": "Build and save HTML documentation",
+        "description": "DocumentBuilder renders a standalone HTML developer documentation site from the merged stored_understanding and optional runtime_context; DocumentStorage writes the HTML file and JSON metadata into workspace/documents and manages screenshot assets.",
         "related_modules": [
-          "app.api.project_routes",
-          "app.main",
-          "ui.streamlit_app"
+          "app.services.document_builder",
+          "app.services.document_storage"
         ]
       }
     ],
@@ -16931,68 +16931,73 @@
     ],
     "risks_and_gaps": [
       {
-        "title": "No API authentication on endpoints",
-        "description": "The exposed FastAPI routes perform project scans, LLM calls, and write files but the provided context does not show any authentication, authorization, or rate-limiting. This may allow unauthorized use and accidental exposure of LLM API keys or workspace files.",
+        "title": "No API authentication or authorization on documented routes",
+        "description": "The FastAPI endpoints and the Streamlit UI call endpoints without visible authentication controls in the scanned modules. This exposes the LLM API key usage and document generation endpoints unless an external auth layer is added.",
         "severity": "high"
       },
       {
-        "title": "LLM API key and provider configuration surface",
-        "description": "LLM provider, API key and model selection are read from app.core.config and passed around; the scanning output does not show secrets management (vault, KMS) or per-request key isolation. Secure storage and rotation of keys and role-based access for who can trigger LLM calls are not described.",
-        "severity": "high"
-      },
-      {
-        "title": "Partial observability and monitoring",
-        "description": "The code includes retries for LLM calls but there is no explicit telemetry, structured logging, or metrics export shown. Production readiness would benefit from request/operation tracing, error metrics, and alerting for failed scans or failed LLM calls.",
+        "title": "Secrets and LLM API keys stored via environment but no secret vault integration",
+        "description": "LLM provider selection and API keys are read from environment (.env) via app.core.config. There is no visible secure secret storage or rotation support in code; operators must populate .env securely and manage keys externally.",
         "severity": "medium"
       },
       {
-        "title": "Persistence durability and backups",
-        "description": "Scans, understandings, and documents are saved to a workspace directory. There is no mention of durable remote storage, retention policies, or backup strategies for the workspace artifacts.",
+        "title": "Filesystem persistence concurrency and backup gaps",
+        "description": "Scan, understanding and document storage are file-based under workspace paths. There is limited explicit handling for concurrent writers, transactional backups, or cloud-backed durable storage which may risk corruption under concurrent/parallel requests.",
         "severity": "medium"
       },
       {
-        "title": "Limited input validation for uploaded images",
-        "description": "DocumentStorage and Streamlit paths accept uploaded screenshots and recover embedded base64 images, but input size/content validation and virus/malware scanning are not evident. Asset handling should restrict types, size, and scan for unsafe content.",
+        "title": "Limited observability and metrics",
+        "description": "Code shows HTTPException handling and prints around LLM retries but lacks structured logging, metrics, or tracing instrumentation for monitoring request latencies, LLM errors, or storage failures.",
         "severity": "medium"
       },
       {
-        "title": "Testing and CI coverage not visible",
-        "description": "The scan does not expose unit or integration tests, test harnesses, or CI configuration. Critical components—parsing, comparator, LLM response parsing and retry logic—would benefit from deterministic tests and mocks for LLM providers.",
+        "title": "UI and backend retries/robustness",
+        "description": "The Streamlit client uses requests with configured timeouts, but the backend-exposed long-running LLM operations may require request orchestration, background jobs or asynchronous processing for reliability at scale. The client performs synchronous uploads which may time out during heavy LLM operations.",
+        "severity": "medium"
+      },
+      {
+        "title": "Testing and CI coverage not present in scanned files",
+        "description": "The repository scan shows many modules and classes but no test packages or test files. Unit and integration tests for parsing, comparison, LLM interactions and storage behavior are missing.",
+        "severity": "medium"
+      },
+      {
+        "title": "Deployment and environment documentation",
+        "description": "There are helper scripts and a requirements.txt but no Dockerfile, Kubernetes manifests, or explicit deployment/production configuration templates. Production readiness (scaling LLM calls, storage location, secret management) needs documentation and automation.",
         "severity": "medium"
       }
     ],
     "recommended_document_sections": [
       {
-        "title": "Quickstart — run locally",
-        "purpose": "Step-by-step instructions to install dependencies, set up .env values, start the FastAPI service, and use the Streamlit UI to generate documentation."
+        "title": "Getting started and local setup",
+        "purpose": "How to install dependencies, create the required workspace directories, populate .env LLM variables, and run the API and Streamlit UI for local development."
       },
       {
-        "title": "Configuration and LLM provider setup",
-        "purpose": "Document app.core.config variables, supported LLM providers, how to supply API keys securely, and provider/model selection and defaults."
+        "title": "API reference and examples",
+        "purpose": "Detailed documentation of each FastAPI endpoint with example requests/responses, field descriptions (Pydantic models), status codes and sample curl/requests usage for common flows (scan, understand, sync, sync-with-context)."
       },
       {
-        "title": "API Reference and Examples",
-        "purpose": "Detailed reference for each FastAPI endpoint (paths, methods, request/response models, status codes) with example requests and responses for common workflows (scan, sync, sync-with-context, generate)."
+        "title": "Storage layout and file formats",
+        "purpose": "Describe workspace directory layout (scans, understandings, documents), JSON metadata schemas, document asset structure and guidance for moving or backing up persisted artifacts."
       },
       {
-        "title": "Storage layout and file locations",
-        "purpose": "Explain workspace/scans, workspace/understandings, workspace/documents directory layout, document metadata format, and guidance for backups or switching to remote storage."
+        "title": "LLM provider configuration and secrets",
+        "purpose": "Instructions for configuring LLM providers (OpenAI/Anthropic), required environment variables, model selection, recommended rate/quotas, and secure secret handling best practices."
       },
       {
-        "title": "Extending LLM providers",
-        "purpose": "Guide for adding new provider implementations, the provider factory contract, and how to implement provider.generate_json and generate_json_with_images safely."
+        "title": "Runtime context & screenshots workflow",
+        "purpose": "Explain how to prepare and upload runtime context blocks and screenshots, how screenshots are associated with blocks, and how runtime analysis is included in final HTML documentation."
       },
       {
-        "title": "Runtime context and screenshots guidance",
-        "purpose": "Explain context blocks format, screenshot upload workflow, recommended screenshot types/size, and how the analyzer uses images for runtime understanding."
+        "title": "Operational runbook and troubleshooting",
+        "purpose": "Common failure modes (LLM errors, malformed JSON, missing assets), recommended remediation steps, log locations, and how to recover missing screenshots from embedded HTML."
       },
       {
-        "title": "Testing, CI and local development tips",
-        "purpose": "Tests to add (parser, comparator, storage), recommended mocks for LLM providers, CI checks for lint/static analysis, and reproducible test data for deterministic behavior."
+        "title": "Testing and CI recommendations",
+        "purpose": "Guidance on unit/integration tests to add (parsing, analyzer, comparator, storage), example CI jobs, and mocks for LLM providers to enable CI without real API calls."
       },
       {
-        "title": "Troubleshooting and operational notes",
-        "purpose": "Common failure modes (LLM parsing errors, missing API keys, permission errors saving files), suggested logs to inspect, and steps to recover missing runtime assets from embedded HTML."
+        "title": "Deployment and scaling guidance",
+        "purpose": "Notes on recommended runtime (process model, timeouts), suggested storage backends, how to run behind an authenticated gateway, and strategies to scale or queue LLM operations for production use."
       }
     ],
     "developer_reference": {

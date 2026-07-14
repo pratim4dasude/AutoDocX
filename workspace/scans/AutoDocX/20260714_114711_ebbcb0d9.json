@@ -1,6 +1,6 @@
 {
-  "scan_id": "20260708_080844_17f5780e",
-  "created_at": "2026-07-08T08:08:44.344363+00:00",
+  "scan_id": "20260714_114711_ebbcb0d9",
+  "created_at": "2026-07-14T11:47:11.643342+00:00",
   "project_name": "AutoDocX",
   "project_path": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX",
   "scan_result": {
@@ -9,7 +9,7 @@
     "total_files": 35,
     "total_directories": 8,
     "total_size_bytes": 519537,
-    "ignored_items": 17633,
+    "ignored_items": 17704,
     "file_types": {
       ".bat": 3,
       ".md": 1,

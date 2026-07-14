@@ -1,0 +1,214 @@
+{
+  "document_id": "20260714_114853_a1209e7c",
+  "created_at": "2026-07-14T11:48:53.181429+00:00",
+  "project_name": "AutoDocX",
+  "scan_id": "20260714_114711_ebbcb0d9",
+  "understanding_id": "20260714_114814_09bc553e",
+  "document_type": "html",
+  "update_type": "initial",
+  "previous_document_id": null,
+  "comparison_summary": null,
+  "runtime_context": {
+    "additional_context": null,
+    "context_blocks": [
+      {
+        "title": "cli",
+        "text": "cli",
+        "screenshot": {
+          "screenshot_id": "screenshot_001",
+          "original_filename": "context_block_001.png",
+          "filename": "screenshot_001.png",
+          "content_type": "image/png",
+          "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260714_114711_0e59155d\\screenshot_001.png",
+          "relative_path": "assets/assets_20260714_114711_0e59155d/screenshot_001.png",
+          "html_src": "assets/assets_20260714_114711_0e59155d/screenshot_001.png",
+          "description": null
+        }
+      },
+      {
+        "title": "Runtime context 2",
+        "text": "cli2",
+        "screenshot": {
+          "screenshot_id": "screenshot_002",
+          "original_filename": "context_block_002.png",
+          "filename": "screenshot_002.png",
+          "content_type": "image/png",
+          "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260714_114711_0e59155d\\screenshot_002.png",
+          "relative_path": "assets/assets_20260714_114711_0e59155d/screenshot_002.png",
+          "html_src": "assets/assets_20260714_114711_0e59155d/screenshot_002.png",
+          "description": null
+        }
+      }
+    ],
+    "screenshots": [
+      {
+        "screenshot_id": "screenshot_001",
+        "original_filename": "context_block_001.png",
+        "filename": "screenshot_001.png",
+        "content_type": "image/png",
+        "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260714_114711_0e59155d\\screenshot_001.png",
+        "relative_path": "assets/assets_20260714_114711_0e59155d/screenshot_001.png",
+        "html_src": "assets/assets_20260714_114711_0e59155d/screenshot_001.png",
+        "description": null
+      },
+      {
+        "screenshot_id": "screenshot_002",
+        "original_filename": "context_block_002.png",
+        "filename": "screenshot_002.png",
+        "content_type": "image/png",
+        "asset_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260714_114711_0e59155d\\screenshot_002.png",
+        "relative_path": "assets/assets_20260714_114711_0e59155d/screenshot_002.png",
+        "html_src": "assets/assets_20260714_114711_0e59155d/screenshot_002.png",
+        "description": null
+      }
+    ],
+    "runtime_understanding": {
+      "runtime_summary": "This is a Python-based developer-documentation generator (AutoDocX) with a FastAPI backend (app.*) and a Streamlit UI (ui/streamlit_app.py). The backend exposes a set of /api/projects/* routes to scan a local project, save scans, build LLM-driven \"understandings\", compare scans and generate standalone HTML docs. The UI (Streamlit) calls the backend endpoints (including two sync endpoints that accept optional runtime context and screenshots) to produce and open documentation. The project uses pluggable LLM providers (OpenAI, Anthropic/Claude, possibly Claude/Anthropic-specific provider class), stores artifacts under a workspace directory, and serves generated HTML via FileResponse endpoints. Screenshots show the Streamlit UI running on port 8501 and Uvicorn serving FastAPI on 127.0.0.1:8001 with active GET requests to the documents endpoint.",
+      "tooling_stack": [
+        {
+          "tool": "Python",
+          "purpose": "Primary language/runtime for backend and UI",
+          "evidence": "Many Python modules, classes and functions shown in the provided project scan (app/* and ui/*). Screenshots show commands: 'python.exe -m uvicorn ...' and 'streamlit run ui\\streamlit_app.py'."
+        },
+        {
+          "tool": "FastAPI",
+          "purpose": "Backend HTTP API framework that exposes /api/projects/* and health endpoints",
+          "evidence": "app.main contains app.get routes for '/' and '/health'; app.api.project_routes defines many router.post/GET endpoints with Pydantic models in app.models.project."
+        },
+        {
+          "tool": "Uvicorn",
+          "purpose": "ASGI server used to run the FastAPI application",
+          "evidence": "Screenshot shows 'python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001' and logs 'Uvicorn running on http://127.0.0.1:8001'."
+        },
+        {
+          "tool": "Streamlit",
+          "purpose": "Single-page GUI used by developers to submit project paths, runtime context and screenshots and to call backend sync endpoints",
+          "evidence": "ui/streamlit_app.py module present; screenshot shows 'streamlit run ui\\streamlit_app.py' and 'You can now view your Streamlit app' with Local URL: http://localhost:8501."
+        },
+        {
+          "tool": "LLM provider implementations (OpenAI, Anthropic / Claude)",
+          "purpose": "Generate narrative project understanding used to build human-readable documentation",
+          "evidence": "app.services.llm.openai_provider.OpenAIProvider, app.services.llm.anthropic_provider.AnthropicProvider, get_llm_provider/get_llm_api_key/get_llm_model functions in app.core.config and calls in /understand and _generate_understanding flows."
+        },
+        {
+          "tool": "Local file storage (workspace)",
+          "purpose": "Persist scans, understandings and generated HTML; store runtime assets and screenshots",
+          "evidence": "ScanStorage and UnderstandingStorage docstrings reference workspace/scans and workspace/understandings; DocumentStorage stores generated HTML and runtime assets; app.core.config has create_required_directories."
+        }
+      ],
+      "runtime_flow": [
+        {
+          "step": 1,
+          "title": "Start backend API",
+          "description": "Run the FastAPI application using Uvicorn. The server listens on a host/port (example in screenshot: 127.0.0.1:8001). FastAPI exposes routes under /api/projects/..., /health and /.",
+          "evidence": "Screenshot 2 shows 'Uvicorn running on http://127.0.0.1:8001' and repeated 'GET /api/projects/AutoDocX/documents' log lines. app.api.project_routes in the scan lists many /api/projects endpoints."
+        },
+        {
+          "step": 2,
+          "title": "Start Streamlit UI",
+          "description": "Run ui/streamlit_app.py with Streamlit. The UI opens at port 8501 by default and provides controls to call the backend endpoints (sync, sync-with-context, scan, understand, etc.).",
+          "evidence": "Screenshot 1 shows 'streamlit run ui\\streamlit_app.py' and 'Local URL: http://localhost:8501'. ui/streamlit_app contains functions for sync_documentation and sync_documentation_with_context."
+        },
+        {
+          "step": 3,
+          "title": "Submit project path (UI -> backend)",
+          "description": "From the Streamlit UI the developer supplies an absolute project_path and optionally runtime context blocks and screenshots. The UI builds either a JSON or multipart/form POST to the backend endpoints: POST /api/projects/documentation/sync or POST /api/projects/documentation/sync-with-context.",
+          "evidence": "project_routes.py defines these endpoints and their parameters (project_path, additional_context, context_blocks_json, screenshots). ui.streamlit_app.build_context_blocks_payload and sync_documentation_with_context show how the UI builds requests and files."
+        },
+        {
+          "step": 4,
+          "title": "Scan project",
+          "description": "Backend calls ProjectScanner.scan_project to list files, compute hashes, parse Python files (PythonCodeParser) and build an internal stored scan representation, then saves it with ScanStorage.save_scan.",
+          "evidence": "sync_project_documentation and scan_project handler call project_scanner.scan_project and scan_storage.save_scan in the API call traces. ProjectScanner and PythonCodeParser appear in services, with docstrings describing their responsibilities."
+        },
+        {
+          "step": 5,
+          "title": "Optionally merge runtime context & screenshots",
+          "description": "If the request includes runtime context or screenshots (sync-with-context), the backend stores uploaded screenshots temporarily, DocumentStorage.prepare_runtime_assets saves them under an asset batch, and _build_runtime_context_from_blocks associates context blocks with the uploaded images. If a previous document exists, runtime context may be recovered, merged and deduplicated.",
+          "evidence": "project_routes.sync_project_documentation_with_context calls _save_uploaded_screenshots_to_temp, document_storage.prepare_runtime_assets and _build_runtime_context_from_blocks. Several helper functions exist: _merge_runtime_contexts, _merge_screenshot_lists, _screenshot_signature and _recover_runtime_assets_for_document."
+        },
+        {
+          "step": 6,
+          "title": "Compare scans and decide update type",
+          "description": "If prior scans/documents exist, ScanComparator.compare_scans is used to detect changes. The code decides between creating an initial document, creating a version update, or returning unchanged.",
+          "evidence": "sync_project_documentation endpoint docstring and flow list calls to scan_comparator.compare_scans and comparison_contains_changes; ScanComparator class in services describes detection of added/removed/modified files and routes."
+        },
+        {
+          "step": 7,
+          "title": "Generate structured project understanding (LLM)",
+          "description": "ProjectUnderstandingService.builds a compact LLM context (via ProjectContextBuilder) and sends it to the chosen provider (OpenAI or Anthropic) using credentials from environment variables retrieved by get_llm_api_key/get_llm_model/get_llm_provider. The returned structured understanding is saved in UnderstandingStorage.",
+          "evidence": "Routes /{project_name}/understand and sync flows call project_understanding_service.generate_understanding and understanding_storage.save_understanding. LLM provider factory and provider classes are present in app.services.llm."
+        },
+        {
+          "step": 8,
+          "title": "Build HTML documentation and save",
+          "description": "DocumentBuilder.build_html merges developer-reference data (parser/analyzer output) with the LLM-generated narrative and runtime context, emitting a standalone HTML file. DocumentStorage.save_document persists HTML and metadata; FileResponse endpoint serves the file at GET /api/projects/{project_name}/documents/{document_id}/html.",
+          "evidence": "generate_project_document route calls document_builder.build_html and document_storage.save_document; document routes and FileResponse usage are present in project_routes and DocumentBuilder/DocumentStorage classes exist."
+        },
+        {
+          "step": 9,
+          "title": "Open or serve generated documentation",
+          "description": "The Streamlit UI can open the generated HTML by building a document URL (build_document_url) pointing to the backend FileResponse endpoint. Document history, listing, latest document and updates are available through the API.",
+          "evidence": "ui.streamlit_app.build_document_url and get_document_history functions; project_routes has endpoints for listing documents, latest document and document html."
+        }
+      ],
+      "screenshot_insights": [
+        {
+          "title": "Streamlit UI started on port 8501",
+          "what_it_shows": "Terminal output from running 'streamlit run ui\\streamlit_app.py' with messages: 'Uvicorn server started on 0.0.0.0:8501' (Streamlit hosts the UI) and 'Local URL: http://localhost:8501' plus a Network URL.",
+          "why_it_matters": "Confirms the developer-facing UI runs separately from the backend on port 8501; the UI is reachable locally and from other hosts on the local network. It indicates how a developer should view the Streamlit GUI."
+        },
+        {
+          "title": "Uvicorn FastAPI server running on 127.0.0.1:8001",
+          "what_it_shows": "Terminal logs from 'python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001' showing server processes, reload behavior and multiple GET requests to /api/projects/AutoDocX/documents returning 200 OK.",
+          "why_it_matters": "Confirms the backend API is served by Uvicorn on port 8001 and that the Streamlit UI or other clients are successfully calling the API (requests to /api/projects/... are being served). The reload logs also indicate a development-mode run (StatReload)."
+        }
+      ],
+      "operational_notes": [
+        "Ports used in the environment shown: Streamlit UI at 8501 and FastAPI backend at 8001. Both processes must be running for the full UX (UI + backend) to work.",
+        "Before running LLM-related endpoints, set environment variables used by app.core.config: LLM_PROVIDER (supported values include 'openai', 'anthropic' or 'claude' per get_llm_provider), and provider-specific API key environment variables (get_llm_api_key infers provider-specific variable names).",
+        "Run create_required_directories (app.core.config) or ensure the workspace directories exist (workspace/scans, workspace/understandings, workspace/documents) so ScanStorage, UnderstandingStorage and DocumentStorage can write files.",
+        "To start backend in dev mode use: python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload (screenshot shows --host 127.0.0.1 --port 8001 with StatReload). To start the UI: streamlit run ui/streamlit_app.py.",
+        "Streamlit UI functions include sync_documentation (POST /documentation/sync with JSON) and sync_documentation_with_context (multipart POST including screenshots). The UI builds payloads and files using build_context_blocks_payload.",
+        "Uploaded screenshots are assigned an asset batch and stored by DocumentStorage.prepare_runtime_assets; runtime context blocks include screenshot_index to associate images with blocks.",
+        "The backend merges previous runtime context with new submissions to avoid losing prior screenshots/notes (functions: _merge_runtime_contexts, _merge_screenshot_lists, _merge_context_blocks)."
+      ],
+      "risks_or_gaps": [
+        {
+          "title": "Missing or misconfigured environment variables for LLMs",
+          "description": "The system expects LLM_PROVIDER and provider-specific API keys. If these are missing or incorrect the /understand and sync endpoints that call LLMs will fail. The code raises ValueError if provider env vars are missing.",
+          "severity": "high"
+        },
+        {
+          "title": "No single run script documented in repository context",
+          "description": "There is no confirmed dedicated start script (e.g., a Makefile, docker-compose or systemd unit) visible in the provided context; developers must manually start both Streamlit and Uvicorn and coordinate ports.",
+          "severity": "medium"
+        },
+        {
+          "title": "Network exposure and authentication",
+          "description": "The backend and UI appear to be run in developer mode without mention of authentication, CORS policy or TLS. If the UI's network URL is exposed to other hosts, generated documents and uploaded screenshots may be accessible without auth.",
+          "severity": "high"
+        },
+        {
+          "title": "Temporary files and asset management clarity",
+          "description": "There are routines for saving uploaded screenshots to temp and cleanup (_save_uploaded_screenshots_to_temp, _cleanup_temp_files) but the exact lifecycle, disk quotas and retention policy for asset batches isn't fully described in provided context.",
+          "severity": "medium"
+        },
+        {
+          "title": "LLM cost, rate limits and failure handling",
+          "description": "ProjectUnderstandingService relies on external LLMs; there is an operational risk of cost and rate limits when running large scans or multiple concurrent requests. The code has HTTPException handling but no explicit rate limiting or quota management visible.",
+          "severity": "medium"
+        },
+        {
+          "title": "Unclear CORS configuration between UI and backend",
+          "description": "Streamlit calls backend endpoints (ui.streamlit_app.normalize_api_url, requests.post). The scan doesn't show explicit CORS settings; if the backend runs on a different host or port in another environment, cross-origin requests may fail unless CORS is enabled in app.main.",
+          "severity": "medium"
+        }
+      ]
+    },
+    "asset_batch_id": "assets_20260714_114711_0e59155d",
+    "asset_directory": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\assets\\assets_20260714_114711_0e59155d"
+  },
+  "document_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260714_114853_a1209e7c.html",
+  "metadata_file": "C:\\Users\\PratimMangaldasDasud\\PycharmProjects\\AutoDocX\\workspace\\documents\\AutoDocX\\20260714_114853_a1209e7c.json"
+}
