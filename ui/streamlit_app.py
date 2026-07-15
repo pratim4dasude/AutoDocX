@@ -1,4 +1,4 @@
-from pathlib import PureWindowsPath
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from urllib.parse import quote
 import io
@@ -16,7 +16,7 @@ from streamlit_paste_button import (
 # Application configuration
 # ============================================================
 
-DEFAULT_API_URL = "http://127.0.0.1:8000"
+DEFAULT_API_URL = "http://127.0.0.1:7832"
 
 DEFAULT_PROJECT_PATH = (
     r"C:\Users\PratimMangaldasDasud"
@@ -30,6 +30,52 @@ SYNC_WITH_CONTEXT_ENDPOINT = (
 )
 REQUEST_TIMEOUT_SECONDS = 900
 HISTORY_TIMEOUT_SECONDS = 60
+
+_PROJECT_ROOT = Path(__file__).parent.parent
+_ENV_FILE     = _PROJECT_ROOT / ".env"
+_ENV_EXAMPLE  = _PROJECT_ROOT / ".env.example"
+
+
+# ============================================================
+# .env helpers (must be defined before setup gate)
+# ============================================================
+
+def _read_env_file() -> dict[str, str]:
+    env: dict[str, str] = {}
+    if not _ENV_FILE.exists():
+        return env
+    for line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        env[key.strip()] = value.strip()
+    return env
+
+
+def _is_llm_configured(env: dict[str, str]) -> bool:
+    provider = env.get("LLM_PROVIDER", "").strip().lower()
+    if provider not in ("openai", "open_ai", "anthropic", "claude"):
+        return False
+    key_name = (
+        "OPENAI_API_KEY"
+        if provider in ("openai", "open_ai")
+        else "ANTHROPIC_API_KEY"
+    )
+    api_key = env.get(key_name, "").strip()
+    return (
+        bool(api_key)
+        and "your-" not in api_key
+        and "placeholder" not in api_key.lower()
+    )
+
+
+def _write_env_file(env: dict[str, str]) -> None:
+    lines = [f"{k}={v}" for k, v in env.items()]
+    _ENV_FILE.write_text(
+        "\n".join(lines) + "\n",
+        encoding="utf-8",
+    )
 
 
 # ============================================================
@@ -79,6 +125,92 @@ if "runtime_context_blocks" not in st.session_state:
             "image_name": None,
         },
     ]
+
+
+# ============================================================
+# API key setup gate
+# ============================================================
+
+_current_env = _read_env_file()
+
+if not _is_llm_configured(_current_env):
+    st.title("AutoDocX — Setup")
+
+    st.info(
+        "AutoDocX needs an LLM API key before it can "
+        "generate documentation. Fill in the fields "
+        "below and click Save."
+    )
+
+    with st.form("llm_setup_form"):
+        provider_choice = st.selectbox(
+            "LLM provider",
+            options=["openai", "anthropic"],
+            index=0,
+            help=(
+                "openai → uses OpenAI GPT models. "
+                "anthropic → uses Anthropic Claude models."
+            ),
+        )
+
+        api_key_input = st.text_input(
+            "API key",
+            type="password",
+            placeholder=(
+                "sk-...  (OpenAI)   or   sk-ant-...  (Anthropic)"
+            ),
+        )
+
+        model_input = st.text_input(
+            "Model name (optional — leave blank for default)",
+            placeholder=(
+                "gpt-4o-mini   or   claude-sonnet-4-20250514"
+            ),
+        )
+
+        save_clicked = st.form_submit_button(
+            "Save and continue",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if save_clicked:
+        api_key_clean = api_key_input.strip()
+
+        if not api_key_clean:
+            st.error("API key cannot be empty.")
+
+        else:
+            new_env = _current_env.copy()
+            new_env["LLM_PROVIDER"] = provider_choice
+
+            if provider_choice == "openai":
+                new_env["OPENAI_API_KEY"] = api_key_clean
+                new_env["OPENAI_MODEL"] = (
+                    model_input.strip() or "gpt-5-mini"
+                )
+            else:
+                new_env["ANTHROPIC_API_KEY"] = api_key_clean
+                new_env["ANTHROPIC_MODEL"] = (
+                    model_input.strip()
+                    or "claude-sonnet-4-20250514"
+                )
+
+            _write_env_file(new_env)
+
+            # Tell the running backend to reload .env so no restart is needed
+            try:
+                requests.post(
+                    f"{DEFAULT_API_URL}/api/config/reload",
+                    timeout=5,
+                )
+            except Exception:
+                pass
+
+            st.success("API key saved. Loading AutoDocX...")
+            st.rerun()
+
+    st.stop()
 
 
 # ============================================================
@@ -1230,11 +1362,11 @@ with st.sidebar:
 
         **FastAPI**
 
-        `http://127.0.0.1:8000`
+        `http://127.0.0.1:7832`
 
         **Streamlit**
 
-        `http://localhost:8501`
+        `http://localhost:7833`
         """
     )
 

@@ -1309,7 +1309,7 @@ class DocumentBuilder:
             <pre><code>import requests
 
 response = requests.post(
-    "http://127.0.0.1:8000/api/projects/documentation/sync",
+    "http://127.0.0.1:7832/api/projects/documentation/sync",
     json={{
         "project_path": r"C:\\path\\to\\{safe_project_name}"
     }},
@@ -3647,7 +3647,7 @@ print(response.json())</code></pre>
 #         return f"""import requests
 #
 # response = requests.post(
-#     "http://127.0.0.1:8000{example_path}",
+#     "http://127.0.0.1:7832{example_path}",
 #     json={payload},
 #     timeout=900,
 # )
@@ -3707,7 +3707,7 @@ print(response.json())</code></pre>
     #             return f"""import requests
     #
     # response = requests.get(
-    #     "http://127.0.0.1:8000{example_path}",
+    #     "http://127.0.0.1:7832{example_path}",
     #     timeout=900,
     # )
     #
@@ -3718,7 +3718,7 @@ print(response.json())</code></pre>
     #             return f"""import requests
     #
     # response = requests.delete(
-    #     "http://127.0.0.1:8000{example_path}",
+    #     "http://127.0.0.1:7832{example_path}",
     #     timeout=900,
     # )
     #
@@ -3737,7 +3737,7 @@ print(response.json())</code></pre>
     # files = []
     #
     # response = requests.post(
-    #     "http://127.0.0.1:8000{example_path}",
+    #     "http://127.0.0.1:7832{example_path}",
     #     data=data,
     #     files=files,
     #     timeout=900,
@@ -3753,7 +3753,7 @@ print(response.json())</code></pre>
     #         return f"""import requests
     #
     # response = requests.{normalized_method}(
-    #     "http://127.0.0.1:8000{example_path}",
+    #     "http://127.0.0.1:7832{example_path}",
     #     json={payload},
     #     timeout=900,
     # )
@@ -3860,7 +3860,7 @@ print(response.json())</code></pre>
                 return f"""import requests
 
     response = requests.get(
-        "http://127.0.0.1:8000{example_path}",
+        "http://127.0.0.1:7832{example_path}",
         timeout=900,
     )
 
@@ -3871,7 +3871,7 @@ print(response.json())</code></pre>
                 return f"""import requests
 
     response = requests.delete(
-        "http://127.0.0.1:8000{example_path}",
+        "http://127.0.0.1:7832{example_path}",
         timeout=900,
     )
 
@@ -3890,7 +3890,7 @@ print(response.json())</code></pre>
     files = []
 
     response = requests.post(
-        "http://127.0.0.1:8000{example_path}",
+        "http://127.0.0.1:7832{example_path}",
         data=data,
         files=files,
         timeout=900,
@@ -3906,7 +3906,7 @@ print(response.json())</code></pre>
             return f"""import requests
 
     response = requests.{normalized_method}(
-        "http://127.0.0.1:8000{example_path}",
+        "http://127.0.0.1:7832{example_path}",
         json={payload},
         timeout=900,
     )

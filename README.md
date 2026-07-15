@@ -339,13 +339,13 @@ uvicorn app.main:app --reload
 Backend URL:
 
 ```
-http://127.0.0.1:8000
+http://127.0.0.1:7832
 ```
 
 Swagger API docs:
 
 ```
-http://127.0.0.1:8000/docs
+http://127.0.0.1:7832/docs
 ```
 
 ### 5. Start the Streamlit UI
@@ -359,7 +359,7 @@ streamlit run ui/streamlit_app.py
 Streamlit usually opens at:
 
 ```
-http://localhost:8501
+http://localhost:7833
 ```
 
 ---

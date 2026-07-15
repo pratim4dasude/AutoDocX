@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from dotenv import load_dotenv
 
+from app.core.config import ENV_FILE_PATH
 from app.api.project_routes import router as project_router
 
 
@@ -30,3 +32,12 @@ def health_check() -> dict[str, str]:
     return {
         "status": "healthy"
     }
+
+
+@app.post(
+    "/api/config/reload",
+    tags=["Config"],
+)
+def reload_config() -> dict[str, str]:
+    load_dotenv(dotenv_path=ENV_FILE_PATH, override=True)
+    return {"status": "reloaded"}
