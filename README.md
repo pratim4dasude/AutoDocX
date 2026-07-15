@@ -47,7 +47,7 @@ actually does, not what someone intended it to do six months ago.
 
 ## Installation
 
-> **Requirements:** Windows 10/11, internet connection (first run only),
+> **Requirements:** Windows 10/11 or macOS, internet connection (first run only),
 > an OpenAI or Anthropic API key.
 
 ### Step 1 — Download the repository
@@ -62,34 +62,41 @@ Or click **Code → Download ZIP** on GitHub, then extract.
 
 ---
 
-### Step 2 — Run AutoDocX.bat
+### Step 2 — Run the launcher
 
-Double-click `AutoDocX.bat` in the root folder.
+**Windows** — double-click `AutoDocX.bat` in the root folder.
+
+**macOS** — open Terminal, navigate to the folder, and run:
+```bash
+chmod +x AutoDocX_for_mac.sh mac/*.sh   # only needed once after download
+bash AutoDocX_for_mac.sh
+```
 
 **What happens on first run:**
 
 ```
-AutoDocX.bat
-    |
-    +--> Detects no Python runtime
-    |
-    +--> Downloads Python 3.11 embedded (no installer, ~25 MB)
-    |
-    +--> Installs all required packages into the private runtime
-    |         (FastAPI, Streamlit, OpenAI, Anthropic, and others)
-    |
-    +--> Creates a .env file from the built-in template
-    |
-    +--> Starts the backend  (port 7832)
-    +--> Starts the frontend (port 7833)
-    |
-    +--> Opens your browser automatically
+Windows: AutoDocX.bat              macOS: AutoDocX_for_mac.sh
+    |                                  |
+    +--> Detects no Python runtime     +--> Detects no Python venv
+    |                                  |
+    +--> Downloads Python 3.11         +--> Finds your system Python 3.10+
+    |    embedded (~25 MB)             |    Creates a private venv
+    |                                  |
+    +--> Installs all packages         +--> Installs all packages
+    |    (FastAPI, Streamlit, etc.)    |    (FastAPI, Streamlit, etc.)
+    |                                  |
+    +--> Creates .env from template    +--> Creates .env from template
+    |                                  |
+    +--> Starts backend  (port 7832)   +--> Starts backend  (port 7832)
+    +--> Starts frontend (port 7833)   +--> Starts frontend (port 7833)
+    |                                  |
+    +--> Opens browser automatically   +--> Opens browser automatically
 ```
 
 First-run setup takes about 2 minutes. After that, every launch is instant.
 
-**Nothing is installed on your system.** No Python is added to PATH, no
-global packages are touched. Everything lives inside the AutoDocX folder.
+**Nothing is installed on your system.** No global Python, no PATH changes,
+no system packages touched. Everything lives inside the AutoDocX folder.
 
 ---
 
@@ -132,6 +139,11 @@ Paste the full path to the Python project you want to document.
 C:\Users\YourName\PycharmProjects\MyProject
 ```
 
+**macOS example:**
+```
+/Users/YourName/Projects/MyProject
+```
+
 **What to paste:** the root folder of your project — the one that contains
 your `main.py`, `app/`, or whatever your entry point is. AutoDocX will walk
 the entire folder tree from there.
@@ -157,7 +169,7 @@ You can add one or more context blocks. Each block has:
 
 - **Title** — label for this piece of context (e.g. "Login flow screenshot")
 - **Notes** — anything you want the LLM to know about this context
-- **Screenshot** — paste a screenshot using `Win + Shift + S` then `Ctrl + V`
+- **Screenshot** — paste a screenshot using `Win + Shift + S` (Windows) or `Cmd + Shift + 4` (macOS), then `Ctrl + V` / `Cmd + V`
 
 AutoDocX sends these to a vision-capable LLM and embeds the descriptions
 into the generated HTML alongside the code analysis.
@@ -408,6 +420,7 @@ project_path, context_blocks_json, screenshots[]
 | Output format | Self-contained versioned HTML |
 | Storage | Local JSON + HTML on the file system |
 | Windows launcher | Batch + PowerShell (no admin rights required) |
+| macOS launcher | Bash shell scripts (no admin rights required) |
 
 ---
 
