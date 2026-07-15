@@ -1,519 +1,436 @@
+<div align="center">
+
 # AutoDocX
 
-AutoDocX is a local documentation automation tool for Python projects. It scans a codebase, understands the source structure, detects what changed, and generates clean versioned HTML documentation that stays close to the real implementation.
-> The idea is simple: developers should not need to manually rewrite documentation every time the code changes. AutoDocX turns the current project state into readable developer documentation and keeps a history of generated versions.
+### Stop writing documentation. Start shipping code.
 
-> It is built as a local FastAPI + Streamlit system where the user provides a project path, triggers a documentation sync, and receives an updated HTML document for the project.
+AutoDocX automatically scans your Python project, understands it with AI,
+and generates professional versioned HTML documentation — every time your
+code changes, in one click.
+
+**No manual writing. No configuration. No outdated docs.**
+
+</div>
 
 ---
 
-## What it can do
+<div align="center">
 
-| Capability | Behaviour |
+![Python](https://img.shields.io/badge/Python-3.11-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-backend-green)
+![Streamlit](https://img.shields.io/badge/Streamlit-UI-red)
+![OpenAI](https://img.shields.io/badge/LLM-OpenAI%20%7C%20Anthropic-purple)
+![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey)
+
+</div>
+
+---
+
+## The problem AutoDocX solves
+
+Every developer knows the cycle: code changes fast, documentation doesn't.
+Within weeks of a project starting, the docs are wrong. Functions are renamed,
+routes are added, architecture shifts — and nobody updates the README.
+
+AutoDocX breaks that cycle by generating documentation directly from the
+codebase on every sync. The docs are always a reflection of what the code
+actually does, not what someone intended it to do six months ago.
+
+---
+
+## What it does
+
+| Capability | Description |
 |---|---|
-| Scan a project | Reads files, folders, file types, sizes, and project metadata |
-| Understand Python code | Extracts modules, imports, classes, functions, and main entry points |
-| Explain main flows | Describes what important functions do and what they call |
-| Detect changes | Compares the latest project state with the previous documented state |
-| Update documentation | Regenerates documentation based on current code changes |
-| Preserve versions | Saves previous documentation versions instead of overwriting history |
-| Provide a UI | Lets users run the documentation sync from a Streamlit interface |
-| Expose APIs | Uses FastAPI endpoints for scan and documentation sync workflows |
+| Scans your project | Reads every file, extracts structure, calculates change signatures |
+| Understands Python code | Parses classes, functions, routes, imports and dependencies via AST |
+| Calls an LLM | Generates human-readable summaries, flow explanations and risk notes |
+| Detects changes | Compares current state to last documented state using file hashes |
+| Generates HTML docs | Produces a self-contained HTML file with navigation, TOC and API reference |
+| Keeps version history | Every sync is saved — older versions are never overwritten |
+| Accepts screenshots | Paste runtime screenshots directly into context blocks for richer docs |
 
 ---
 
-## Why AutoDocX
+## Installation
 
-Most project documentation becomes outdated because code changes faster than docs. This creates problems during handovers, onboarding, debugging, and reviews.
+> **Requirements:** Windows 10/11, internet connection (first run only),
+> an OpenAI or Anthropic API key.
 
-AutoDocX helps solve this by generating documentation directly from the codebase.
+### Step 1 — Download the repository
 
-It is useful for:
+Clone or download this repository as a ZIP and extract it anywhere on your machine.
 
-- Understanding an unfamiliar project
-- Creating internal developer documentation
-- Explaining project flow to teammates or seniors
-- Keeping documentation updated as the project changes
-- Preparing clean project demos
-- Maintaining a version history of generated docs
-- Reducing manual documentation effort
+```
+git clone https://github.com/yourname/AutoDocX.git
+```
+
+Or click **Code → Download ZIP** on GitHub, then extract.
+
+---
+
+### Step 2 — Run AutoDocX.bat
+
+Double-click `AutoDocX.bat` in the root folder.
+
+**What happens on first run:**
+
+```
+AutoDocX.bat
+    |
+    +--> Detects no Python runtime
+    |
+    +--> Downloads Python 3.11 embedded (no installer, ~25 MB)
+    |
+    +--> Installs all required packages into the private runtime
+    |         (FastAPI, Streamlit, OpenAI, Anthropic, and others)
+    |
+    +--> Creates a .env file from the built-in template
+    |
+    +--> Starts the backend  (port 7832)
+    +--> Starts the frontend (port 7833)
+    |
+    +--> Opens your browser automatically
+```
+
+First-run setup takes about 2 minutes. After that, every launch is instant.
+
+**Nothing is installed on your system.** No Python is added to PATH, no
+global packages are touched. Everything lives inside the AutoDocX folder.
+
+---
+
+### Step 3 — Enter your API key
+
+The browser opens to a setup screen on first launch. Paste your API key and
+select your provider (OpenAI or Anthropic). AutoDocX saves it to `.env`
+and never asks again.
+
+```
+OpenAI   : https://platform.openai.com/api-keys
+Anthropic: https://console.anthropic.com/settings/keys
+```
+
+---
+
+### Step 4 — Point it at your project
+
+Paste the path to any Python project folder into the input field and click
+**Create Documentation**. AutoDocX scans the code, calls the LLM, and
+generates a full HTML document.
+
+---
+
+## Using the UI
+
+Once AutoDocX opens in your browser (`http://localhost:7833`), here is what
+you will see and what each part does.
+
+---
+
+### Project path input
+
+At the top of the page there is a text input labelled **Project Path**.
+
+Paste the full path to the Python project you want to document.
+
+**Windows example:**
+```
+C:\Users\YourName\PycharmProjects\MyProject
+```
+
+**What to paste:** the root folder of your project — the one that contains
+your `main.py`, `app/`, or whatever your entry point is. AutoDocX will walk
+the entire folder tree from there.
+
+---
+
+### Buttons
+
+| Button | What it does |
+|---|---|
+| **Create Documentation** | Runs a full scan + LLM analysis + generates a new HTML document. Use this the first time or after major changes. |
+| **Sync Documentation** | Re-scans and only regenerates docs for files that changed since the last run. Faster than a full create. |
+| **View Latest Document** | Opens the most recently generated HTML file directly in the browser. |
+
+---
+
+### Context blocks (optional — for richer docs)
+
+Below the main buttons you will find the **Runtime Context** section.
+This is optional but adds a second layer of detail to your documentation.
+
+You can add one or more context blocks. Each block has:
+
+- **Title** — label for this piece of context (e.g. "Login flow screenshot")
+- **Notes** — anything you want the LLM to know about this context
+- **Screenshot** — paste a screenshot using `Win + Shift + S` then `Ctrl + V`
+
+AutoDocX sends these to a vision-capable LLM and embeds the descriptions
+into the generated HTML alongside the code analysis.
+
+Use **Add Context Block** to add more blocks, and **Remove** to delete one.
+
+---
+
+### Sidebar
+
+The sidebar on the left shows:
+
+- Current backend status (connected / not connected)
+- Backend URL (`http://127.0.0.1:7832`)
+- Links to the API docs (`/docs`) for direct API access
+- Previously generated documents for the current project (click any to open)
+
+---
+
+### Screenshots
+
+**1. API key setup — first launch only**
+
+![Setup screen](screenshots/img_1.png)
+
+Enter your OpenAI or Anthropic API key and click **Save API Key**.
+AutoDocX writes it to `.env` and loads the main UI immediately.
+This screen only appears once — it won't show again on future launches.
+
+---
+
+**2. Main UI — paste your project path here**
+
+![Main UI](screenshots/img_2.png)
+
+Paste the full path to your Python project into the **Project Path** field at
+the top. Then use one of the three buttons:
+
+- **Create Documentation** — full scan from scratch, use this the first time
+- **Sync Documentation** — only re-processes files that changed, much faster
+- **View Latest Document** — opens the most recent generated HTML in your browser
+
+The sidebar on the left shows connection status and links to previous documents.
+
+---
+
+**3. Adding runtime context (optional)**
+
+![Context blocks](screenshots/img_3.png)
+
+Scroll down to find the **Runtime Context** section. Click **Add Context Block**
+to attach a title, notes, and a screenshot from your running application.
+AutoDocX passes these to a vision LLM and adds the descriptions to the generated docs.
+Use `Win + Shift + S` to capture, then Click on  `📋 Paste screenshot for block ...` to paste directly into the block.
+
+---
+
+**4. Generated HTML document**
+
+![Generated doc](screenshots/img_4.png)
+
+The output opens in your browser as a standalone HTML file — no server needed.
+It includes a navigation sidebar, table of contents, module summaries, function
+signatures, and a change log showing exactly what was added or modified since
+the last sync.
+
+---
+
+## Where your documentation lives
+
+Every document AutoDocX generates is saved as a standalone HTML file:
+
+```
+AutoDocX/
+  workspace/
+    documents/
+      YourProjectName/
+        abc123de.html          <-- open this in any browser
+        def456ab.html          <-- older version, still there
+        metadata/
+          abc123de.json
+```
+
+To view a document: open the HTML file in any browser — no server needed,
+no internet connection needed. The file is fully self-contained with
+navigation, table of contents, and code references all embedded.
+
+Each sync creates a **new versioned file**. Old versions are never deleted,
+so you can compare docs across time just by opening different HTML files.
 
 ---
 
 ## Architecture
 
-```text
-                              +----------------------+
-                              |      Developer       |
-                              |  Project path + sync |
-                              +----------+-----------+
-                                         |
-                                         v
-+--------------------------------------------------------------------------------+
-|                               Interface Layer                                  |
-|                                                                                |
-|   +------------------+        +------------------+        +------------------+ |
-|   |  Streamlit UI    | -----> |  API Client      | -----> |  Status Viewer   | |
-|   +------------------+        +------------------+        +------------------+ |
-+----------------------------------------+---------------------------------------+
-                                         |
-                                         v
-+--------------------------------------------------------------------------------+
-|                                  API Layer                                     |
-|                                                                                |
-|   +------------------+        +------------------+        +------------------+ |
-|   |  FastAPI App     | -----> |  Sync Endpoint   | -----> |  Error Handler   | |
-|   +------------------+        +------------------+        +------------------+ |
-+----------------------------------------+---------------------------------------+
-                                         |
-                                         v
-+--------------------------------------------------------------------------------+
-|                              Sync Orchestration                                |
-|                                                                                |
-|   +------------------+        +------------------+        +------------------+ |
-|   | Path Validator   | -----> | Sync Controller  | -----> | Result Builder   | |
-|   +------------------+        +------------------+        +------------------+ |
-+----------------------------------------+---------------------------------------+
-                                         |
-                                         v
-+--------------------------------------------------------------------------------+
-|                              Code Intelligence                                 |
-|                                                                                |
-|   +------------------+        +------------------+        +------------------+ |
-|   | Project Scanner  | -----> | Python Analyzer  | -----> | Flow Extractor   | |
-|   +------------------+        +------------------+        +------------------+ |
-|            |                         |                          |              |
-|            v                         v                          v              |
-|   +------------------+        +------------------+        +------------------+ |
-|   | File Metadata    |        | Classes/Functions|        | Main Call Flow   | |
-|   +------------------+        +------------------+        +------------------+ |
-+----------------------------------------+---------------------------------------+
-                                         |
-                                         v
-+--------------------------------------------------------------------------------+
-|                              Change Intelligence                               |
-|                                                                                |
-|   +------------------+        +------------------+        +------------------+ |
-|   | Previous State   | -----> | Change Detector  | -----> | Changed File Set | |
-|   +------------------+        +------------------+        +------------------+ |
-+----------------------------------------+---------------------------------------+
-                                         |
-                                         v
-+--------------------------------------------------------------------------------+
-|                            Documentation Engine                                |
-|                                                                                |
-|   +------------------+        +------------------+        +----------------+   |
-|   | Project Summary  | -----> | Module Docs      | -----> | Function Docs  |   |
-|   +------------------+        +------------------+        +----------------+   |
-|                                                                  |             |
-|                                                                  v             |
-|                                                       +------------------+     |
-|                                                       | HTML Generator   |     |
-|                                                       +------------------+     |
-+----------------------------------------+---------------------------------------+
-                                         |
-                                         v
-+--------------------------------------------------------------------------------+
-|                              Output Layer                                      |
-|                                                                                |
-|   +------------------+        +------------------+        +------------------+ |
-|   | latest.html      |        | Versioned Docs   |        | project_state    | |
-|   +------------------+        +------------------+        +------------------+ |
-+--------------------------------------------------------------------------------+
+```
++-----------------------------------------------------------------------+
+|                            AutoDocX.bat                               |
+|                    The only file the user touches                     |
++-----------------------------------+-----------------------------------+
+                                    |
+                                    | invokes
+                                    v
++-----------------------------------------------------------------------+
+|                      scripts/run_autodocx.ps1                         |
+|                 Lifecycle manager: install, start, stop               |
++------------------+----------------------------------------------------+
+                   |
+       +-----------+------------+
+       |                        |
+  first run only            every run
+       v                        v
++------+----------+    +--------+-----------------------------------------+
+| setup_runtime   |    |                Start both servers                |
+| .ps1            |    |                                                  |
+|                 |    |   +--------------------+  +------------------+   |
+| Downloads       |    |   |   FastAPI Backend  |  |  Streamlit UI    |   |
+| Python 3.11     |    |   |   port 7832        |  |  port 7833       |   |
+| embedded        |    |   |   /api/projects/.. |  |  browser-based   |   |
+|                 |    |   +--------+-----------+  +--------+---------+   |
+| Installs all    |    |            |                       |             |
+| packages from   |    |            | REST API calls        | user input  |
+| requirements    |    +------------+-----------------------+-------------+
+| .txt            |                 |
++-----------------+                 v
+                     +----------------------------------------------+
+                     |         Documentation Pipeline               |
+                     |                                              |
+                     |  [1] ProjectScanner                          |
+                     |      Walk files, SHA-256 hash, metadata      |
+                     |             |                                |
+                     |             v                                |
+                     |  [2] PythonCodeParser                        |
+                     |      AST: functions, classes, routes,        |
+                     |      imports, decorators, docstrings         |
+                     |             |                                |
+                     |             v                                |
+                     |  [3] ProjectAnalyzer                         |
+                     |      Module map, internal dependencies,      |
+                     |      FastAPI route discovery                 |
+                     |             |                                |
+                     |             v                                |
+                     |  [4] ScanComparator                          |
+                     |      Diff vs previous scan                   |
+                     |      |                                       |
+                     |      +-- unchanged --> return existing doc   |
+                     |      |                                       |
+                     |      v  changes found                        |
+                     |  [5] LLM Provider  (OpenAI / Anthropic)      |
+                     |      Summaries, flow explanations,           |
+                     |      risk notes  (narrative only)            |
+                     |             |                                |
+                     |             v                                |
+                     |  [6] DocumentBuilder                         |
+                     |      HTML: navigation, TOC, API cards,       |
+                     |      function signatures, version links      |
+                     |             |                                |
+                     |             v                                |
+                     |  [7] DocumentStorage                         |
+                     |      workspace/documents/ProjectName/        |
+                     |      Versioned HTML + metadata JSON          |
+                     +----------------------------------------------+
 ```
 
-## How it works
+---
 
-AutoDocX runs a documentation sync pipeline whenever the user provides a project path.
+## How the LLM is used
 
-### 1. Project path input
+AutoDocX is designed so the LLM never invents code details.
 
-The developer enters a local project directory in the Streamlit UI.
+The **AST parser owns all facts** — function signatures, class names, route
+paths, parameter types, return annotations. These are extracted directly from
+the Python source and injected into the HTML unchanged.
 
-Example:
+The **LLM owns the narrative** — plain-English summaries, flow explanations,
+architecture descriptions, and risk observations. It is only asked to write
+the parts a developer would normally write by hand.
 
-```
-C:\Users\YourName\PycharmProjects\AutoDocX
-```
+Both layers are merged before the HTML is generated. This means the
+documentation is accurate by construction, not by luck.
 
-The UI sends the path to the FastAPI backend.
+---
 
-### 2. Request validation
+## Runtime context and screenshots
 
-The backend validates the incoming request before running the sync.
+AutoDocX supports an optional layer of runtime documentation alongside the
+code analysis. In the Streamlit interface, you can create ordered context
+blocks — each with a title, notes, and a pasted screenshot from
+Win + Shift + S.
 
-It checks:
+These blocks are sent to a vision-capable LLM which describes what is running,
+what tools are in use, and what the screenshots reveal about runtime behaviour.
+The result is embedded directly into the generated HTML alongside the
+code-level documentation.
 
-- Whether the project path exists
-- Whether the path is a directory
-- Whether the backend can access the folder
-- Whether the request body is valid
+---
 
-This prevents the pipeline from running on invalid input.
+## Configuration
 
-### 3. Project scanning
+The `.env` file is created automatically on first run. The setup screen
+in the browser guides you through adding your API key. You never need to
+touch it manually unless you want to change the provider or model.
 
-The scanner walks through the project directory and collects basic project metadata.
+```env
+LLM_PROVIDER=openai              # openai or anthropic
 
-It reads:
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini         # optional, this is the default
 
-- Project name
-- Project path
-- Total files
-- Total directories
-- File extensions
-- File sizes
-- Source files
-- Ignored files and folders
-
-The scanner skips unnecessary folders such as:
-
-```
-.venv
-venv
-__pycache__
-.git
-node_modules
-dist
-build
-.idea
-.vscode
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-sonnet-4-20250514
 ```
 
-This keeps the documentation focused on the actual source code.
+---
 
-### 4. Code analysis
+## REST API
 
-The analyzer reads Python files and extracts code-level structure.
+The FastAPI backend runs at `http://127.0.0.1:7832` with interactive
+docs at `http://127.0.0.1:7832/docs`.
 
-It identifies:
-
-- Modules
-- Imports
-- Classes
-- Functions
-- Main functions
-- Function signatures
-- Module responsibilities
-- Function-level purpose
-- Function call relationships where available
-
-This is the layer that turns raw files into useful developer information.
-
-### 5. Project knowledge building
-
-The project knowledge builder converts scan and analysis results into structured documentation-ready context.
-
-It prepares:
-
-- Project overview
-- Module summaries
-- Important functions
-- Main execution flow explanations
-- Developer-readable descriptions
-- Code responsibility mapping
-
-This step makes the output more useful than a simple file listing.
-
-### 6. Change detection
-
-AutoDocX stores the previous project state and compares it with the latest scan.
-
-It detects:
-
-- Added files
-- Modified files
-- Deleted files
-- Unchanged files
-
-This allows AutoDocX to understand what changed between documentation runs.
-
-### 7. Documentation generation
-
-The documentation builder creates the final HTML documentation.
-
-The generated documentation can include:
-
-- Project summary
-- Project statistics
-- Module descriptions
-- Function explanations
-- Main flow details
-- Changed files summary
-- Version information
-- Developer notes
-
-### 8. Versioned output
-
-AutoDocX saves the latest documentation while also preserving previous versions.
-
-This makes it possible to track how documentation changes as the project evolves.
-
-Example:
-
+**Full documentation sync (recommended):**
 ```
-docs_output/
-├── latest.html
-├── versions/
-│   ├── AutoDocX_v1.html
-│   ├── AutoDocX_v2.html
-│   └── AutoDocX_v3.html
-└── metadata/
-    └── project_state.json
+POST /api/projects/documentation/sync
+Content-Type: application/json
+
+{ "project_path": "C:\\Users\\Name\\Projects\\MyProject" }
+```
+
+**Sync with runtime context and screenshots:**
+```
+POST /api/projects/documentation/sync-with-context
+Content-Type: multipart/form-data
+
+project_path, context_blocks_json, screenshots[]
 ```
 
 ---
 
 ## Technology
 
-| Tool | Role |
+| Layer | Technology |
 |---|---|
-| Python | Core programming language |
-| FastAPI | Backend API layer |
-| Streamlit | Local user interface |
-| Uvicorn | ASGI server for running FastAPI |
-| Python AST | Source code parsing and analysis |
-| HTML | Final documentation output format |
-| JSON | Project state and metadata storage |
-| Local file system | Documentation output and version storage |
+| Language | Python 3.11 |
+| Backend framework | FastAPI + Uvicorn |
+| Browser interface | Streamlit |
+| Code analysis | Python AST (zero LLM for facts) |
+| LLM providers | OpenAI GPT, Anthropic Claude |
+| Runtime | Python 3.11 embedded — no system Python needed |
+| Output format | Self-contained versioned HTML |
+| Storage | Local JSON + HTML on the file system |
+| Windows launcher | Batch + PowerShell (no admin rights required) |
 
 ---
 
-## Getting started
+## Planned features
 
-### Prerequisites
-
-Make sure you have:
-
-- Python 3.10+
-- pip
-- Git
-- PowerShell, Command Prompt, or terminal
-- A browser for Streamlit and generated HTML docs
-
-### 1. Clone the repository
-
-```bash
-git clone <your-repository-url>
-cd AutoDocX
-```
-
-### 2. Create a virtual environment
-
-**Windows PowerShell**
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-**macOS / Linux**
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-After activation, your terminal should show the virtual environment name.
-
-Example:
-
-```
-(.venv) PS C:\Users\YourName\PycharmProjects\AutoDocX>
-```
-
-### 3. Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Start the FastAPI backend
-
-Run this from the project root:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-Backend URL:
-
-```
-http://127.0.0.1:7832
-```
-
-Swagger API docs:
-
-```
-http://127.0.0.1:7832/docs
-```
-
-### 5. Start the Streamlit UI
-
-Open a second terminal, activate the virtual environment again, and run:
-
-```bash
-streamlit run ui/streamlit_app.py
-```
-
-Streamlit usually opens at:
-
-```
-http://localhost:7833
-```
-
----
-
-## API usage
-
-### Sync project documentation
-
-```
-POST /api/projects/documentation/sync
-```
-
-This endpoint scans the given project path, analyzes the code, detects changes, and generates or updates documentation.
-
-**Request body**
-
-```json
-{
-  "project_path": "C:\\Users\\YourName\\PycharmProjects\\AutoDocX"
-}
-```
-
-**Example success response**
-
-```json
-{
-  "status": "success",
-  "message": "Documentation synced successfully.",
-  "project_name": "AutoDocX",
-  "documentation_path": "docs_output/latest.html",
-  "changed_files": 2,
-  "version": "v4"
-}
-```
-
-**Example error response**
-
-```json
-{
-  "status": "error",
-  "message": "Invalid project path. The provided directory does not exist."
-}
-```
-
----
-
-## Running a complete demo
-
-Use this flow when presenting the project:
-
-1. Start the FastAPI backend.
-2. Start the Streamlit UI.
-3. Enter the AutoDocX project path.
-4. Run documentation sync.
-5. Open the generated `latest.html`.
-6. Show the project overview and module explanations.
-7. Modify one Python file.
-8. Run sync again.
-9. Show that AutoDocX detects the changed file.
-10. Open the latest documentation.
-11. Show that older versions are still preserved.
-
----
-
-## Example workflow
-
-```
-Developer enters project path
-        ↓
-AutoDocX scans files and folders
-        ↓
-Python files are analyzed
-        ↓
-Functions, classes, imports, and entry points are extracted
-        ↓
-Current project state is compared with previous state
-        ↓
-Changed files are identified
-        ↓
-HTML documentation is generated
-        ↓
-Latest documentation and version history are saved
-```
-
----
-
-## Output
-
-AutoDocX generates local HTML documentation.
-
-Typical output:
-
-```
-docs_output/
-├── latest.html
-├── versions/
-│   ├── AutoDocX_v1.html
-│   ├── AutoDocX_v2.html
-│   └── AutoDocX_v3.html
-└── metadata/
-    └── project_state.json
-```
-
-### Output files
-
-| File | Purpose |
-|---|---|
-| `latest.html` | Most recent generated documentation |
-| `versions/` | Previous documentation versions |
-| `project_state.json` | Saved project snapshot used for change detection |
-| `metadata/` | Supporting sync and version metadata |
-
----
-
-## Current status
-
-AutoDocX currently supports the core local documentation workflow.
-
-**Completed:**
-
-- Local project scanning
-- Python code analysis
-- Function and class extraction
-- Main function explanation
-- Documentation sync API
-- Streamlit UI
-- HTML documentation generation
-- Changed-file detection
-- Documentation versioning
-
-**Planned:**
-
-- Unit tests for core modules
-- Better function call graph generation
-- Markdown export
-- PDF export
+- Markdown and PDF export
 - Git-based change detection
-- Docker support
-- CI/CD documentation generation
 - Multi-project dashboard
-- LLM-based explanation refinement
+- Docker support
+- Support for JavaScript and TypeScript projects
+- CI/CD integration for automated documentation on push
 
 ---
 
-## Engineering approach
+<div align="center">
 
-AutoDocX is designed as a modular pipeline. Each layer has a focused responsibility:
+Built for developers who write code, not documentation.
 
-- The UI handles user interaction.
-- The API handles requests and responses.
-- The scanner handles file discovery.
-- The analyzer handles code understanding.
-- The sync engine coordinates the pipeline.
-- The documentation builder creates the final output.
-- The state store handles change tracking and versioning.
-
-This separation makes the project easier to debug, extend, and test.
+</div>
