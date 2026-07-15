@@ -1,18 +1,12 @@
 <div align="center">
 
-# AutoDocX
+# AutoDocX 
+### *Stop writing documentation. Start shipping code.*
 
-### Stop writing documentation. Start shipping code.
-
-AutoDocX automatically scans your Python project, understands it with AI,
-and generates professional versioned HTML documentation — every time your
-code changes, in one click.
-
-**No manual writing. No configuration. No outdated docs.**
+**Scan Code** • **AI Analysis** • **One-Click HTML Docs**
 
 </div>
 
----
 
 <div align="center">
 
@@ -20,7 +14,6 @@ code changes, in one click.
 ![FastAPI](https://img.shields.io/badge/FastAPI-backend-green)
 ![Streamlit](https://img.shields.io/badge/Streamlit-UI-red)
 ![OpenAI](https://img.shields.io/badge/LLM-OpenAI%20%7C%20Anthropic-purple)
-![Windows](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
 </div>
 
@@ -30,7 +23,7 @@ code changes, in one click.
 
 Every developer knows the cycle: code changes fast, documentation doesn't.
 Within weeks of a project starting, the docs are wrong. Functions are renamed,
-routes are added, architecture shifts — and nobody updates the README.
+routes are added, architecture shifts  and nobody updates the README.
 
 AutoDocX breaks that cycle by generating documentation directly from the
 codebase on every sync. The docs are always a reflection of what the code
