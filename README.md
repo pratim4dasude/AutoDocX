@@ -424,16 +424,7 @@ project_path, context_blocks_json, screenshots[]
 
 ---
 
-## Planned features
 
-- Markdown and PDF export
-- Git-based change detection
-- Multi-project dashboard
-- Docker support
-- Support for JavaScript and TypeScript projects
-- CI/CD integration for automated documentation on push
-
----
 
 <div align="center">
 
